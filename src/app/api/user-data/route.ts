@@ -21,6 +21,31 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
     }
 
+    return await getUserData(userId);
+  } catch (error) {
+    console.error('GET API error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const { userId } = body;
+    
+    if (!userId) {
+      return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
+    }
+
+    return await getUserData(userId);
+  } catch (error) {
+    console.error('POST API error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+async function getUserData(userId: string) {
+  try {
     // ユーザー情報を取得
     const { data: user, error: userError } = await supabaseAdmin
       .from('users')
@@ -65,13 +90,9 @@ export async function GET(request: Request) {
       console.warn('Invoice payments fetch error:', invoicesError);
     }
 
-    return NextResponse.json({
-      user,
-      expenses: expenses || [],
-      invoicePayments: invoicePayments || []
-    });
+    return NextResponse.json(user);
   } catch (error) {
-    console.error('API error:', error);
+    console.error('getUserData error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -15,6 +15,7 @@ interface AuthContextType {
   isManager: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -98,12 +99,16 @@ const login = async (email: string, password: string) => {
           localStorage.setItem('currentUserId', userData.id);
         }
       } else {
-        console.warn('ユーザーデータ取得失敗、一時的なユーザー情報を使用');
+        console.warn('ユーザーデータ取得失敗、再試行中...');
+        // より詳細なエラー情報を取得
+        const errorText = await response.text();
+        console.error('API response error:', response.status, errorText);
+        
         // フォールバック: 一時的なユーザー情報を使用
         const tempUser: User = {
           id: authData.user.id,
           email: authData.user.email || '',
-          name: 'ユーザー', // 一時的にデフォルト名
+          name: authData.user.user_metadata?.name || authData.user.email?.split('@')[0] || 'ユーザー',
           role: 'user' as const,
           department_id: null,
           initial_password: null,
@@ -152,6 +157,38 @@ const login = async (email: string, password: string) => {
   }
 };
 
+  const refreshUser = async () => {
+    if (!user?.id) return;
+    
+    setLoading(true);
+    try {
+      const response = await fetch('/api/user-data', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId: user.id }),
+      });
+
+      if (response.ok) {
+        const userData = await response.json();
+        console.log('ユーザーデータリフレッシュ成功:', userData);
+        
+        setUser(userData);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('currentUser', JSON.stringify(userData));
+          localStorage.setItem('currentUserId', userData.id);
+        }
+      } else {
+        console.error('ユーザーデータリフレッシュ失敗');
+      }
+    } catch (error) {
+      console.error('ユーザーデータリフレッシュエラー:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const logout = () => {
     setUser(null);
     // ローカルストレージからユーザー情報を削除
@@ -173,6 +210,7 @@ const login = async (email: string, password: string) => {
     isManager,
     login,
     logout,
+    refreshUser,
   };
 
   return (
