@@ -78,7 +78,7 @@ interface MasterDataState {
   loadDataFromAPI: () => Promise<void>;
 }
 
-import { categoryService, projectService, departmentService } from './database';
+import { categoryService, projectService, departmentService, eventService } from './database';
 
 interface ExpenseState {
   expenses: Expense[];
@@ -95,11 +95,15 @@ interface ExpenseState {
 
 interface EventState {
   events: Event[];
+  isLoaded: boolean;
+  setEvents: (events: Event[]) => void;
+  setLoaded: (loaded: boolean) => void;
   addEvent: (event: Event) => void;
   updateEvent: (id: string, event: Event) => void;
   deleteEvent: (id: string) => void;
   getActiveEvents: () => Event[];
   getEventById: (id: string) => Event | undefined;
+  loadEventsFromAPI: () => Promise<void>;
 }
 
 export const useExpenseStore = create<ExpenseState>()((
@@ -158,6 +162,9 @@ export const useEventStore = create<EventState>()((
   persist(
     (set, get) => ({
       events: [],
+      isLoaded: false,
+      setEvents: (events) => set({ events }),
+      setLoaded: (loaded) => set({ isLoaded: loaded }),
       addEvent: (event) => set((state) => ({
         events: [...state.events, event]
       })),
@@ -176,6 +183,22 @@ export const useEventStore = create<EventState>()((
       getEventById: (id) => {
         const state = get();
         return state.events.find(evt => evt.id === id);
+      },
+      loadEventsFromAPI: async () => {
+        try {
+          const events = await eventService.getEvents();
+          set({ 
+            events, 
+            isLoaded: true 
+          });
+        } catch (error) {
+          console.error('Failed to load events from API:', error);
+          // データベースから読み込み失敗時は空の状態を維持
+          set({ 
+            events: [],
+            isLoaded: false
+          });
+        }
       },
     }),
     {
