@@ -62,27 +62,29 @@ export default function ReportsPage() {
 
   // Convert Zustand store data to Summary format
   const departments: Summary[] = deptData.map(d => {
-    const expenses = Math.floor(Math.random() * d.budget * 0.8); // Mock expenses
-    const summary = calculateSummary(d.budget || 0, expenses);
+    const budget = typeof d.budget === 'number' && !isNaN(d.budget) ? d.budget : 100000; // デフォルト予算
+    const expenses = Math.floor(Math.random() * budget * 0.8); // Mock expenses
+    const summary = calculateSummary(budget, expenses);
     return {
       id: d.id,
       name: d.name,
-      budget: d.budget || 0,
+      budget: budget,
       total_expenses: expenses,
-      remaining: (d.budget || 0) - expenses,
+      remaining: budget - expenses,
       ...summary
     };
   });
 
   const projects: Summary[] = projectData.map(p => {
-    const expenses = Math.floor(Math.random() * p.budget * 0.6); // Mock expenses
-    const summary = calculateSummary(p.budget || 0, expenses);
+    const budget = typeof p.budget === 'number' && !isNaN(p.budget) ? p.budget : 50000; // デフォルト予算
+    const expenses = Math.floor(Math.random() * budget * 0.6); // Mock expenses
+    const summary = calculateSummary(budget, expenses);
     return {
       id: p.id,
       name: p.name,
-      budget: p.budget || 0,
+      budget: budget,
       total_expenses: expenses,
-      remaining: (p.budget || 0) - expenses,
+      remaining: budget - expenses,
       ...summary
     };
   });
