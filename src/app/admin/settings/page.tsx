@@ -330,7 +330,7 @@ export default function SettingsPage() {
                       <div>
                         <h3 className="font-semibold">{department.name}</h3>
                         <p className="text-sm text-gray-500">
-                          予算: ¥{department.budget.toLocaleString()}
+                          予算: ¥{(department.budget || 0).toLocaleString()}
                         </p>
                       </div>
                       <div className="flex items-center space-x-2">
@@ -400,7 +400,7 @@ export default function SettingsPage() {
                           {event.start_date} - {event.end_date}
                         </p>
                         <p className="text-sm text-gray-500">
-                          予算: ¥{event.budget.toLocaleString()}
+                          予算: ¥{(event.budget || 0).toLocaleString()}
                         </p>
                         {event.description && (
                           <p className="text-sm text-gray-500">{event.description}</p>
@@ -548,7 +548,7 @@ export default function SettingsPage() {
                           {project.start_date} - {project.end_date || '予定なし'}
                         </p>
                         <p className="text-sm text-gray-500">
-                          予算: ¥{project.budget.toLocaleString()}
+                          予算: ¥{(project.budget || 0).toLocaleString()}
                         </p>
                         {project.description && (
                           <p className="text-sm text-gray-500">{project.description}</p>
@@ -1002,91 +1002,3 @@ function ProjectForm({ onSubmit, editingItem }: { onSubmit: (data: any) => void;
     </form>
   );
 }
-
-// プロジェクトフォーム
-function ProjectForm({ onSubmit, editingItem }: { onSubmit: (data: any) => void; editingItem: any }) {
-  const [formData, setFormData] = useState({
-    name: editingItem?.name || '',
-    description: editingItem?.description || '',
-    budget: editingItem?.budget || 0,
-    start_date: editingItem?.start_date || '',
-    end_date: editingItem?.end_date || '',
-    status: editingItem?.status || 'active'
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSubmit(formData);
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <Label htmlFor="project-name">プロジェクト名</Label>
-        <Input
-          id="project-name"
-          value={formData.name}
-          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-          required
-        />
-      </div>
-      <div>
-        <Label htmlFor="project-description">説明</Label>
-        <Textarea
-          id="project-description"
-          value={formData.description}
-          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-        />
-      </div>
-      <div>
-        <Label htmlFor="project-budget">予算</Label>
-        <Input
-          id="project-budget"
-          type="number"
-          value={formData.budget}
-          onChange={(e) => setFormData({ ...formData, budget: parseInt(e.target.value) || 0 })}
-          required
-        />
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="project-start">開始日</Label>
-          <Input
-            id="project-start"
-            type="date"
-            value={formData.start_date}
-            onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-            required
-          />
-        </div>
-        <div>
-          <Label htmlFor="project-end">終了日（予定）</Label>
-          <Input
-            id="project-end"
-            type="date"
-            value={formData.end_date}
-            onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-          />
-        </div>
-      </div>
-      <div>
-        <Label htmlFor="project-status">ステータス</Label>
-        <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="active">アクティブ</SelectItem>
-            <SelectItem value="completed">完了</SelectItem>
-            <SelectItem value="cancelled">キャンセル</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="flex justify-end space-x-2">
-        <Button type="submit">
-          {editingItem ? '更新' : '追加'}
-        </Button>
-      </div>
-    </form>
-  );
-} 
