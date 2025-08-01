@@ -45,21 +45,18 @@ export interface Database {
         Row: {
           id: string
           name: string
-          manager_id: string
           budget: number
           created_at: string
         }
         Insert: {
           id?: string
           name: string
-          manager_id: string
           budget?: number
           created_at?: string
         }
         Update: {
           id?: string
           name?: string
-          manager_id?: string
           budget?: number
           created_at?: string
         }

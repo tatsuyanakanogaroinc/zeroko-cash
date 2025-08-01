@@ -22,7 +22,6 @@ interface Project {
 interface Department {
   id: string;
   name: string;
-  manager_id: string;
   budget: number;
   created_at: string;
 }
