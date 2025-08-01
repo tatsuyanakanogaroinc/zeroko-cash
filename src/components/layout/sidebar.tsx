@@ -31,11 +31,6 @@ const userMenuItems = [
     icon: Plus,
   },
   {
-    title: '申請一覧',
-    href: '/expenses',
-    icon: List,
-  },
-  {
     title: '請求書払い申請',
     href: '/invoice-payments/new',
     icon: Receipt,
@@ -54,7 +49,7 @@ const userMenuItems = [
 
 const adminMenuItems = [
   {
-    title: '承認管理',
+    title: '申請管理',
     href: '/admin/approvals',
     icon: CheckCircle,
     adminOnly: true,

@@ -261,34 +261,6 @@ export default function DashboardPage() {
             </div>
           </CardContent>
         </Card>
-
-        {/* お知らせ */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <AlertCircle className="mr-2 h-5 w-5" />
-              お知らせ
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="flex items-start space-x-3">
-                <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
-                <div>
-                  <p className="text-sm font-medium">システムメンテナンスのお知らせ</p>
-                  <p className="text-xs text-gray-500">2024年1月20日（土）22:00-24:00</p>
-                </div>
-              </div>
-              <div className="flex items-start space-x-3">
-                <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
-                <div>
-                  <p className="text-sm font-medium">新しい機能が追加されました</p>
-                  <p className="text-xs text-gray-500">領収書の一括アップロード機能</p>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </MainLayout>
   );
