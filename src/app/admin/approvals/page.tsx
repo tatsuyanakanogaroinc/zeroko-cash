@@ -6,52 +6,86 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { CheckCircle, XCircle, Clock, Eye } from 'lucide-react';
-import { useMasterDataStore } from '@/lib/store';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { CheckCircle, XCircle, Clock, Eye, Edit, Trash2, Filter } from 'lucide-react';
+import { useMasterDataStore, useEventStore } from '@/lib/store';
 import { getApprovers } from '@/lib/approvers';
 import { ApproverSetting } from '@/lib/types';
 import { userService, expenseService, invoicePaymentService } from '@/lib/database';
 import { supabase } from '@/lib/auth';
+import { useAuth } from '@/contexts/AuthContext';
 
-interface ApprovalRequest {
+interface Application {
   id: string;
-  expense_id: string;
-  user_name: string;
+  user_id: string;
   description: string;
   amount: number;
   category_id: string;
   project_id?: string;
+  department_id?: string;
+  event_id?: string;
   event_name?: string;
   date: string;
   status: 'pending' | 'approved' | 'rejected';
   comments?: string;
-  department_id?: string; // 部門ID
-  event_id?: string; // イベントID
+  type: 'expense' | 'invoice';
+  payment_method: string;
+  created_at: string;
 }
 
 export default function ApprovalsPage() {
-  const [allApplications, setAllApplications] = useState<any[]>([]);
-
-  const [selectedRequest, setSelectedRequest] = useState<any | null>(null);
+  const [allApplications, setAllApplications] = useState<Application[]>([]);
+  const [filteredApplications, setFilteredApplications] = useState<Application[]>([]);
+  const [selectedRequest, setSelectedRequest] = useState<Application | null>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [isApprovalDialogOpen, setIsApprovalDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [comments, setComments] = useState('');
+  const [editForm, setEditForm] = useState<Partial<Application>>({});
   const [approvers, setApprovers] = useState<ApproverSetting[]>([]);
-  const [users, setUsers] = useState<any[]>([]); // ユーザー一覧も取得する想定
+  const [users, setUsers] = useState<any[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [currentUserRole, setCurrentUserRole] = useState<string>('user');
+  const [activeTab, setActiveTab] = useState('pending');
+  
+  // フィルター状態
+  const [filters, setFilters] = useState({
+    user: 'all',
+    department: 'all',
+    event: 'all',
+    project: 'all', 
+    category: 'all',
+    searchTerm: ''
+  });
 
-  const { categories, getProjectById } = useMasterDataStore();
+  const { user } = useAuth();
+  const { categories, departments, projects } = useMasterDataStore();
+  const { events } = useEventStore();
 
   useEffect(() => {
-    getApprovers().then(setApprovers).catch(console.error);
-    userService.getUsers().then(setUsers).catch(console.error);
-
-    // 統合データの取得
-    const fetchData = async () => {
+    const initializeData = async () => {
       try {
+        const [approversData, usersData] = await Promise.all([
+          getApprovers(),
+          userService.getUsers()
+        ]);
+        
+        setApprovers(approversData);
+        setUsers(usersData);
+        
+        // 現在のユーザー情報を取得
+        if (user) {
+          setCurrentUserId(user.id);
+          const currentUser = usersData.find(u => u.id === user.id);
+          setCurrentUserRole(currentUser?.role || 'user');
+        }
+
+        // 統合データの取得
         const [expenseData, invoiceData] = await Promise.all([
           expenseService.getExpenses(),
           invoicePaymentService.getInvoicePayments().catch(() => [])
@@ -60,21 +94,17 @@ export default function ApprovalsPage() {
         // 経費申請データの正規化
         const normalizedExpenses = expenseData.map(expense => ({
           ...expense,
-          type: 'expense',
+          type: 'expense' as const,
           date: expense.expense_date,
-          payment_method: expense.payment_method || 'personal_cash',
-          vendor_name: null,
-          invoice_date: null,
-          due_date: null
+          payment_method: expense.payment_method || 'personal_cash'
         }));
 
         // 請求書払い申請データの正規化
         const normalizedInvoices = invoiceData.map(invoice => ({
           ...invoice,
-          type: 'invoice',
+          type: 'invoice' as const,
           date: invoice.invoice_date,
           payment_method: '請求書払い',
-          expense_date: invoice.invoice_date,
           event_name: invoice.events?.name || null
         }));
 
@@ -83,26 +113,75 @@ export default function ApprovalsPage() {
           .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
         setAllApplications(combinedData);
+        setFilteredApplications(combinedData);
       } catch (error) {
         console.error('データの取得に失敗しました:', error);
       }
     };
 
-    fetchData();
+    initializeData();
+  }, [user]);
 
-    // Supabase Authから現在のユーザーIDを取得
-    const user = supabase.auth.getUser().then(res => setCurrentUserId(res.data.user?.id || null));
-  }, []);
+  // フィルタリング処理
+  useEffect(() => {
+    let filtered = allApplications;
+
+    // ステータスフィルター
+    if (activeTab !== 'all') {
+      filtered = filtered.filter(app => app.status === activeTab);
+    }
+
+    // その他のフィルター
+    if (filters.user !== 'all') {
+      filtered = filtered.filter(app => app.user_id === filters.user);
+    }
+    if (filters.department !== 'all') {
+      filtered = filtered.filter(app => app.department_id === filters.department);
+    }
+    if (filters.event !== 'all') {
+      filtered = filtered.filter(app => app.event_id === filters.event);
+    }
+    if (filters.project !== 'all') {
+      filtered = filtered.filter(app => app.project_id === filters.project);
+    }
+    if (filters.category !== 'all') {
+      filtered = filtered.filter(app => app.category_id === filters.category);
+    }
+    if (filters.searchTerm) {
+      filtered = filtered.filter(app => 
+        app.description.toLowerCase().includes(filters.searchTerm.toLowerCase())
+      );
+    }
+
+    setFilteredApplications(filtered);
+  }, [allApplications, activeTab, filters]);
 
   const getCategoryName = (categoryId: string) => {
     const category = categories.find(c => c.id === categoryId);
     return category?.name || '不明';
   };
 
+  const getDepartmentName = (departmentId?: string) => {
+    if (!departmentId) return '-';
+    const department = departments.find(d => d.id === departmentId);
+    return department?.name || '不明';
+  };
+
   const getProjectName = (projectId?: string) => {
     if (!projectId) return '-';
-    const project = getProjectById(projectId);
-    return project ? `${project.name} (${project.code})` : '-';
+    const project = projects.find(p => p.id === projectId);
+    return project?.name || '-';
+  };
+
+  const getEventName = (eventId?: string) => {
+    if (!eventId) return '-';
+    const event = events.find(e => e.id === eventId);
+    return event?.name || '-';
+  };
+
+  const getUserName = (userId: string) => {
+    const user = users.find(u => u.id === userId);
+    return user?.name || user?.email || '不明';
   };
 
   const getStatusBadge = (status: string) => {
@@ -118,71 +197,176 @@ export default function ApprovalsPage() {
     }
   };
 
-  const handleApprove = (requestId: string) => {
-    setAllApplications(prev => 
-      prev.map(req => 
-        req.id === requestId 
-          ? { ...req, status: 'approved' as const, comments }
-          : req
-      )
-    );
-    setComments('');
-    setIsApprovalDialogOpen(false);
+  const canApprove = (application: Application) => {
+    // 管理者は全て承認可能
+    if (currentUserRole === 'admin') return true;
+    
+    // マネージャーは全て承認可能
+    if (currentUserRole === 'manager') return true;
+
+    // 一般ユーザーは承認権限なし
+    return false;
   };
 
-  const handleReject = (requestId: string) => {
-    setAllApplications(prev => 
-      prev.map(req => 
-        req.id === requestId 
-          ? { ...req, status: 'rejected' as const, comments }
-          : req
-      )
-    );
-    setComments('');
-    setIsApprovalDialogOpen(false);
+  const canEdit = (application: Application) => {
+    // 管理者とマネージャーは編集可能
+    return currentUserRole === 'admin' || currentUserRole === 'manager';
   };
 
-  // 承認者名を取得する関数
-  // ユーザー名を取得する関数
-  const getUserName = (userId: string) => {
-    if (!userId) return '不明';
-    const user = users.find(u => u.id === userId);
-    return user?.name || user?.email || '不明';
-  };
+  const handleApprove = async (applicationId: string) => {
+    try {
+      const application = allApplications.find(app => app.id === applicationId);
+      if (!application) return;
 
-  const getApproverName = (request: any) => {
-    const approver =
-      approvers.find(a =>
-        (a.department_id && request.department_id && a.department_id === request.department_id) ||
-        (a.event_id && request.event_id && a.event_id === request.event_id) ||
-        (a.project_id && request.project_id && a.project_id === request.project_id)
+      // APIエンドポイントを呼び出してデータベースを更新
+      const tableName = application.type === 'expense' ? 'expenses' : 'invoice_payments';
+      const { error } = await supabase
+        .from(tableName)
+        .update({ 
+          status: 'approved',
+          comments: comments || null,
+          approved_by: currentUserId,
+          approved_at: new Date().toISOString()
+        })
+        .eq('id', applicationId);
+
+      if (error) throw error;
+
+      // ローカル状態を更新
+      setAllApplications(prev => 
+        prev.map(req => 
+          req.id === applicationId 
+            ? { ...req, status: 'approved' as const, comments }
+            : req
+        )
       );
-    if (!approver) return '-';
-    const user = users.find(u => u.id === approver.user_id);
-    return user ? user.name : approver.user_id;
+      
+      setComments('');
+      setIsApprovalDialogOpen(false);
+      alert('申請が承認されました');
+    } catch (error) {
+      console.error('承認処理エラー:', error);
+      alert('承認処理に失敗しました');
+    }
   };
 
-  const pendingRequests = allApplications.filter(req => req.status === 'pending');
+  const handleReject = async (applicationId: string) => {
+    try {
+      const application = allApplications.find(app => app.id === applicationId);
+      if (!application) return;
+
+      // APIエンドポイントを呼び出してデータベースを更新
+      const tableName = application.type === 'expense' ? 'expenses' : 'invoice_payments';
+      const { error } = await supabase
+        .from(tableName)
+        .update({ 
+          status: 'rejected',
+          comments: comments || null,
+          approved_by: currentUserId,
+          approved_at: new Date().toISOString()
+        })
+        .eq('id', applicationId);
+
+      if (error) throw error;
+
+      // ローカル状態を更新
+      setAllApplications(prev => 
+        prev.map(req => 
+          req.id === applicationId 
+            ? { ...req, status: 'rejected' as const, comments }
+            : req
+        )
+      );
+      
+      setComments('');
+      setIsApprovalDialogOpen(false);
+      alert('申請が却下されました');
+    } catch (error) {
+      console.error('却下処理エラー:', error);
+      alert('却下処理に失敗しました');
+    }
+  };
+
+  const handleEdit = async () => {
+    try {
+      if (!selectedRequest || !editForm) return;
+
+      const tableName = selectedRequest.type === 'expense' ? 'expenses' : 'invoice_payments';
+      const { error } = await supabase
+        .from(tableName)
+        .update(editForm)
+        .eq('id', selectedRequest.id);
+
+      if (error) throw error;
+
+      // ローカル状態を更新
+      setAllApplications(prev => 
+        prev.map(req => 
+          req.id === selectedRequest.id 
+            ? { ...req, ...editForm }
+            : req
+        )
+      );
+      
+      setIsEditDialogOpen(false);
+      setEditForm({});
+      alert('申請が更新されました');
+    } catch (error) {
+      console.error('更新処理エラー:', error);
+      alert('更新処理に失敗しました');
+    }
+  };
+
+  const handleDelete = async (applicationId: string, type: 'expense' | 'invoice') => {
+    if (!confirm('この申請を削除しますか？この操作は取り消せません。')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/applications/${applicationId}?type=${type}&userId=${currentUserId}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert(`削除に失敗しました: ${data.error}`);
+        return;
+      }
+
+      // ローカル状態を更新
+      setAllApplications(prev => prev.filter(app => app.id !== applicationId));
+      alert(data.message);
+    } catch (error) {
+      console.error('削除エラー:', error);
+      alert('削除に失敗しました');
+    }
+  };
+
+  const stats = {
+    pending: allApplications.filter(app => app.status === 'pending').length,
+    approved: allApplications.filter(app => app.status === 'approved').length,
+    rejected: allApplications.filter(app => app.status === 'rejected').length,
+    total: allApplications.length
+  };
 
   return (
     <MainLayout>
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold">申請管理</h1>
-          <p className="text-gray-600">経費申請と請求書払い申請の承認を管理します</p>
+          <p className="text-gray-600">経費申請と請求書払い申請の管理を行います</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* 統計カード */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">承認待ち</CardTitle>
               <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{pendingRequests.length}</div>
-              <p className="text-xs text-muted-foreground">
-                件の申請が承認待ちです
-              </p>
+              <div className="text-2xl font-bold">{stats.pending}</div>
             </CardContent>
           </Card>
 
@@ -192,12 +376,7 @@ export default function ApprovalsPage() {
               <CheckCircle className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
-                {allApplications.filter(req => req.status === 'approved').length}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                件が承認されています
-              </p>
+              <div className="text-2xl font-bold">{stats.approved}</div>
             </CardContent>
           </Card>
 
@@ -207,112 +386,237 @@ export default function ApprovalsPage() {
               <XCircle className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
-                {allApplications.filter(req => req.status === 'rejected').length}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                件が却下されています
-              </p>
+              <div className="text-2xl font-bold">{stats.rejected}</div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">全申請</CardTitle>
+              <Filter className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.total}</div>
             </CardContent>
           </Card>
         </div>
 
+        {/* フィルター */}
         <Card>
           <CardHeader>
-            <CardTitle>承認待ち一覧</CardTitle>
+            <CardTitle>フィルター</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              <div>
+                <Label>検索</Label>
+                <Input
+                  placeholder="説明で検索..."
+                  value={filters.searchTerm}
+                  onChange={(e) => setFilters(prev => ({ ...prev, searchTerm: e.target.value }))}
+                />
+              </div>
+              
+              <div>
+                <Label>ユーザー</Label>
+                <Select value={filters.user} onValueChange={(value) => setFilters(prev => ({ ...prev, user: value }))}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">全ユーザー</SelectItem>
+                    {users.map(user => (
+                      <SelectItem key={user.id} value={user.id}>{user.name || user.email}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label>部門</Label>
+                <Select value={filters.department} onValueChange={(value) => setFilters(prev => ({ ...prev, department: value }))}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">全部門</SelectItem>
+                    {departments.map(dept => (
+                      <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label>イベント</Label>
+                <Select value={filters.event} onValueChange={(value) => setFilters(prev => ({ ...prev, event: value }))}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">全イベント</SelectItem>
+                    {events.map(event => (
+                      <SelectItem key={event.id} value={event.id}>{event.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label>プロジェクト</Label>
+                <Select value={filters.project} onValueChange={(value) => setFilters(prev => ({ ...prev, project: value }))}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">全プロジェクト</SelectItem>
+                    {projects.map(project => (
+                      <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label>勘定科目</Label>
+                <Select value={filters.category} onValueChange={(value) => setFilters(prev => ({ ...prev, category: value }))}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">全科目</SelectItem>
+                    {categories.map(category => (
+                      <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* タブ付き申請一覧 */}
+        <Card>
+          <CardHeader>
+            <CardTitle>申請一覧</CardTitle>
             <CardDescription>
-              承認待ちの申請一覧です
+              {filteredApplications.length}件の申請が表示されています
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>申請者</TableHead>
-                  <TableHead>説明</TableHead>
-                  <TableHead>イベント</TableHead>
-                  <TableHead>カテゴリ</TableHead>
-                  <TableHead>プロジェクト</TableHead>
-                  <TableHead>金額</TableHead>
-                  <TableHead>申請日</TableHead>
-                  <TableHead>承認者</TableHead>
-                  <TableHead>操作</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {pendingRequests.map((request) => {
-                  const approver = approvers.find(a =>
-                    (a.department_id && request.department_id && a.department_id === request.department_id) ||
-                    (a.event_id && request.event_id && a.event_id === request.event_id) ||
-                    (a.project_id && request.project_id && a.project_id === request.project_id)
-                  );
-                  const isMyApproval = approver?.user_id === currentUserId;
-                  return (
-                    <TableRow key={request.id}>
-                      <TableCell className="font-medium">{getUserName(request.user_id)}</TableCell>
-                      <TableCell>{request.description}</TableCell>
-                      <TableCell>
-                        {request.event_name ? (
-                          <Badge variant="outline" className="text-xs">
-                            {request.event_name}
-                          </Badge>
-                        ) : (
-                          <span className="text-gray-400 text-sm">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell>{getCategoryName(request.category_id)}</TableCell>
-                      <TableCell>{getProjectName(request.project_id)}</TableCell>
-                      <TableCell>¥{request.amount.toLocaleString()}</TableCell>
-                      <TableCell>{request.date}</TableCell>
-                      <TableCell>{getApproverName(request)}</TableCell>
-                      <TableCell>
-                        <div className="flex space-x-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedRequest(request);
-                              setIsDetailDialogOpen(true);
-                            }}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            onClick={() => {
-                              setSelectedRequest(request);
-                              setIsApprovalDialogOpen(true);
-                            }}
-                            disabled={!isMyApproval}
-                          >
-                            <CheckCircle className="h-4 w-4" />
-                            承認
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedRequest(request);
-                              setIsApprovalDialogOpen(true);
-                            }}
-                            disabled={!isMyApproval}
-                          >
-                            <XCircle className="h-4 w-4" />
-                            却下
-                          </Button>
-                        </div>
-                      </TableCell>
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="pending">承認待ち ({stats.pending})</TabsTrigger>
+                <TabsTrigger value="approved">承認済み ({stats.approved})</TabsTrigger>
+                <TabsTrigger value="rejected">却下 ({stats.rejected})</TabsTrigger>
+                <TabsTrigger value="all">全て ({stats.total})</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value={activeTab} className="mt-6">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>申請者</TableHead>
+                      <TableHead>部門</TableHead>
+                      <TableHead>説明</TableHead>
+                      <TableHead>イベント</TableHead>
+                      <TableHead>プロジェクト</TableHead>
+                      <TableHead>勘定科目</TableHead>
+                      <TableHead>金額</TableHead>
+                      <TableHead>申請日</TableHead>
+                      <TableHead>ステータス</TableHead>
+                      <TableHead>操作</TableHead>
                     </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredApplications.map((application) => (
+                      <TableRow key={application.id}>
+                        <TableCell className="font-medium">{getUserName(application.user_id)}</TableCell>
+                        <TableCell>{getDepartmentName(application.department_id)}</TableCell>
+                        <TableCell>{application.description}</TableCell>
+                        <TableCell>{getEventName(application.event_id)}</TableCell>
+                        <TableCell>{getProjectName(application.project_id)}</TableCell>
+                        <TableCell>{getCategoryName(application.category_id)}</TableCell>
+                        <TableCell>¥{application.amount.toLocaleString()}</TableCell>
+                        <TableCell>{application.date}</TableCell>
+                        <TableCell>{getStatusBadge(application.status)}</TableCell>
+                        <TableCell>
+                          <div className="flex space-x-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedRequest(application);
+                                setIsDetailDialogOpen(true);
+                              }}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+
+                            {canEdit(application) && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedRequest(application);
+                                  setEditForm(application);
+                                  setIsEditDialogOpen(true);
+                                }}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            )}
+
+                            {application.status === 'pending' && canApprove(application) && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedRequest(application);
+                                    setIsApprovalDialogOpen(true);
+                                  }}
+                                >
+                                  <CheckCircle className="h-4 w-4" />
+                                  承認
+                                </Button>
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedRequest(application);
+                                    setIsApprovalDialogOpen(true);
+                                  }}
+                                >
+                                  <XCircle className="h-4 w-4" />
+                                  却下
+                                </Button>
+                              </>
+                            )}
+
+                            {(currentUserRole === 'admin' || application.status === 'pending') && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDelete(application.id, application.type)}
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
 
         {/* 詳細ダイアログ */}
         <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
-          <DialogContent>
+          <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>申請詳細</DialogTitle>
               <DialogDescription>
@@ -331,6 +635,14 @@ export default function ApprovalsPage() {
                     <p>{selectedRequest.date}</p>
                   </div>
                   <div>
+                    <Label className="text-sm font-medium">部門</Label>
+                    <p>{getDepartmentName(selectedRequest.department_id)}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">ステータス</Label>
+                    <div>{getStatusBadge(selectedRequest.status)}</div>
+                  </div>
+                  <div className="col-span-2">
                     <Label className="text-sm font-medium">説明</Label>
                     <p>{selectedRequest.description}</p>
                   </div>
@@ -339,7 +651,11 @@ export default function ApprovalsPage() {
                     <p>¥{selectedRequest.amount.toLocaleString()}</p>
                   </div>
                   <div>
-                    <Label className="text-sm font-medium">カテゴリ</Label>
+                    <Label className="text-sm font-medium">支払方法</Label>
+                    <p>{selectedRequest.payment_method}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">勘定科目</Label>
                     <p>{getCategoryName(selectedRequest.category_id)}</p>
                   </div>
                   <div>
@@ -348,14 +664,128 @@ export default function ApprovalsPage() {
                   </div>
                   <div>
                     <Label className="text-sm font-medium">イベント</Label>
-                    <p>{selectedRequest.event_name || '-'}</p>
+                    <p>{getEventName(selectedRequest.event_id)}</p>
                   </div>
+                  {selectedRequest.comments && (
+                    <div className="col-span-2">
+                      <Label className="text-sm font-medium">コメント</Label>
+                      <p>{selectedRequest.comments}</p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsDetailDialogOpen(false)}>
                 閉じる
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* 編集ダイアログ */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>申請編集</DialogTitle>
+              <DialogDescription>
+                申請内容を編集できます
+              </DialogDescription>
+            </DialogHeader>
+            {selectedRequest && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>説明</Label>
+                    <Input
+                      value={editForm.description || ''}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <Label>金額</Label>
+                    <Input
+                      type="number"
+                      value={editForm.amount || ''}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, amount: Number(e.target.value) }))}
+                    />
+                  </div>
+                  <div>
+                    <Label>勘定科目</Label>
+                    <Select 
+                      value={editForm.category_id || ''} 
+                      onValueChange={(value) => setEditForm(prev => ({ ...prev, category_id: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map(category => (
+                          <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>プロジェクト</Label>
+                    <Select 
+                      value={editForm.project_id || ''} 
+                      onValueChange={(value) => setEditForm(prev => ({ ...prev, project_id: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">なし</SelectItem>
+                        {projects.map(project => (
+                          <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>部門</Label>
+                    <Select 
+                      value={editForm.department_id || ''} 
+                      onValueChange={(value) => setEditForm(prev => ({ ...prev, department_id: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">なし</SelectItem>
+                        {departments.map(dept => (
+                          <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>イベント</Label>
+                    <Select 
+                      value={editForm.event_id || ''} 
+                      onValueChange={(value) => setEditForm(prev => ({ ...prev, event_id: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">なし</SelectItem>
+                        {events.map(event => (
+                          <SelectItem key={event.id} value={event.id}>{event.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                キャンセル
+              </Button>
+              <Button onClick={handleEdit}>
+                更新
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -403,4 +833,4 @@ export default function ApprovalsPage() {
       </div>
     </MainLayout>
   );
-} 
+}
