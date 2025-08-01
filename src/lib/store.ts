@@ -27,6 +27,33 @@ interface Department {
   created_at: string;
 }
 
+interface Expense {
+  id: string;
+  date: string;
+  amount: number;
+  category_id: string;
+  department_id?: string;
+  project_id?: string;
+  event_id?: string;
+  user_name: string;
+  description: string;
+  status: 'approved' | 'pending' | 'rejected';
+  receipt_url?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface Event {
+  id: string;
+  name: string;
+  budget: number;
+  description?: string;
+  start_date: string;
+  end_date: string;
+  status: 'planned' | 'active' | 'completed' | 'cancelled';
+  created_at: string;
+}
+
 interface MasterDataState {
   categories: Category[];
   projects: Project[];
@@ -52,6 +79,214 @@ interface MasterDataState {
 }
 
 import { categoryService, projectService, departmentService } from './database';
+
+interface ExpenseState {
+  expenses: Expense[];
+  addExpense: (expense: Expense) => void;
+  updateExpense: (id: string, expense: Expense) => void;
+  deleteExpense: (id: string) => void;
+  getExpensesByDepartment: (departmentId: string) => Expense[];
+  getExpensesByProject: (projectId: string) => Expense[];
+  getExpensesByEvent: (eventId: string) => Expense[];
+  getTotalExpensesByDepartment: (departmentId: string) => number;
+  getTotalExpensesByProject: (projectId: string) => number;
+  getTotalExpensesByEvent: (eventId: string) => number;
+}
+
+interface EventState {
+  events: Event[];
+  addEvent: (event: Event) => void;
+  updateEvent: (id: string, event: Event) => void;
+  deleteEvent: (id: string) => void;
+  getActiveEvents: () => Event[];
+  getEventById: (id: string) => Event | undefined;
+}
+
+export const useExpenseStore = create<ExpenseState>()((
+  persist(
+    (set, get) => ({
+      expenses: [
+        {
+          id: '1',
+          date: '2024-07-20',
+          amount: 5000,
+          category_id: '1',
+          department_id: '1',
+          user_name: '田中太郎',
+          description: '営業先への交通費',
+          status: 'approved',
+          created_at: '2024-07-20',
+          updated_at: '2024-07-20'
+        },
+        {
+          id: '2',
+          date: '2024-07-21',
+          amount: 3000,
+          category_id: '2',
+          department_id: '1',
+          user_name: '佐藤花子',
+          description: 'クライアントとの会議費',
+          status: 'approved',
+          created_at: '2024-07-21',
+          updated_at: '2024-07-21'
+        },
+        {
+          id: '3',
+          date: '2024-07-22',
+          amount: 8000,
+          category_id: '1',
+          project_id: '1',
+          user_name: '鈴木一郎',
+          description: 'プロジェクトA関連の出張費',
+          status: 'approved',
+          created_at: '2024-07-22',
+          updated_at: '2024-07-22'
+        },
+        {
+          id: '4',
+          date: '2024-07-23',
+          amount: 12000,
+          category_id: '2',
+          event_id: '1',
+          user_name: '高橋美咲',
+          description: '東京展示会での会議費',
+          status: 'approved',
+          created_at: '2024-07-23',
+          updated_at: '2024-07-23'
+        },
+        {
+          id: '5',
+          date: '2024-07-24',
+          amount: 2500,
+          category_id: '4',
+          department_id: '2',
+          user_name: '山田次郎',
+          description: 'マーケティング用通信費',
+          status: 'pending',
+          created_at: '2024-07-24',
+          updated_at: '2024-07-24'
+        },
+        {
+          id: '6',
+          date: '2024-07-25',
+          amount: 15000,
+          category_id: '1',
+          event_id: '3',
+          user_name: '田中太郎',
+          description: '名古屋セミナー参加交通費',
+          status: 'approved',
+          created_at: '2024-07-25',
+          updated_at: '2024-07-25'
+        }
+      ],
+      addExpense: (expense) => set((state) => ({
+        expenses: [...state.expenses, expense]
+      })),
+      updateExpense: (id, expense) => set((state) => ({
+        expenses: state.expenses.map(exp => 
+          exp.id === id ? expense : exp
+        )
+      })),
+      deleteExpense: (id) => set((state) => ({
+        expenses: state.expenses.filter(exp => exp.id !== id)
+      })),
+      getExpensesByDepartment: (departmentId) => {
+        const state = get();
+        return state.expenses.filter(exp => exp.department_id === departmentId);
+      },
+      getExpensesByProject: (projectId) => {
+        const state = get();
+        return state.expenses.filter(exp => exp.project_id === projectId);
+      },
+      getExpensesByEvent: (eventId) => {
+        const state = get();
+        return state.expenses.filter(exp => exp.event_id === eventId);
+      },
+      getTotalExpensesByDepartment: (departmentId) => {
+        const state = get();
+        return state.expenses
+          .filter(exp => exp.department_id === departmentId && exp.status === 'approved')
+          .reduce((total, exp) => total + exp.amount, 0);
+      },
+      getTotalExpensesByProject: (projectId) => {
+        const state = get();
+        return state.expenses
+          .filter(exp => exp.project_id === projectId && exp.status === 'approved')
+          .reduce((total, exp) => total + exp.amount, 0);
+      },
+      getTotalExpensesByEvent: (eventId) => {
+        const state = get();
+        return state.expenses
+          .filter(exp => exp.event_id === eventId && exp.status === 'approved')
+          .reduce((total, exp) => total + exp.amount, 0);
+      },
+    }),
+    {
+      name: 'expense-storage',
+    }
+  )
+));
+
+export const useEventStore = create<EventState>()((
+  persist(
+    (set, get) => ({
+      events: [
+        {
+          id: '1',
+          name: '東京展示会2024',
+          budget: 50000,
+          description: '年次展示会への参加',
+          start_date: '2024-07-15',
+          end_date: '2024-07-17',
+          status: 'active',
+          created_at: '2024-06-01',
+        },
+        {
+          id: '2',
+          name: '大阪商談会',
+          budget: 30000,
+          description: '関西地区での商談会',
+          start_date: '2024-08-20',
+          end_date: '2024-08-22',
+          status: 'planned',
+          created_at: '2024-06-15',
+        },
+        {
+          id: '3',
+          name: '名古屋セミナー',
+          budget: 15000,
+          description: '技術セミナーの開催',
+          start_date: '2024-09-10',
+          end_date: '2024-09-10',
+          status: 'active',
+          created_at: '2024-07-01',
+        }
+      ],
+      addEvent: (event) => set((state) => ({
+        events: [...state.events, event]
+      })),
+      updateEvent: (id, event) => set((state) => ({
+        events: state.events.map(evt => 
+          evt.id === id ? event : evt
+        )
+      })),
+      deleteEvent: (id) => set((state) => ({
+        events: state.events.filter(evt => evt.id !== id)
+      })),
+      getActiveEvents: () => {
+        const state = get();
+        return state.events.filter(evt => evt.status === 'active' || evt.status === 'planned');
+      },
+      getEventById: (id) => {
+        const state = get();
+        return state.events.find(evt => evt.id === id);
+      },
+    }),
+    {
+      name: 'event-storage',
+    }
+  )
+));
 
 export const useMasterDataStore = create<MasterDataState>()(
   persist(
@@ -203,3 +438,6 @@ export const useMasterDataStore = create<MasterDataState>()(
     }
   )
 ); 
+
+// Export types for use in other files
+export type { Category, Project, Department, Expense, Event };

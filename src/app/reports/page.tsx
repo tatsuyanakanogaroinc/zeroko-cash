@@ -9,7 +9,7 @@ import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { useMasterDataStore } from '@/lib/store';
+import { useMasterDataStore, useExpenseStore, useEventStore } from '@/lib/store';
 import { 
   TrendingUp, 
   TrendingDown, 
