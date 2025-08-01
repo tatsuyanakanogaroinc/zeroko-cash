@@ -70,7 +70,19 @@ export default function SettingsPage() {
 
   const handleAddDepartment = async (data: any) => {
     try {
-      const newDepartment = await departmentService.createDepartment(data);
+      const response = await fetch('/api/departments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+      
+      if (!response.ok) {
+        throw new Error('部門の追加に失敗しました');
+      }
+      
+      const newDepartment = await response.json();
       setDepartments([...departments, newDepartment]);
       setIsAddDialogOpen(false);
       toast.success('部門を追加しました');
@@ -84,7 +96,9 @@ export default function SettingsPage() {
   useEffect(() => {
     const loadDepartments = async () => {
       try {
-        const depts = await departmentService.getDepartments();
+        const response = await fetch('/api/departments');
+        if (!response.ok) throw new Error('取得失敗');
+        const depts = await response.json();
         setDepartments(depts);
       } catch (error) {
         console.error('部署取得エラー:', error);
@@ -98,7 +112,9 @@ export default function SettingsPage() {
   useEffect(() => {
     const loadProjects = async () => {
       try {
-        const projs = await projectService.getProjects();
+        const response = await fetch('/api/projects');
+        if (!response.ok) throw new Error('取得失敗');
+        const projs = await response.json();
         setProjects(projs);
       } catch (error) {
         console.error('プロジェクト取得エラー:', error);
@@ -112,7 +128,9 @@ export default function SettingsPage() {
   useEffect(() => {
     const loadEvents = async () => {
       try {
-        const evts = await eventService.getEvents();
+        const response = await fetch('/api/events');
+        if (!response.ok) throw new Error('取得失敗');
+        const evts = await response.json();
         setEvents(evts);
       } catch (error) {
         console.error('イベント取得エラー:', error);

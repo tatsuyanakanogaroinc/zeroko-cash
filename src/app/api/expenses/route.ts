@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 
 export async function GET(request: NextRequest) {
   try {
@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
     const userId = searchParams.get('userId');
     const status = searchParams.get('status');
 
-    let query = supabase
+    let query = supabaseAdmin
       .from('expenses')
       .select(`
         *,
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
       payment_method,
     } = body;
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('expenses')
       .insert({
         user_id,
