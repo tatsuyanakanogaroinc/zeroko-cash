@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS departments (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name VARCHAR(50) NOT NULL,
   budget INTEGER DEFAULT 0,
+  responsible_user_id UUID REFERENCES users(id),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -27,6 +28,7 @@ CREATE TABLE IF NOT EXISTS events (
   start_date DATE NOT NULL,
   end_date DATE NOT NULL,
   budget INTEGER DEFAULT 0,
+  responsible_user_id UUID REFERENCES users(id),
   status VARCHAR(20) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'completed', 'cancelled')),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -60,6 +62,7 @@ CREATE TABLE IF NOT EXISTS projects (
   name VARCHAR(100) NOT NULL,
   code VARCHAR(20) NOT NULL,
   department_id UUID REFERENCES departments(id),
+  responsible_user_id UUID REFERENCES users(id),
   status VARCHAR(20) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'completed', 'suspended')),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

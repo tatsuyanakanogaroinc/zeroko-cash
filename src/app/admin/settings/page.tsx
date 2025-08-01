@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus, Edit, Trash2, Users, Calendar, FileText, Briefcase } from 'lucide-react';
 import { useMasterDataStore } from '@/lib/store';
 import { useEffect } from 'react';
-import { departmentService, projectService } from '@/lib/database';
+import { departmentService, projectService, userService } from '@/lib/database';
 import { toast } from 'sonner';
 
 // Remove ApproverSetting related imports
@@ -38,6 +38,7 @@ export default function SettingsPage() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [dialogType, setDialogType] = useState<'department' | 'event' | 'project' | 'category'>('department');
+  const [users, setUsers] = useState<any[]>([]);
 
   const { 
     categories, 
@@ -49,6 +50,26 @@ export default function SettingsPage() {
     setProjects,
     projects
   } = useMasterDataStore();
+
+  // ユーザー一覧を取得
+  useEffect(() => {
+    const loadUsers = async () => {
+      try {
+        const userData = await userService.getUsers();
+        setUsers(userData);
+      } catch (error) {
+        console.error('ユーザー取得エラー:', error);
+      }
+    };
+    loadUsers();
+  }, []);
+
+  // 責任者名を取得するヘルパー関数
+  const getResponsibleUserName = (userId: string | null | undefined): string => {
+    if (!userId) return '未設定';
+    const user = users.find(u => u.id === userId);
+    return user ? user.name : '不明';
+  };
 
   // イベントデータ（モック）
   const [events, setEvents] = useState<Event[]>([
@@ -274,6 +295,9 @@ export default function SettingsPage() {
                         <h3 className="font-semibold">{department.name}</h3>
                         <p className="text-sm text-gray-500">
                           予算: ¥{(department.budget || 0).toLocaleString()}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          責任者: {getResponsibleUserName(department.responsible_user_id)}
                         </p>
                       </div>
                       <div className="flex items-center space-x-2">
@@ -532,9 +556,23 @@ export default function SettingsPage() {
 function DepartmentForm({ onSubmit, editingItem }: { onSubmit: (data: any) => void; editingItem: any }) {
   const [formData, setFormData] = useState({
     name: editingItem?.name || '',
-    manager_id: editingItem?.manager_id || '',
+    responsible_user_id: editingItem?.responsible_user_id || '',
     budget: editingItem?.budget || 0
   });
+  const [users, setUsers] = useState<any[]>([]);
+
+  // ユーザー一覧を取得
+  useEffect(() => {
+    const loadUsers = async () => {
+      try {
+        const userData = await userService.getUsers();
+        setUsers(userData);
+      } catch (error) {
+        console.error('ユーザー取得エラー:', error);
+      }
+    };
+    loadUsers();
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -553,13 +591,23 @@ function DepartmentForm({ onSubmit, editingItem }: { onSubmit: (data: any) => vo
         />
       </div>
       <div>
-        <Label htmlFor="dept-manager">管理者ID</Label>
-        <Input
-          id="dept-manager"
-          value={formData.manager_id}
-          onChange={(e) => setFormData({ ...formData, manager_id: e.target.value })}
-          required
-        />
+        <Label htmlFor="dept-responsible">責任者</Label>
+        <Select 
+          value={formData.responsible_user_id} 
+          onValueChange={(value) => setFormData({ ...formData, responsible_user_id: value })}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="責任者を選択" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">選択しない</SelectItem>
+            {users.map((user) => (
+              <SelectItem key={user.id} value={user.id}>
+                {user.name} ({user.email})
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       <div>
         <Label htmlFor="dept-budget">予算</Label>

@@ -11,8 +11,8 @@ export interface User {
 export interface Department {
   id: string;
   name: string;
-  manager_id: string;
   budget: number;
+  responsible_user_id?: string;
   created_at: string;
 }
 
@@ -29,7 +29,21 @@ export interface Project {
   name: string;
   code: string;
   department_id: string;
+  responsible_user_id?: string;
   status: 'active' | 'completed' | 'suspended';
+  created_at: string;
+}
+
+export interface Event {
+  id: string;
+  name: string;
+  department_id: string;
+  start_date: string;
+  end_date: string;
+  budget: number;
+  responsible_user_id?: string;
+  status: 'active' | 'completed' | 'cancelled';
+  description?: string;
   created_at: string;
 }
 
