@@ -1,19 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { departmentService, eventService, projectService, expenseService } from '@/lib/database';
-
-interface Expense {
-  id: string;
-  amount: number;
-  category_id: string;
-  event_id?: string;
-  project_id?: string;
-  user_id: string;
-}
+import { useMasterDataStore } from '@/lib/store';
 
 interface Summary {
   id: string;
@@ -24,43 +15,50 @@ interface Summary {
 }
 
 export default function ReportsPage() {
-  const [departments, setDepartments] = useState<Summary[]>([]);
-  const [events, setEvents] = useState<Summary[]>([]);
-  const [projects, setProjects] = useState<Summary[]>([]);
+  const { departments: deptData, projects: projectData } = useMasterDataStore();
   const [activeTab, setActiveTab] = useState<string>('departments');
 
-  useEffect(() => {
-    const fetchData = async () => {
-      const deptData = await departmentService.getDepartments();
-      setDepartments(deptData.map(d => ({
-        id: d.id,
-        name: d.name,
-        budget: d.budget,
-        total_expenses: 0,
-        remaining: d.budget
-      })));
+  // Convert Zustand store data to Summary format
+  const departments: Summary[] = deptData.map(d => ({
+    id: d.id,
+    name: d.name,
+    budget: d.budget || 0,
+    total_expenses: 0,
+    remaining: (d.budget || 0)
+  }));
 
-      const eventData = await eventService.getEvents();
-      setEvents(eventData.map(e => ({
-        id: e.id,
-        name: e.name,
-        budget: e.budget,
-        total_expenses: 0,
-        remaining: e.budget
-      })));
+  const projects: Summary[] = projectData.map(p => ({
+    id: p.id,
+    name: p.name,
+    budget: p.budget || 0,
+    total_expenses: 0,
+    remaining: (p.budget || 0)
+  }));
 
-      const projectData = await projectService.getProjects();
-      setProjects(projectData.map(p => ({
-        id: p.id,
-        name: p.name,
-        budget: p.budget,
-        total_expenses: 0,
-        remaining: p.budget
-      })));
-    };
-
-    fetchData();
-  }, []);
+  // Mock events data for now
+  const events: Summary[] = [
+    {
+      id: '1',
+      name: '東京展示会2024',
+      budget: 50000,
+      total_expenses: 0,
+      remaining: 50000
+    },
+    {
+      id: '2',
+      name: '大阪商談会',
+      budget: 30000,
+      total_expenses: 0,
+      remaining: 30000
+    },
+    {
+      id: '3',
+      name: '名古屋セミナー',
+      budget: 15000,
+      total_expenses: 0,
+      remaining: 15000
+    }
+  ];
 
   return (
     <MainLayout>
