@@ -222,14 +222,14 @@ export default function ReportsPage() {
                 詳細を見る
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className="flex items-center space-x-2">
                   <Icon className="h-5 w-5 text-blue-600" />
                   <span>{item.name} - 申請詳細</span>
                 </DialogTitle>
               </DialogHeader>
-              <div className="space-y-6 mt-4">
+              <div className="space-y-8 mt-6">
                 {/* Summary */}
                 <div className="grid grid-cols-4 gap-4">
                   <div className="text-center p-4 bg-blue-50 rounded-lg">
@@ -259,45 +259,175 @@ export default function ReportsPage() {
                   <Progress value={item.usage_percentage} className="h-3" />
                 </div>
                 
-                {/* Expenses List */}
-                <div>
-                  <h3 className="text-lg font-semibold mb-4 flex items-center">
-                    <FileText className="h-5 w-5 mr-2 text-gray-600" />
-                    申請一覧
-                  </h3>
-                  <div className="space-y-3 max-h-96 overflow-y-auto">
-                    {generateMockExpenses(item.id, item.name, item.total_expenses).map(expense => (
-                      <div key={expense.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
-                        <div className="flex items-center space-x-4">
-                          <Avatar className="h-10 w-10">
-                            <AvatarFallback className="bg-blue-100 text-blue-600 text-sm">
-                              {expense.user_name.charAt(0)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <div className="font-medium">{expense.user_name}</div>
-                            <div className="text-sm text-gray-600">{expense.category} - {expense.description}</div>
-                            <div className="text-xs text-gray-500">{expense.date}</div>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                          <div className="text-right">
-                            <div className="text-lg font-semibold">¥{expense.amount.toLocaleString()}</div>
-                          </div>
-                          <Badge className={
-                            expense.status === 'approved' 
-                              ? 'bg-green-100 text-green-800' 
-                              : expense.status === 'pending'
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-red-100 text-red-800'
-                          }>
-                            {expense.status === 'approved' ? '承認済み' : expense.status === 'pending' ? '承認待ち' : '却下'}
-                          </Badge>
-                        </div>
+                {/* Analysis Section */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Category Analysis */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center space-x-2">
+                        <BarChart3 className="h-5 w-5 text-blue-600" />
+                        <span>勘定科目別支出</span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {(() => {
+                          const expenses = generateMockExpenses(item.id, item.name, item.total_expenses);
+                          const categoryTotals = expenses.reduce((acc, expense) => {
+                            acc[expense.category] = (acc[expense.category] || 0) + expense.amount;
+                            return acc;
+                          }, {} as Record<string, number>);
+                          
+                          return Object.entries(categoryTotals)
+                            .sort(([,a], [,b]) => b - a)
+                            .map(([category, amount]) => {
+                              const percentage = (amount / item.total_expenses) * 100;
+                              return (
+                                <div key={category} className="space-y-2">
+                                  <div className="flex justify-between items-center">
+                                    <span className="font-medium text-sm">{category}</span>
+                                    <div className="text-right">
+                                      <div className="font-semibold">¥{amount.toLocaleString()}</div>
+                                      <div className="text-xs text-gray-500">{percentage.toFixed(1)}%</div>
+                                    </div>
+                                  </div>
+                                  <Progress value={percentage} className="h-2" />
+                                </div>
+                              );
+                            });
+                        })()}
                       </div>
-                    ))}
-                  </div>
+                    </CardContent>
+                  </Card>
+                  
+                  {/* User Analysis */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center space-x-2">
+                        <Users className="h-5 w-5 text-green-600" />
+                        <span>ユーザー別支出</span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {(() => {
+                          const expenses = generateMockExpenses(item.id, item.name, item.total_expenses);
+                          const userTotals = expenses.reduce((acc, expense) => {
+                            if (!acc[expense.user_name]) {
+                              acc[expense.user_name] = { total: 0, count: 0 };
+                            }
+                            acc[expense.user_name].total += expense.amount;
+                            acc[expense.user_name].count += 1;
+                            return acc;
+                          }, {} as Record<string, { total: number; count: number }>);
+                          
+                          return Object.entries(userTotals)
+                            .sort(([,a], [,b]) => b.total - a.total)
+                            .map(([userName, data]) => {
+                              const percentage = (data.total / item.total_expenses) * 100;
+                              return (
+                                <div key={userName} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                  <div className="flex items-center space-x-3">
+                                    <Avatar className="h-8 w-8">
+                                      <AvatarFallback className="bg-green-100 text-green-600 text-xs">
+                                        {userName.charAt(0)}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <div>
+                                      <div className="font-medium text-sm">{userName}</div>
+                                      <div className="text-xs text-gray-500">{data.count}件の申請</div>
+                                    </div>
+                                  </div>
+                                  <div className="text-right">
+                                    <div className="font-semibold">¥{data.total.toLocaleString()}</div>
+                                    <div className="text-xs text-gray-500">{percentage.toFixed(1)}%</div>
+                                  </div>
+                                </div>
+                              );
+                            });
+                        })()}
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
+                
+                {/* Monthly Trend */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <TrendingUp className="h-5 w-5 text-purple-600" />
+                      <span>月別支出推移</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-6 gap-4">
+                      {(() => {
+                        const months = ['1月', '2月', '3月', '4月', '5月', '6月'];
+                        return months.map((month, index) => {
+                          const amount = Math.floor(Math.random() * (item.total_expenses / 3)) + (item.total_expenses / 6);
+                          const maxAmount = item.total_expenses / 2;
+                          const percentage = (amount / maxAmount) * 100;
+                          return (
+                            <div key={month} className="text-center">
+                              <div className="text-xs text-gray-600 mb-2">{month}</div>
+                              <div className="h-20 bg-gray-100 rounded relative flex items-end justify-center">
+                                <div 
+                                  className="bg-purple-500 rounded w-full transition-all duration-300" 
+                                  style={{ height: `${Math.max(percentage, 10)}%` }}
+                                ></div>
+                              </div>
+                              <div className="text-xs font-medium mt-2">¥{amount.toLocaleString()}</div>
+                            </div>
+                          );
+                        });
+                      })()}
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                {/* Detailed Expenses List */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <FileText className="h-5 w-5 text-gray-600" />
+                      <span>申請詳細一覧</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3 max-h-96 overflow-y-auto">
+                      {generateMockExpenses(item.id, item.name, item.total_expenses).map(expense => (
+                        <div key={expense.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
+                          <div className="flex items-center space-x-4">
+                            <Avatar className="h-10 w-10">
+                              <AvatarFallback className="bg-blue-100 text-blue-600 text-sm">
+                                {expense.user_name.charAt(0)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <div className="font-medium">{expense.user_name}</div>
+                              <div className="text-sm text-gray-600">{expense.category} - {expense.description}</div>
+                              <div className="text-xs text-gray-500">{expense.date}</div>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-3">
+                            <div className="text-right">
+                              <div className="text-lg font-semibold">¥{expense.amount.toLocaleString()}</div>
+                            </div>
+                            <Badge className={
+                              expense.status === 'approved' 
+                                ? 'bg-green-100 text-green-800' 
+                                : expense.status === 'pending'
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : 'bg-red-100 text-red-800'
+                            }>
+                              {expense.status === 'approved' ? '承認済み' : expense.status === 'pending' ? '承認待ち' : '却下'}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             </DialogContent>
           </Dialog>
