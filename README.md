@@ -111,7 +111,9 @@ Vercelのダッシュボードで以下の環境変数を設定：
 src/
 ├── app/                    # Next.js App Router
 │   ├── api/               # API Routes
-│   │   ├── expenses/      # 経費API
+│   │   ├── admin/         # 管理者API
+│   │   │   └── cleanup/   # データクリーンアップAPI
+│   │   ├── expenses/      # 経貿API
 │   │   └── categories/    # カテゴリAPI
 │   ├── dashboard/         # ダッシュボード
 │   ├── expenses/          # 経費申請関連
@@ -121,12 +123,19 @@ src/
 ├── components/            # React コンポーネント
 │   ├── layout/           # レイアウトコンポーネント
 │   └── ui/              # shadcn/ui コンポーネント
-└── lib/                  # ユーティリティ
-    ├── database.ts       # Supabase設定
-    ├── store.ts          # Zustand ストア
-    ├── types.ts          # TypeScript 型定義
-    ├── validations.ts    # Zod バリデーション
-    └── utils.ts          # ユーティリティ関数
+├── lib/                  # ユーティリティ
+│   ├── supabase.ts       # フロントエンド用Supabaseクライアント
+│   ├── supabase-admin.ts # 管理者用Supabaseクライアント
+│   ├── database.ts       # 通常データベース操作
+│   ├── database-admin.ts # 管理者権限データベース操作
+│   ├── store.ts          # Zustand ストア
+│   ├── types.ts          # TypeScript 型定義
+│   ├── validations.ts    # Zod バリデーション
+│   └── utils.ts          # ユーティリティ関数
+└── scripts/              # 管理スクリプト
+    ├── setup-basic-departments.js
+    ├── clean-all-test-data.js
+    └── ...
 ```
 
 ## 開発状況
@@ -157,6 +166,9 @@ src/
 
 ## セキュリティ考慮事項
 
+### 権限分離とアクセス制御
+- **フロントエンド**: ANON KEYを使用（RLS適用）
+- **サーバーサイド/管理スクリプト**: SERVICE_ROLE KEYを使用（RLS回避）
 - 環境変数の適切な管理
 - SupabaseのRLS（Row Level Security）設定
 - ファイルアップロードの制限
