@@ -86,8 +86,8 @@ export default function DashboardPage() {
         ]);
 
         // 自分の申請のみをフィルタリング
-        const userFilteredExpenses = expenseData.filter(expense =ee expense.user_id === user.id);
-        const userFilteredInvoices = invoiceData.filter(invoice =ee invoice.user_id === user.id);
+        const userFilteredExpenses = expenseData.filter(expense => expense.user_id === user.id);
+        const userFilteredInvoices = invoiceData.filter(invoice => invoice.user_id === user.id);
 
         // 経費申請データの正規化
         const normalizedExpenses = userFilteredExpenses.map(expense => ({
