@@ -736,7 +736,7 @@ function EventForm({ onSubmit, editingItem, departments }: { onSubmit: (data: an
             <SelectValue placeholder="部門を選択" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">部門なし</SelectItem>
+            <SelectItem value="none">部門なし</SelectItem>
             {departments.map((dept) => (
               <SelectItem key={dept.id} value={dept.id}>
                 {dept.name} (予算: ¥{dept.budget.toLocaleString()})
@@ -894,7 +894,7 @@ function ProjectForm({ onSubmit, editingItem, departments }: { onSubmit: (data: 
             <SelectValue placeholder="部門を選択" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">部門なし</SelectItem>
+            <SelectItem value="none">部門なし</SelectItem>
             {departments.map((dept) => (
               <SelectItem key={dept.id} value={dept.id}>
                 {dept.name} (予算: ¥{dept.budget.toLocaleString()})
