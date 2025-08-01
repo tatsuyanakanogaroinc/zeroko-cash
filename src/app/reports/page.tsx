@@ -22,6 +22,8 @@ interface ExpenseData {
   user_name: string;
   event_id?: string;
   event_name?: string;
+  project_id?: string;
+  project_name?: string;
   description: string;
 }
 
@@ -46,11 +48,11 @@ export default function ReportsPage() {
   const [selectedEvent, setSelectedEvent] = useState<string>('all');
   const [selectedUser, setSelectedUser] = useState<string>('all');
   const [selectedDepartment, setSelectedDepartment] = useState<string>('all');
-  const [viewMode, setViewMode] = useState<'overview' | 'events' | 'users' | 'departments'>('overview');
+  const [viewMode, setViewMode] = useState<'overview' | 'departments' | 'events' | 'projects'>('overview');
   const [expenseData, setExpenseData] = useState<ExpenseData[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
   const [users, setUsers] = useState<User[]>([]);
-  const { categories } = useMasterDataStore();
+  const { categories, projects, departments } = useMasterDataStore();
 
   // モックデータ
   const mockExpenseData: ExpenseData[] = [
@@ -64,6 +66,8 @@ export default function ReportsPage() {
       user_name: '田中太郎',
       event_id: '1',
       event_name: '東京展示会2024',
+      project_id: '1',
+      project_name: 'プロジェクトA',
       description: '交通費'
     },
     { 
@@ -76,6 +80,8 @@ export default function ReportsPage() {
       user_name: '佐藤花子',
       event_id: '1',
       event_name: '東京展示会2024',
+      project_id: '2',
+      project_name: 'プロジェクトB',
       description: '宿泊費'
     },
     { 
@@ -88,6 +94,8 @@ export default function ReportsPage() {
       user_name: '鈴木一郎',
       event_id: '2',
       event_name: '大阪商談会',
+      project_id: '1',
+      project_name: 'プロジェクトA',
       description: '会議費'
     },
     { 
@@ -100,6 +108,8 @@ export default function ReportsPage() {
       user_name: '田中太郎',
       event_id: '2',
       event_name: '大阪商談会',
+      project_id: '2',
+      project_name: 'プロジェクトB',
       description: '会場費'
     },
     { 
@@ -112,6 +122,8 @@ export default function ReportsPage() {
       user_name: '高橋美咲',
       event_id: '3',
       event_name: '名古屋セミナー',
+      project_id: '3',
+      project_name: 'プロジェクトC',
       description: '交通費'
     },
     { 
@@ -124,7 +136,9 @@ export default function ReportsPage() {
       user_name: '佐藤花子',
       event_id: '3',
       event_name: '名古屋セミナー',
-      description: '昼食代'
+      project_id: '1',
+      project_name: 'プロジェクトA',
+      description: '昬食代'
     },
   ];
 
@@ -367,9 +381,9 @@ export default function ReportsPage() {
         <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as any)}>
           <TabsList>
             <TabsTrigger value="overview">概要</TabsTrigger>
-            <TabsTrigger value="events">イベント別</TabsTrigger>
-            <TabsTrigger value="users">ユーザー別</TabsTrigger>
             <TabsTrigger value="departments">部門別</TabsTrigger>
+            <TabsTrigger value="events">イベント別</TabsTrigger>
+            <TabsTrigger value="projects">プロジェクト別</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">

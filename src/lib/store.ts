@@ -14,6 +14,7 @@ interface Project {
   name: string;
   code: string;
   department_id: string;
+  budget: number;
   status: 'active' | 'completed' | 'suspended';
   created_at: string;
 }
@@ -83,6 +84,7 @@ export const useMasterDataStore = create<MasterDataState>()(
           name: 'プロジェクトA',
           code: 'PRJ-A',
           department_id: '1',
+          budget: 200000,
           status: 'active',
           created_at: '2024-01-01',
         },
@@ -91,6 +93,7 @@ export const useMasterDataStore = create<MasterDataState>()(
           name: 'プロジェクトB',
           code: 'PRJ-B',
           department_id: '1',
+          budget: 300000,
           status: 'active',
           created_at: '2024-01-01',
         },
@@ -99,6 +102,7 @@ export const useMasterDataStore = create<MasterDataState>()(
           name: 'プロジェクトC',
           code: 'PRJ-C',
           department_id: '2',
+          budget: 150000,
           status: 'completed',
           created_at: '2024-01-01',
         },
