@@ -6,17 +6,13 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import {
-  BarChart3,
-  FileText,
   Home,
   Plus,
   Settings,
   Users,
   CheckCircle,
-  List,
   UserCircle,
   Receipt,
-  FileCheck,
 } from 'lucide-react';
 
 interface MenuItem {
@@ -41,11 +37,6 @@ const userMenuItems: MenuItem[] = [
     title: '請求書払い申請',
     href: '/invoice-payments/new',
     icon: Receipt,
-  },
-  {
-    title: 'レポート',
-    href: '/reports',
-    icon: BarChart3,
   },
   {
     title: 'マイページ',
