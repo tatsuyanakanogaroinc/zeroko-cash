@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useMasterDataStore, useExpenseStore, useEventStore } from '@/lib/store';
-import { expenseService, invoicePaymentService, userService } from '@/lib/database';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -38,7 +37,15 @@ interface Summary {
   status: 'healthy' | 'warning' | 'danger';
 }
 
-interface MockExpense {
+interface ReportData {
+  expenses: any[];
+  invoicePayments: any[];
+  departmentExpenses: Record<string, number>;
+  projectExpenses: Record<string, number>;
+  eventExpenses: Record<string, number>;
+}
+
+interface ExpenseDetail {
   id: string;
   date: string;
   amount: number;
@@ -49,8 +56,30 @@ interface MockExpense {
 }
 
 export default function ReportsPage() {
-  const { departments: deptData, projects: projectData } = useMasterDataStore();
+  const { departments: deptData, projects: projectData, events: eventData } = useMasterDataStore();
   const [activeTab, setActiveTab] = useState<string>('overview');
+  const [reportData, setReportData] = useState<ReportData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch report data from API
+  useEffect(() => {
+    const fetchReportData = async () => {
+      try {
+        const response = await fetch('/api/reports-data');
+        if (!response.ok) {
+          throw new Error('Failed to fetch report data');
+        }
+        const data = await response.json();
+        setReportData(data);
+      } catch (error) {
+        console.error('Error fetching report data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchReportData();
+  }, []);
 
   // Calculate usage percentage and status
   const calculateSummary = (budget: number, expenses: number): { usage_percentage: number; status: 'healthy' | 'warning' | 'danger' } => {
@@ -61,10 +90,10 @@ export default function ReportsPage() {
     return { usage_percentage: usage, status };
   };
 
-  // Convert Zustand store data to Summary format
+  // Convert Zustand store data to Summary format with real expense data
   const departments: Summary[] = deptData.map(d => {
     const budget = typeof d.budget === 'number' && !isNaN(d.budget) ? d.budget : 100000; // デフォルト予算
-    const expenses = Math.floor(Math.random() * budget * 0.8); // Mock expenses
+    const expenses = reportData?.departmentExpenses[d.id] || 0; // Real expenses from API
     const summary = calculateSummary(budget, expenses);
     return {
       id: d.id,
@@ -78,7 +107,7 @@ export default function ReportsPage() {
 
   const projects: Summary[] = projectData.map(p => {
     const budget = typeof p.budget === 'number' && !isNaN(p.budget) ? p.budget : 50000; // デフォルト予算
-    const expenses = Math.floor(Math.random() * budget * 0.6); // Mock expenses
+    const expenses = reportData?.projectExpenses[p.id] || 0; // Real expenses from API
     const summary = calculateSummary(budget, expenses);
     return {
       id: p.id,
@@ -90,65 +119,48 @@ export default function ReportsPage() {
     };
   });
 
-  // Mock events data with realistic expenses
-  const events: Summary[] = [
-    {
-      id: '1',
-      name: '東京展示会2024',
-      budget: 50000,
-      total_expenses: 35000,
-      remaining: 15000,
-      usage_percentage: 70,
-      status: 'warning'
-    },
-    {
-      id: '2',
-      name: '大阪商談会',
-      budget: 30000,
-      total_expenses: 12000,
-      remaining: 18000,
-      usage_percentage: 40,
-      status: 'healthy'
-    },
-    {
-      id: '3',
-      name: '名古屋セミナー',
-      budget: 15000,
-      total_expenses: 14500,
-      remaining: 500,
-      usage_percentage: 97,
-      status: 'danger'
-    }
-  ];
+  // Real events data with actual expenses
+  const events: Summary[] = eventData.map(e => {
+    const budget = typeof e.budget === 'number' && !isNaN(e.budget) ? e.budget : 30000; // デフォルト予算
+    const expenses = reportData?.eventExpenses[e.id] || 0; // Real expenses from API
+    const summary = calculateSummary(budget, expenses);
+    return {
+      id: e.id,
+      name: e.name,
+      budget: budget,
+      total_expenses: expenses,
+      remaining: budget - expenses,
+      ...summary
+    };
+  });
 
-  // Generate mock expenses for details
-  const generateMockExpenses = (itemId: string, itemName: string, totalAmount: number): MockExpense[] => {
-    const categories = ['交通費', '会議費', '宿泊費', '飲食費', '通信費', '文具費'];
-    const users = ['田中太郎', '佐藤花子', '鈴木一郎', '高橋美咲', '山田次郎'];
-    const count = Math.floor(Math.random() * 8) + 3; // 3-10件の申請
-    const expenses: MockExpense[] = [];
+  // Get real expenses for details from API data
+  const getExpensesForItem = (itemId: string, itemType: 'department' | 'project' | 'event'): ExpenseDetail[] => {
+    if (!reportData) return [];
     
-    let remainingAmount = totalAmount;
-    for (let i = 0; i < count; i++) {
-      const amount = i === count - 1 
-        ? remainingAmount 
-        : Math.floor(Math.random() * (remainingAmount / (count - i) * 1.5));
-      
-      expenses.push({
-        id: `${itemId}-${i + 1}`,
-        date: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        amount: Math.max(amount, 1000),
-        category: categories[Math.floor(Math.random() * categories.length)],
-        user_name: users[Math.floor(Math.random() * users.length)],
-        description: `${itemName}関連の経費`,
-        status: Math.random() > 0.8 ? 'pending' : 'approved'
-      });
-      
-      remainingAmount -= Math.max(amount, 1000);
-      if (remainingAmount <= 0) break;
+    const allExpenses = [...(reportData.expenses || []), ...(reportData.invoicePayments || [])];
+    
+    let filteredExpenses = [];
+    
+    if (itemType === 'department') {
+      filteredExpenses = allExpenses.filter(expense => 
+        (expense.users?.department_id === itemId) || (expense.department_id === itemId)
+      );
+    } else if (itemType === 'project') {
+      filteredExpenses = allExpenses.filter(expense => expense.project_id === itemId);
+    } else if (itemType === 'event') {
+      filteredExpenses = allExpenses.filter(expense => expense.event_id === itemId);
     }
     
-    return expenses.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    return filteredExpenses.map(expense => ({
+      id: expense.id,
+      date: new Date(expense.created_at).toISOString().split('T')[0],
+      amount: expense.amount,
+      category: expense.categories?.name || '未分類',
+      user_name: expense.users?.name || '不明',
+      description: expense.description || expense.purpose || '説明なし',
+      status: expense.status || 'approved'
+    })).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   };
 
   // Calculate totals for overview
@@ -273,16 +285,22 @@ export default function ReportsPage() {
                     <CardContent>
                       <div className="space-y-4">
                         {(() => {
-                          const expenses = generateMockExpenses(item.id, item.name, item.total_expenses);
+                          const itemType = departments.find(d => d.id === item.id) ? 'department' : 
+                                         projects.find(p => p.id === item.id) ? 'project' : 'event';
+                          const expenses = getExpensesForItem(item.id, itemType);
                           const categoryTotals = expenses.reduce((acc, expense) => {
                             acc[expense.category] = (acc[expense.category] || 0) + expense.amount;
                             return acc;
                           }, {} as Record<string, number>);
                           
+                          if (Object.keys(categoryTotals).length === 0) {
+                            return <div className="text-center text-gray-500 py-4">経費データがありません</div>;
+                          }
+                          
                           return Object.entries(categoryTotals)
                             .sort(([,a], [,b]) => b - a)
                             .map(([category, amount]) => {
-                              const percentage = (amount / item.total_expenses) * 100;
+                              const percentage = item.total_expenses > 0 ? (amount / item.total_expenses) * 100 : 0;
                               return (
                                 <div key={category} className="space-y-2">
                                   <div className="flex justify-between items-center">
@@ -312,7 +330,9 @@ export default function ReportsPage() {
                     <CardContent>
                       <div className="space-y-4">
                         {(() => {
-                          const expenses = generateMockExpenses(item.id, item.name, item.total_expenses);
+                          const itemType = departments.find(d => d.id === item.id) ? 'department' : 
+                                         projects.find(p => p.id === item.id) ? 'project' : 'event';
+                          const expenses = getExpensesForItem(item.id, itemType);
                           const userTotals = expenses.reduce((acc, expense) => {
                             if (!acc[expense.user_name]) {
                               acc[expense.user_name] = { total: 0, count: 0 };
@@ -322,10 +342,14 @@ export default function ReportsPage() {
                             return acc;
                           }, {} as Record<string, { total: number; count: number }>);
                           
+                          if (Object.keys(userTotals).length === 0) {
+                            return <div className="text-center text-gray-500 py-4">経費データがありません</div>;
+                          }
+                          
                           return Object.entries(userTotals)
                             .sort(([,a], [,b]) => b.total - a.total)
                             .map(([userName, data]) => {
-                              const percentage = (data.total / item.total_expenses) * 100;
+                              const percentage = item.total_expenses > 0 ? (data.total / item.total_expenses) * 100 : 0;
                               return (
                                 <div key={userName} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                                   <div className="flex items-center space-x-3">
@@ -396,36 +420,46 @@ export default function ReportsPage() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3 max-h-96 overflow-y-auto">
-                      {generateMockExpenses(item.id, item.name, item.total_expenses).map(expense => (
-                        <div key={expense.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
-                          <div className="flex items-center space-x-4">
-                            <Avatar className="h-10 w-10">
-                              <AvatarFallback className="bg-blue-100 text-blue-600 text-sm">
-                                {expense.user_name.charAt(0)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <div className="font-medium">{expense.user_name}</div>
-                              <div className="text-sm text-gray-600">{expense.category} - {expense.description}</div>
-                              <div className="text-xs text-gray-500">{expense.date}</div>
+                      {(() => {
+                        const itemType = departments.find(d => d.id === item.id) ? 'department' : 
+                                       projects.find(p => p.id === item.id) ? 'project' : 'event';
+                        const expenses = getExpensesForItem(item.id, itemType);
+                        
+                        if (expenses.length === 0) {
+                          return <div className="text-center text-gray-500 py-8">経費データがありません</div>;
+                        }
+                        
+                        return expenses.map(expense => (
+                          <div key={expense.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
+                            <div className="flex items-center space-x-4">
+                              <Avatar className="h-10 w-10">
+                                <AvatarFallback className="bg-blue-100 text-blue-600 text-sm">
+                                  {expense.user_name.charAt(0)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <div className="font-medium">{expense.user_name}</div>
+                                <div className="text-sm text-gray-600">{expense.category} - {expense.description}</div>
+                                <div className="text-xs text-gray-500">{expense.date}</div>
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-3">
+                              <div className="text-right">
+                                <div className="text-lg font-semibold">¥{expense.amount.toLocaleString()}</div>
+                              </div>
+                              <Badge className={
+                                expense.status === 'approved' 
+                                  ? 'bg-green-100 text-green-800' 
+                                  : expense.status === 'pending'
+                                  ? 'bg-yellow-100 text-yellow-800'
+                                  : 'bg-red-100 text-red-800'
+                              }>
+                                {expense.status === 'approved' ? '承認済み' : expense.status === 'pending' ? '承認待ち' : '却下'}
+                              </Badge>
                             </div>
                           </div>
-                          <div className="flex items-center space-x-3">
-                            <div className="text-right">
-                              <div className="text-lg font-semibold">¥{expense.amount.toLocaleString()}</div>
-                            </div>
-                            <Badge className={
-                              expense.status === 'approved' 
-                                ? 'bg-green-100 text-green-800' 
-                                : expense.status === 'pending'
-                                ? 'bg-yellow-100 text-yellow-800'
-                                : 'bg-red-100 text-red-800'
-                            }>
-                              {expense.status === 'approved' ? '承認済み' : expense.status === 'pending' ? '承認待ち' : '却下'}
-                            </Badge>
-                          </div>
-                        </div>
-                      ))}
+                        ));
+                      })()}
                     </div>
                   </CardContent>
                 </Card>
@@ -436,6 +470,19 @@ export default function ReportsPage() {
       </CardContent>
     </Card>
   );
+
+  if (loading) {
+    return (
+      <MainLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-2 text-gray-600">レポートデータを読み込み中...</p>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>
