@@ -82,26 +82,17 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // エラーが発生してもダッシュボードが表示されるようにエラーハンドリングを改善
-        const [expenseData, invoiceData] = await Promise.all([
-          expenseService.getExpenses().catch((error) => {
-            console.warn('経費データ取得エラー:', error);
-            return [];
-          }),
-          invoicePaymentService.getInvoicePayments().catch((error) => {
-            console.warn('請求書データ取得エラー:', error);
-            return [];
-          })
-        ]);
+        // 新しいAPIエンドポイントを使用してデータを取得
+        const response = await fetch(`/api/user-data?userId=${user.id}`);
+        const data = await response.json();
+        
+        if (!response.ok) {
+          console.error('APIエラー:', data.error);
+          return;
+        }
 
-        // 自分の申請のみをフィルタリング
-        // user.idとuser.nameの両方でチェック（データベースの実装に応じて）
-        const userFilteredExpenses = expenseData.filter(expense => 
-          expense.user_id === user.id || expense.user_id === user.name
-        );
-        const userFilteredInvoices = invoiceData.filter(invoice => 
-          invoice.user_id === user.id || invoice.user_id === user.name
-        );
+        const userFilteredExpenses = data.expenses || [];
+        const userFilteredInvoices = data.invoicePayments || [];
         
         console.log('User info:', { id: user.id, name: user.name });
         console.log('Total expenses:', expenseData.length);
