@@ -74,6 +74,7 @@ interface MasterDataState {
   getActiveProjects: () => Project[];
   getCategoryById: (id: string) => Category | undefined;
   getProjectById: (id: string) => Project | undefined;
+  getCategoriesByUsage: () => Promise<Category[]>;
   loadDataFromAPI: () => Promise<void>;
 }
 
@@ -261,6 +262,42 @@ export const useMasterDataStore = create<MasterDataState>()(
       getProjectById: (id) => {
         const state = get();
         return state.projects.find(proj => proj.id === id);
+      },
+      getCategoriesByUsage: async () => {
+        try {
+          const response = await fetch('/api/reports-data');
+          if (!response.ok) {
+            throw new Error('Failed to fetch usage data');
+          }
+          const data = await response.json();
+          const { categoryExpenses, categories } = data;
+          
+          // 使用回数をカウント（経費と請求書の両方から）
+          const usageCount: Record<string, number> = {};
+          data.expenses?.forEach((expense: any) => {
+            if (expense.category_id) {
+              usageCount[expense.category_id] = (usageCount[expense.category_id] || 0) + 1;
+            }
+          });
+          data.invoicePayments?.forEach((invoice: any) => {
+            if (invoice.category_id) {
+              usageCount[invoice.category_id] = (usageCount[invoice.category_id] || 0) + 1;
+            }
+          });
+          
+          // 使用頻度順にソート
+          const sortedCategories = (categories || get().categories).sort((a: Category, b: Category) => {
+            const countA = usageCount[a.id] || 0;
+            const countB = usageCount[b.id] || 0;
+            return countB - countA; // 降順（使用頻度の高い順）
+          });
+          
+          return sortedCategories;
+        } catch (error) {
+          console.error('Failed to get categories by usage:', error);
+          // エラー時はデフォルトの順序で返す
+          return get().categories;
+        }
       },
       loadDataFromAPI: async () => {
         try {

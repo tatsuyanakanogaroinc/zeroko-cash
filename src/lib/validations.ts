@@ -9,7 +9,7 @@ export const expenseFormSchema = z.object({
     message: 'イベントを選択してください',
     params: { invalid_type_error: 'イベントを選択してください' }
   }),
-  description: z.string().min(10, '詳細説明は10文字以上で入力してください'),
+  description: z.string().min(1, '詳細説明は必須です'),
   payment_method: z.enum(['cash', 'credit_card', 'bank_transfer']),
 });
 

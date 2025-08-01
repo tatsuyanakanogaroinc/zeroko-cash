@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -21,7 +22,7 @@ import { userService } from '@/lib/database';
 
 // バリデーションスキーマ
 const invoicePaymentSchema = z.object({
-  description: z.string().min(1, '説明は必須です'),
+  description: z.string().min(1, '詳細説明は必須です'),
   amount: z.number().min(1, '金額は1円以上で入力してください'),
   invoice_date: z.date({ required_error: '請求日は必須です' }),
   due_date: z.date({ required_error: '支払期日は必須です' }),
@@ -37,6 +38,8 @@ type InvoicePaymentFormData = z.infer<typeof invoicePaymentSchema>;
 export default function NewInvoicePaymentPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [sortedCategories, setSortedCategories] = useState<any[]>([]);
+  const [availableEvents, setAvailableEvents] = useState<any[]>([]);
   const router = useRouter();
 
   const {
@@ -50,18 +53,50 @@ export default function NewInvoicePaymentPage() {
   });
 
   const watchedAmount = watch('amount');
+  const watchedCategoryId = watch('category_id');
 
   // グローバルストアからデータを取得
-  const { categories, getActiveProjects, departments } = useMasterDataStore();
+  const { categories, getActiveProjects, departments, getCategoriesByUsage } = useMasterDataStore();
   const activeProjects = getActiveProjects();
 
-  // イベントデータ（モック）
-  const events = [
-    { id: '1', name: '東京展示会2024', start_date: '2024-01-15', end_date: '2024-01-17' },
-    { id: '2', name: '大阪商談会', start_date: '2024-01-20', end_date: '2024-01-22' },
-    { id: '3', name: '名古屋セミナー', start_date: '2024-01-25', end_date: '2024-01-26' },
-    { id: '4', name: '福岡研修', start_date: '2024-02-01', end_date: '2024-02-03' },
-  ];
+  // 勘定科目を使用頻度順で取得
+  React.useEffect(() => {
+    const loadSortedCategories = async () => {
+      try {
+        const sorted = await getCategoriesByUsage();
+        setSortedCategories(sorted);
+      } catch (error) {
+        console.error('Error loading sorted categories:', error);
+        setSortedCategories(categories);
+      }
+    };
+    loadSortedCategories();
+  }, [categories, getCategoriesByUsage]);
+
+  // 実データのイベントを取得
+  React.useEffect(() => {
+    const loadEvents = async () => {
+      try {
+        const response = await fetch('/api/events');
+        if (response.ok) {
+          const eventsData = await response.json();
+          setAvailableEvents(eventsData);
+        } else {
+          // フォールバック用のモックデータ
+          setAvailableEvents([
+            { id: '1', name: '東京展示会2024', start_date: '2024-01-15', end_date: '2024-01-17' },
+            { id: '2', name: '大阪商談会', start_date: '2024-01-20', end_date: '2024-01-22' },
+            { id: '3', name: '名古屋セミナー', start_date: '2024-01-25', end_date: '2024-01-26' },
+            { id: '4', name: '福岡研修', start_date: '2024-02-01', end_date: '2024-02-03' },
+          ]);
+        }
+      } catch (error) {
+        console.error('Error loading events:', error);
+        setAvailableEvents([]);
+      }
+    };
+    loadEvents();
+  }, []);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
@@ -224,7 +259,7 @@ export default function NewInvoicePaymentPage() {
                       <SelectValue placeholder="勘定科目を選択" />
                     </SelectTrigger>
                     <SelectContent>
-                      {categories.map((category) => (
+                      {sortedCategories.map((category) => (
                         <SelectItem key={category.id} value={category.id}>
                           {category.name}
                         </SelectItem>
@@ -281,7 +316,7 @@ export default function NewInvoicePaymentPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">イベントなし</SelectItem>
-                      {events.map((event) => (
+                      {availableEvents.map((event) => (
                         <SelectItem key={event.id} value={event.id}>
                           {event.name} ({event.start_date} - {event.end_date})
                         </SelectItem>
