@@ -7,6 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useMasterDataStore } from '@/lib/store';
 import { 
   TrendingUp, 
@@ -16,7 +18,13 @@ import {
   Calendar, 
   FolderOpen,
   Eye,
-  BarChart3
+  BarChart3,
+  Users,
+  FileText,
+  AlertTriangle,
+  CheckCircle,
+  Clock,
+  Target
 } from 'lucide-react';
 
 interface Summary {
@@ -27,6 +35,16 @@ interface Summary {
   remaining: number;
   usage_percentage: number;
   status: 'healthy' | 'warning' | 'danger';
+}
+
+interface MockExpense {
+  id: string;
+  date: string;
+  amount: number;
+  category: string;
+  user_name: string;
+  description: string;
+  status: 'approved' | 'pending' | 'rejected';
 }
 
 export default function ReportsPage() {
@@ -100,11 +118,47 @@ export default function ReportsPage() {
     }
   ];
 
+  // Generate mock expenses for details
+  const generateMockExpenses = (itemId: string, itemName: string, totalAmount: number): MockExpense[] => {
+    const categories = ['交通費', '会議費', '宿泊費', '飲食費', '通信費', '文具費'];
+    const users = ['田中太郎', '佐藤花子', '鈴木一郎', '高橋美咲', '山田次郎'];
+    const count = Math.floor(Math.random() * 8) + 3; // 3-10件の申請
+    const expenses: MockExpense[] = [];
+    
+    let remainingAmount = totalAmount;
+    for (let i = 0; i < count; i++) {
+      const amount = i === count - 1 
+        ? remainingAmount 
+        : Math.floor(Math.random() * (remainingAmount / (count - i) * 1.5));
+      
+      expenses.push({
+        id: `${itemId}-${i + 1}`,
+        date: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        amount: Math.max(amount, 1000),
+        category: categories[Math.floor(Math.random() * categories.length)],
+        user_name: users[Math.floor(Math.random() * users.length)],
+        description: `${itemName}関連の経費`,
+        status: Math.random() > 0.8 ? 'pending' : 'approved'
+      });
+      
+      remainingAmount -= Math.max(amount, 1000);
+      if (remainingAmount <= 0) break;
+    }
+    
+    return expenses.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  };
+
   // Calculate totals for overview
   const totalBudget = [...departments, ...projects, ...events].reduce((sum, item) => sum + item.budget, 0);
   const totalExpenses = [...departments, ...projects, ...events].reduce((sum, item) => sum + item.total_expenses, 0);
   const totalRemaining = totalBudget - totalExpenses;
   const overallUsage = totalBudget > 0 ? (totalExpenses / totalBudget) * 100 : 0;
+  
+  // Calculate statistics
+  const healthyCount = [...departments, ...projects, ...events].filter(item => item.status === 'healthy').length;
+  const warningCount = [...departments, ...projects, ...events].filter(item => item.status === 'warning').length;
+  const dangerCount = [...departments, ...projects, ...events].filter(item => item.status === 'danger').length;
+  const totalItems = departments.length + projects.length + events.length;
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -159,10 +213,92 @@ export default function ReportsPage() {
         </div>
         
         <div className="flex justify-end">
-          <Button variant="outline" size="sm" className="text-xs">
-            <Eye className="h-3 w-3 mr-1" />
-            詳細を見る
-          </Button>
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm" className="text-xs">
+                <Eye className="h-3 w-3 mr-1" />
+                詳細を見る
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="flex items-center space-x-2">
+                  <Icon className="h-5 w-5 text-blue-600" />
+                  <span>{item.name} - 申請詳細</span>
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-6 mt-4">
+                {/* Summary */}
+                <div className="grid grid-cols-4 gap-4">
+                  <div className="text-center p-4 bg-blue-50 rounded-lg">
+                    <div className="text-blue-600 font-semibold text-sm">予算</div>
+                    <div className="text-2xl font-bold text-blue-800">¥{item.budget.toLocaleString()}</div>
+                  </div>
+                  <div className="text-center p-4 bg-orange-50 rounded-lg">
+                    <div className="text-orange-600 font-semibold text-sm">使用額</div>
+                    <div className="text-2xl font-bold text-orange-800">¥{item.total_expenses.toLocaleString()}</div>
+                  </div>
+                  <div className="text-center p-4 bg-green-50 rounded-lg">
+                    <div className="text-green-600 font-semibold text-sm">残額</div>
+                    <div className="text-2xl font-bold text-green-800">¥{item.remaining.toLocaleString()}</div>
+                  </div>
+                  <div className="text-center p-4 bg-gray-50 rounded-lg">
+                    <div className="text-gray-600 font-semibold text-sm">使用率</div>
+                    <div className="text-2xl font-bold text-gray-800">{item.usage_percentage.toFixed(1)}%</div>
+                  </div>
+                </div>
+                
+                {/* Progress Bar */}
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm font-medium">
+                    <span>予算使用状況</span>
+                    <span>{item.usage_percentage.toFixed(1)}%</span>
+                  </div>
+                  <Progress value={item.usage_percentage} className="h-3" />
+                </div>
+                
+                {/* Expenses List */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4 flex items-center">
+                    <FileText className="h-5 w-5 mr-2 text-gray-600" />
+                    申請一覧
+                  </h3>
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {generateMockExpenses(item.id, item.name, item.total_expenses).map(expense => (
+                      <div key={expense.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
+                        <div className="flex items-center space-x-4">
+                          <Avatar className="h-10 w-10">
+                            <AvatarFallback className="bg-blue-100 text-blue-600 text-sm">
+                              {expense.user_name.charAt(0)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <div className="font-medium">{expense.user_name}</div>
+                            <div className="text-sm text-gray-600">{expense.category} - {expense.description}</div>
+                            <div className="text-xs text-gray-500">{expense.date}</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <div className="text-right">
+                            <div className="text-lg font-semibold">¥{expense.amount.toLocaleString()}</div>
+                          </div>
+                          <Badge className={
+                            expense.status === 'approved' 
+                              ? 'bg-green-100 text-green-800' 
+                              : expense.status === 'pending'
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : 'bg-red-100 text-red-800'
+                          }>
+                            {expense.status === 'approved' ? '承認済み' : expense.status === 'pending' ? '承認待ち' : '却下'}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </CardContent>
     </Card>
@@ -254,6 +390,109 @@ export default function ReportsPage() {
                 </CardContent>
               </Card>
             </div>
+            
+            {/* Statistics Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Target className="h-5 w-5 text-blue-600" />
+                    <span>ステータス別統計</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="text-center p-3 bg-green-50 rounded-lg border border-green-200">
+                      <div className="text-green-600 font-semibold text-sm">健全</div>
+                      <div className="text-2xl font-bold text-green-800">{healthyCount}</div>
+                      <div className="text-xs text-green-600">項目</div>
+                    </div>
+                    <div className="text-center p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                      <div className="text-yellow-600 font-semibold text-sm">要注意</div>
+                      <div className="text-2xl font-bold text-yellow-800">{warningCount}</div>
+                      <div className="text-xs text-yellow-600">項目</div>
+                    </div>
+                    <div className="text-center p-3 bg-red-50 rounded-lg border border-red-200">
+                      <div className="text-red-600 font-semibold text-sm">危険</div>
+                      <div className="text-2xl font-bold text-red-800">{dangerCount}</div>
+                      <div className="text-xs text-red-600">項目</div>
+                    </div>
+                  </div>
+                  <div className="text-center text-sm text-gray-600">
+                    全{totalItems}項目中
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Users className="h-5 w-5 text-purple-600" />
+                    <span>カテゴリ別統計</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="text-center p-3 bg-blue-50 rounded-lg">
+                      <Building className="h-6 w-6 text-blue-600 mx-auto mb-1" />
+                      <div className="text-blue-600 font-semibold text-sm">部門</div>
+                      <div className="text-xl font-bold text-blue-800">{departments.length}</div>
+                    </div>
+                    <div className="text-center p-3 bg-purple-50 rounded-lg">
+                      <FolderOpen className="h-6 w-6 text-purple-600 mx-auto mb-1" />
+                      <div className="text-purple-600 font-semibold text-sm">プロジェクト</div>
+                      <div className="text-xl font-bold text-purple-800">{projects.length}</div>
+                    </div>
+                    <div className="text-center p-3 bg-indigo-50 rounded-lg">
+                      <Calendar className="h-6 w-6 text-indigo-600 mx-auto mb-1" />
+                      <div className="text-indigo-600 font-semibold text-sm">イベント</div>
+                      <div className="text-xl font-bold text-indigo-800">{events.length}</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+            
+            {/* Top Items by Usage */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <AlertTriangle className="h-5 w-5 text-orange-600" />
+                  <span>注意が必要な項目</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {[...departments, ...projects, ...events]
+                    .filter(item => item.status === 'danger' || item.status === 'warning')
+                    .sort((a, b) => b.usage_percentage - a.usage_percentage)
+                    .slice(0, 5)
+                    .map(item => {
+                      const Icon = departments.includes(item) ? Building : projects.includes(item) ? FolderOpen : Calendar;
+                      return (
+                        <div key={item.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                          <div className="flex items-center space-x-3">
+                            <Icon className="h-5 w-5 text-gray-600" />
+                            <div>
+                              <div className="font-medium">{item.name}</div>
+                              <div className="text-sm text-gray-600">¥{item.total_expenses.toLocaleString()} / ¥{item.budget.toLocaleString()}</div>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <div className="text-right">
+                              <div className="text-sm font-semibold">{item.usage_percentage.toFixed(1)}%</div>
+                              <Progress value={item.usage_percentage} className="w-20 h-1" />
+                            </div>
+                            <Badge className={getStatusColor(item.status)}>
+                              {item.status === 'warning' ? '要注意' : '危険'}
+                            </Badge>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* Departments Tab */}
