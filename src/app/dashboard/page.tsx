@@ -146,23 +146,21 @@ export default function DashboardPage() {
     budgetUsed: 75, // 仮の値（後で部門予算から計算）
   };
 
-  // 最新の5件を取得
-  const recentApplications = allApplications
-    .slice(0, 5)
-    .map(application => ({
-      id: application.id,
-      description: application.description,
-      amount: application.amount,
-      status: application.status,
-      date: application.date,
-      type: application.type,
-      department_id: application.department_id,
-      event_name: application.event_name,
-      project_id: application.project_id,
-      category_id: application.category_id,
-      payment_method: application.payment_method,
-      user_id: application.user_id,
-    }));
+  // 全ての申請を表示
+  const displayApplications = allApplications.map(application => ({
+    id: application.id,
+    description: application.description,
+    amount: application.amount,
+    status: application.status,
+    date: application.date,
+    type: application.type,
+    department_id: application.department_id,
+    event_name: application.event_name,
+    project_id: application.project_id,
+    category_id: application.category_id,
+    payment_method: application.payment_method,
+    user_id: application.user_id,
+  }));
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -270,32 +268,25 @@ export default function DashboardPage() {
 
         {/* 申請一覧 */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <div>
-              <CardTitle>申請一覧</CardTitle>
-              <CardDescription>
-                経費申請と請求書払い申請の履歴を確認できます
-              </CardDescription>
-            </div>
-            <Link href="/expenses">
-              <Button variant="outline" size="sm">
-                すべて表示
-              </Button>
-            </Link>
+          <CardHeader>
+            <CardTitle>申請一覧</CardTitle>
+            <CardDescription>
+              経費申請と請求書払い申請の履歴を確認できます
+            </CardDescription>
           </CardHeader>
           <CardContent>
             {loading ? (
               <div className="flex items-center justify-center py-8">
                 <div className="text-gray-600">データを読み込み中...</div>
               </div>
-            ) : recentApplications.length === 0 ? (
+            ) : displayApplications.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
                 <p>申請データがありません</p>
                 <p className="text-sm mt-2">新しい申請を作成してください</p>
               </div>
             ) : (
               <div className="space-y-4">
-                {recentApplications.map(application => (
+                {displayApplications.map(application => (
                   <div key={application.id} className="border rounded-lg p-4">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center space-x-4">
