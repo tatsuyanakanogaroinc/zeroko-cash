@@ -14,36 +14,71 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
 
 export async function GET(request: Request) {
   try {
-    // すべての経費データを取得
-    const { data: expenses, error: expensesError } = await supabaseAdmin
-      .from('expenses')
-      .select(`
-        *,
-        users(name, department_id),
-        categories(name),
-        events(name)
-      `)
-      .order('created_at', { ascending: false });
+    // マスタデータを並行して取得
+    const [expensesResult, invoicesResult, departmentsResult, projectsResult, eventsResult] = await Promise.all([
+      // すべての経費データを取得
+      supabaseAdmin
+        .from('expenses')
+        .select(`
+          *,
+          users(name, department_id),
+          categories(name),
+          events(name)
+        `)
+        .order('created_at', { ascending: false }),
+      
+      // すべての請求書データを取得
+      supabaseAdmin
+        .from('invoice_payments')
+        .select(`
+          *,
+          users(name, department_id),
+          departments(name),
+          projects(name),
+          categories(name),
+          events(name)
+        `)
+        .order('created_at', { ascending: false }),
+      
+      // 部門データを取得
+      supabaseAdmin
+        .from('departments')
+        .select('*')
+        .order('name'),
+      
+      // プロジェクトデータを取得
+      supabaseAdmin
+        .from('projects')
+        .select('*')
+        .order('name'),
+      
+      // イベントデータを取得
+      supabaseAdmin
+        .from('events')
+        .select('*')
+        .order('name')
+    ]);
+
+    const { data: expenses, error: expensesError } = expensesResult;
+    const { data: invoicePayments, error: invoicesError } = invoicesResult;
+    const { data: departments, error: departmentsError } = departmentsResult;
+    const { data: projects, error: projectsError } = projectsResult;
+    const { data: events, error: eventsError } = eventsResult;
 
     if (expensesError) {
       console.error('Expenses fetch error:', expensesError);
     }
-
-    // すべての請求書データを取得
-    const { data: invoicePayments, error: invoicesError } = await supabaseAdmin
-      .from('invoice_payments')
-      .select(`
-        *,
-        users(name, department_id),
-        departments(name),
-        projects(name),
-        categories(name),
-        events(name)
-      `)
-      .order('created_at', { ascending: false });
-
     if (invoicesError) {
       console.error('Invoice payments fetch error:', invoicesError);
+    }
+    if (departmentsError) {
+      console.error('Departments fetch error:', departmentsError);
+    }
+    if (projectsError) {
+      console.error('Projects fetch error:', projectsError);
+    }
+    if (eventsError) {
+      console.error('Events fetch error:', eventsError);
     }
 
     // 部門ごとの集計
@@ -82,6 +117,9 @@ export async function GET(request: Request) {
     return NextResponse.json({
       expenses: expenses || [],
       invoicePayments: invoicePayments || [],
+      departments: departments || [],
+      projects: projects || [],
+      events: events || [],
       departmentExpenses,
       projectExpenses,
       eventExpenses

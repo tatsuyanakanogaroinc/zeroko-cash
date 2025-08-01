@@ -11,6 +11,10 @@ const nextConfig: NextConfig = {
     // your project has type errors.
     ignoreBuildErrors: true,
   },
+  // Ensure proper handling of dynamic content
+  experimental: {
+    esmExternals: false,
+  },
   webpack: (config, { isServer }) => {
     // Externalize nodemailer and related packages for client-side builds
     if (!isServer) {

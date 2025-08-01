@@ -9,7 +9,6 @@ import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { useMasterDataStore, useExpenseStore, useEventStore } from '@/lib/store';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -37,9 +36,39 @@ interface Summary {
   status: 'healthy' | 'warning' | 'danger';
 }
 
+interface Department {
+  id: string;
+  name: string;
+  budget: number;
+  created_at: string;
+}
+
+interface Project {
+  id: string;
+  name: string;
+  budget: number;
+  department_id: string;
+  status: string;
+  created_at: string;
+}
+
+interface Event {
+  id: string;
+  name: string;
+  budget: number;
+  description?: string;
+  start_date: string;
+  end_date: string;
+  status: string;
+  created_at: string;
+}
+
 interface ReportData {
   expenses: any[];
   invoicePayments: any[];
+  departments: Department[];
+  projects: Project[];
+  events: Event[];
   departmentExpenses: Record<string, number>;
   projectExpenses: Record<string, number>;
   eventExpenses: Record<string, number>;
@@ -56,23 +85,25 @@ interface ExpenseDetail {
 }
 
 export default function ReportsPage() {
-  const { departments: deptData, projects: projectData, events: eventData } = useMasterDataStore();
   const [activeTab, setActiveTab] = useState<string>('overview');
   const [reportData, setReportData] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Fetch report data from API
+  // Fetch all report data from API
   useEffect(() => {
     const fetchReportData = async () => {
       try {
         const response = await fetch('/api/reports-data');
         if (!response.ok) {
-          throw new Error('Failed to fetch report data');
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
         setReportData(data);
+        setError(null);
       } catch (error) {
         console.error('Error fetching report data:', error);
+        setError(error instanceof Error ? error.message : 'Failed to fetch report data');
       } finally {
         setLoading(false);
       }
@@ -90,10 +121,10 @@ export default function ReportsPage() {
     return { usage_percentage: usage, status };
   };
 
-  // Convert Zustand store data to Summary format with real expense data
-  const departments: Summary[] = deptData.map(d => {
-    const budget = typeof d.budget === 'number' && !isNaN(d.budget) ? d.budget : 100000; // デフォルト予算
-    const expenses = reportData?.departmentExpenses[d.id] || 0; // Real expenses from API
+  // Convert Supabase data to Summary format with real expense data
+  const departments: Summary[] = reportData?.departments?.map(d => {
+    const budget = typeof d.budget === 'number' && !isNaN(d.budget) ? d.budget : 0;
+    const expenses = reportData?.departmentExpenses[d.id] || 0;
     const summary = calculateSummary(budget, expenses);
     return {
       id: d.id,
@@ -103,11 +134,11 @@ export default function ReportsPage() {
       remaining: budget - expenses,
       ...summary
     };
-  });
+  }) || [];
 
-  const projects: Summary[] = projectData.map(p => {
-    const budget = typeof p.budget === 'number' && !isNaN(p.budget) ? p.budget : 50000; // デフォルト予算
-    const expenses = reportData?.projectExpenses[p.id] || 0; // Real expenses from API
+  const projects: Summary[] = reportData?.projects?.map(p => {
+    const budget = typeof p.budget === 'number' && !isNaN(p.budget) ? p.budget : 0;
+    const expenses = reportData?.projectExpenses[p.id] || 0;
     const summary = calculateSummary(budget, expenses);
     return {
       id: p.id,
@@ -117,12 +148,11 @@ export default function ReportsPage() {
       remaining: budget - expenses,
       ...summary
     };
-  });
+  }) || [];
 
-  // Real events data with actual expenses
-  const events: Summary[] = eventData.map(e => {
-    const budget = typeof e.budget === 'number' && !isNaN(e.budget) ? e.budget : 30000; // デフォルト予算
-    const expenses = reportData?.eventExpenses[e.id] || 0; // Real expenses from API
+  const events: Summary[] = reportData?.events?.map(e => {
+    const budget = typeof e.budget === 'number' && !isNaN(e.budget) ? e.budget : 0;
+    const expenses = reportData?.eventExpenses[e.id] || 0;
     const summary = calculateSummary(budget, expenses);
     return {
       id: e.id,
@@ -132,7 +162,7 @@ export default function ReportsPage() {
       remaining: budget - expenses,
       ...summary
     };
-  });
+  }) || [];
 
   // Get real expenses for details from API data
   const getExpensesForItem = (itemId: string, itemType: 'department' | 'project' | 'event'): ExpenseDetail[] => {
@@ -471,6 +501,7 @@ export default function ReportsPage() {
     </Card>
   );
 
+  // Show loading state while data is loading
   if (loading) {
     return (
       <MainLayout>
@@ -478,6 +509,39 @@ export default function ReportsPage() {
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
             <p className="mt-2 text-gray-600">レポートデータを読み込み中...</p>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
+
+  // Show error state if data fetch failed
+  if (error) {
+    return (
+      <MainLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="text-red-600 mb-4">
+              <AlertTriangle className="h-12 w-12 mx-auto mb-2" />
+              <h2 className="text-lg font-semibold">データの読み込みに失敗しました</h2>
+            </div>
+            <p className="text-gray-600 mb-4">{error}</p>
+            <Button onClick={() => window.location.reload()}>
+              再読み込み
+            </Button>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
+
+  // Show message if no data available
+  if (!reportData) {
+    return (
+      <MainLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <p className="text-gray-600">レポートデータがありません</p>
           </div>
         </div>
       </MainLayout>
