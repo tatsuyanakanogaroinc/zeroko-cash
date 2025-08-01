@@ -683,8 +683,14 @@ function EventForm({ onSubmit, editingItem, departments }: { onSubmit: (data: an
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // 部門の予算制限チェック
-    if (formData.department_id && formData.budget > 0) {
+    // 数値の検証
+    if (isNaN(formData.budget) || formData.budget < 0) {
+      setBudgetError('有効な予算金額を入力してください');
+      return;
+    }
+    
+    // 部門の予算制限チェック（「部門なし」以外の場合）
+    if (formData.department_id && formData.department_id !== 'none' && formData.budget > 0) {
       const selectedDepartment = departments.find(dept => dept.id === formData.department_id);
       if (selectedDepartment && formData.budget > selectedDepartment.budget) {
         setBudgetError(`予算が部門の上限（¥${selectedDepartment.budget.toLocaleString()}）を超えています`);
@@ -693,7 +699,15 @@ function EventForm({ onSubmit, editingItem, departments }: { onSubmit: (data: an
     }
     
     setBudgetError('');
-    onSubmit(formData);
+    
+    // データを整形してから送信
+    const submitData = {
+      ...formData,
+      budget: Number(formData.budget) || 0,
+      department_id: formData.department_id === 'none' ? null : formData.department_id
+    };
+    
+    onSubmit(submitData);
   };
 
   return (
@@ -751,7 +765,7 @@ function EventForm({ onSubmit, editingItem, departments }: { onSubmit: (data: an
           id="event-budget"
           type="number"
           value={formData.budget}
-          onChange={(e) => setFormData({ ...formData, budget: parseInt(e.target.value) })}
+          onChange={(e) => setFormData({ ...formData, budget: e.target.value === '' ? 0 : parseInt(e.target.value) || 0 })}
           required
         />
         {budgetError && (
@@ -855,8 +869,14 @@ function ProjectForm({ onSubmit, editingItem, departments }: { onSubmit: (data: 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // 部門の予算制限チェック
-    if (formData.department_id && formData.budget > 0) {
+    // 数値の検証
+    if (isNaN(formData.budget) || formData.budget < 0) {
+      setBudgetError('有効な予算金額を入力してください');
+      return;
+    }
+    
+    // 部門の予算制限チェック（「部門なし」以外の場合）
+    if (formData.department_id && formData.department_id !== 'none' && formData.budget > 0) {
       const selectedDepartment = departments.find(dept => dept.id === formData.department_id);
       if (selectedDepartment && formData.budget > selectedDepartment.budget) {
         setBudgetError(`予算が部門の上限（¥${selectedDepartment.budget.toLocaleString()}）を超えています`);
@@ -865,7 +885,15 @@ function ProjectForm({ onSubmit, editingItem, departments }: { onSubmit: (data: 
     }
     
     setBudgetError('');
-    onSubmit(formData);
+    
+    // データを整形してから送信
+    const submitData = {
+      ...formData,
+      budget: Number(formData.budget) || 0,
+      department_id: formData.department_id === 'none' ? null : formData.department_id
+    };
+    
+    onSubmit(submitData);
   };
 
   return (

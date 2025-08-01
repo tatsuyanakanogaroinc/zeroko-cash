@@ -24,14 +24,17 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, code, department_id, status } = body;
+    const { name, description, budget, start_date, end_date, department_id, status } = body;
 
     const { data, error } = await supabaseAdmin
       .from('projects')
       .insert({
         name,
-        code,
-        department_id,
+        description,
+        budget: budget || 0,
+        start_date,
+        end_date,
+        department_id: department_id || null,
         status: status || 'active',
       })
       .select()
@@ -50,14 +53,17 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const { id, name, code, department_id, status } = body;
+    const { id, name, description, budget, start_date, end_date, department_id, status } = body;
 
     const { data, error } = await supabaseAdmin
       .from('projects')
       .update({
         name,
-        code,
-        department_id,
+        description,
+        budget,
+        start_date,
+        end_date,
+        department_id: department_id || null,
         status,
       })
       .eq('id', id)

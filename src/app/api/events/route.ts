@@ -21,7 +21,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, start_date, end_date, budget, status, description } = body;
+    const { name, start_date, end_date, budget, status, description, department_id } = body;
 
     const { data, error } = await supabaseAdmin
       .from('events')
@@ -30,8 +30,9 @@ export async function POST(request: NextRequest) {
         start_date,
         end_date,
         budget: budget || 0,
-        status: status || 'planned',
+        status: status || 'active',
         description,
+        department_id: department_id || null,
       })
       .select()
       .single();
@@ -49,7 +50,7 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const { id, name, start_date, end_date, budget, status, description } = body;
+    const { id, name, start_date, end_date, budget, status, description, department_id } = body;
 
     const { data, error } = await supabaseAdmin
       .from('events')
@@ -60,6 +61,7 @@ export async function PUT(request: NextRequest) {
         budget,
         status,
         description,
+        department_id: department_id || null,
       })
       .eq('id', id)
       .select()
