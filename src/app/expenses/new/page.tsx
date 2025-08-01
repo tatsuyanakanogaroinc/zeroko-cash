@@ -101,7 +101,14 @@ export default function NewExpensePage() {
       // 申請が正常に作成されました
       console.log('申請データがZustandストアに保存されました');
       await new Promise(resolve => setTimeout(resolve, 1000));
-      router.push('/expenses');
+      
+      // 申請完了ページに遷移（申請内容を含む）
+      const params = new URLSearchParams({
+        type: 'expense',
+        amount: data.amount.toString(),
+        description: data.description
+      });
+      router.push(`/application-success?${params.toString()}`);
     } catch (error) {
       console.error('申請エラー:', error);
     } finally {

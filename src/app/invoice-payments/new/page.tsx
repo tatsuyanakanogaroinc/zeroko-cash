@@ -109,7 +109,13 @@ export default function NewInvoicePaymentPage() {
       // TODO: 実際のAPI呼び出しに置き換える
       await invoicePaymentService.createInvoicePayment(invoicePaymentData);
       
-      router.push('/invoice-payments');
+      // 申請成功ページにリダイレクト（申請内容を含む）
+      const params = new URLSearchParams({
+        type: 'invoice',
+        amount: data.amount.toString(),
+        description: data.description
+      });
+      router.push(`/application-success?${params.toString()}`);
     } catch (error) {
       console.error('申請エラー:', error);
       alert('請求書払い申請の作成に失敗しました。');

@@ -17,7 +17,7 @@ import {
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { expenseService, invoicePaymentService } from '@/lib/database';
-import { useMasterDataStore } from '@/lib/store';
+import { useMasterDataStore, useExpenseStore, useEventStore } from '@/lib/store';
 
 import { useAuth } from '@/contexts/AuthContext';
 export default function DashboardPage() {
@@ -26,6 +26,8 @@ export default function DashboardPage() {
   
   // マスターデータストアから取得
   const { departments, projects, categories } = useMasterDataStore();
+  const { expenses } = useExpenseStore();
+  const { events } = useEventStore();
   
   const { user } = useAuth();
   
@@ -54,8 +56,8 @@ export default function DashboardPage() {
   
   const getEventName = (eventId: string | null) => {
     if (!eventId) return '未定';
-    // TODO: イベントマスターから取得（現在はIDを表示）
-    return eventId;
+    const event = events.find(e => e.id === eventId);
+    return event?.name || '不明';
   };
 
   const getCategoryName = (categoryId: string | null) => {
