@@ -95,9 +95,7 @@ export default function DashboardPage() {
         const userFilteredInvoices = data.invoicePayments || [];
         
         console.log('User info:', { id: user.id, name: user.name });
-        console.log('Total expenses:', expenseData.length);
         console.log('User filtered expenses:', userFilteredExpenses.length);
-        console.log('Total invoices:', invoiceData.length);
         console.log('User filtered invoices:', userFilteredInvoices.length);
 
         // 経費申請データの正規化
