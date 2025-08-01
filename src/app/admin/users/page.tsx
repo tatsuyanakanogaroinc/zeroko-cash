@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,6 +34,8 @@ interface Department {
 }
 
 export default function UsersPage() {
+  const router = useRouter();
+  const { user: currentUser, loading, isAdmin } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -39,6 +43,31 @@ export default function UsersPage() {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [createdUserInfo, setCreatedUserInfo] = useState<{email: string, password: string} | null>(null);
   const [isShowPasswordDialogOpen, setIsShowPasswordDialogOpen] = useState(false);
+
+  // 認証チェック
+  useEffect(() => {
+    if (!loading && !currentUser) {
+      router.push('/login');
+      return;
+    }
+    
+    if (!loading && currentUser && !isAdmin) {
+      toast.error('管理者権限が必要です');
+      router.push('/dashboard');
+      return;
+    }
+  }, [currentUser, loading, isAdmin, router]);
+
+  // ローディング中または認証チェック中は表示しない
+  if (loading || !currentUser || !isAdmin) {
+    return (
+      <MainLayout>
+        <div className="flex items-center justify-center h-64">
+          <p className="text-gray-500">読み込み中...</p>
+        </div>
+      </MainLayout>
+    );
+  }
 
   // モックデータ
   const mockUsers: User[] = [
@@ -108,8 +137,33 @@ export default function UsersPage() {
     }
   };
 
+  // ユーザーデータをロード
+  const loadUsers = async () => {
+    try {
+      const usersData = await userService.getUsers();
+      console.log('Loaded users:', usersData);
+      
+      // データベースのユーザーをUIで表示する形式に変換
+      const formattedUsers = usersData.map(user => ({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role as 'admin' | 'manager' | 'user',
+        department: user.department_id || '未設定',
+        status: 'active' as 'active' | 'inactive' // デフォルトでactive
+      }));
+      
+      setUsers(formattedUsers);
+    } catch (error) {
+      console.error('ユーザー取得エラー:', error);
+      toast.error('ユーザーデータの取得に失敗しました');
+      // エラー時はモックデータを表示
+      setUsers(mockUsers);
+    }
+  };
+
   useEffect(() => {
-    setUsers(mockUsers);
+    loadUsers();
     initializeDepartments();
   }, []);
 
@@ -158,8 +212,7 @@ export default function UsersPage() {
       });
       
       // ユーザーリストを更新
-      const updatedUsers = await userService.getUsers();
-      setUsers(updatedUsers);
+      await loadUsers();
       
       setIsAddDialogOpen(false);
       setIsShowPasswordDialogOpen(true);

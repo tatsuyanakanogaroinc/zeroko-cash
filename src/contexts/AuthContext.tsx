@@ -22,15 +22,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // 初期化時にデモユーザーをセット（実際の認証実装まで）
+    // ローカルストレージからユーザー情報を復元
     const initializeUser = async () => {
       try {
-        // 管理者ユーザーを取得（サンプルデータの伊藤三郎）
-        const users = await userService.getUsers();
-        const adminUser = users.find(u => u.role === 'admin') || users[0];
-        setUser(adminUser);
+        const storedUserId = localStorage.getItem('currentUserId');
+        if (storedUserId) {
+          const user = await userService.getUserById(storedUserId);
+          if (user) {
+            setUser(user);
+          } else {
+            // ストレージのユーザーIDが無効な場合はクリア
+            localStorage.removeItem('currentUserId');
+          }
+        }
       } catch (error) {
         console.error('ユーザー初期化エラー:', error);
+        localStorage.removeItem('currentUserId');
       } finally {
         setLoading(false);
       }
@@ -46,9 +53,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const foundUser = users.find(u => u.email === email);
       if (foundUser) {
         setUser(foundUser);
+        // ローカルストレージにユーザーIDを保存
+        localStorage.setItem('currentUserId', foundUser.id);
+      } else {
+        throw new Error('ユーザーが見つかりません');
       }
     } catch (error) {
       console.error('ログインエラー:', error);
+      throw error; // エラーを再スロー
     } finally {
       setLoading(false);
     }
@@ -56,6 +68,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = () => {
     setUser(null);
+    // ローカルストレージからユーザー情報を削除
+    localStorage.removeItem('currentUserId');
   };
 
   const isAdmin = user?.role === 'admin';
