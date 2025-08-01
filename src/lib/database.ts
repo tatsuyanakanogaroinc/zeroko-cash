@@ -279,7 +279,7 @@ export const categoryService = {
 
 // 請求書払い関連
 export const invoicePaymentService = {
-  async getInvoicePayments(): Promise<InvoicePayment[]> {
+  async getInvoicePayments(): Promise<InvoicePayment[]> {
     const { data, error } = await supabase
       .from('invoice_payments')
       .select(`
@@ -296,7 +296,7 @@ export const invoicePaymentService = {
     return data || []
   },
 
-  async getInvoicePaymentById(id: string): Promise<InvoicePayment | null> {
+  async getInvoicePaymentById(id: string): Promise<InvoicePayment | null> {
     const { data, error } = await supabase
       .from('invoice_payments')
       .select(`
