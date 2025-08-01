@@ -17,9 +17,9 @@ import { useEffect } from 'react';
 import { departmentService, projectService } from '@/lib/database';
 import { toast } from 'sonner';
 
-// ApproverSetting型をインポート
-import { ApproverSetting, User, Department, Project } from '@/lib/types';
-import { getApprovers, addApprover, updateApprover, deleteApprover } from '@/lib/approvers';
+// Remove ApproverSetting related imports
+// import { ApproverSetting, User, Department, Project } from '@/lib/types';
+// import { getApprovers, addApprover, updateApprover, deleteApprover } from '@/lib/approvers';
 
 interface Event {
   id: string;
@@ -187,63 +187,7 @@ export default function SettingsPage() {
     }
   };
 
-  // Approver追加用state
-  const [newApprover, setNewApprover] = useState<{ type: 'department' | 'event' | 'project'; refId: string; userId: string }>({ type: 'department', refId: '', userId: '' });
-
-  useEffect(() => {
-    // 初回マウント時にSupabaseから承認者設定を取得
-    getApprovers().then(setApprovers).catch(console.error);
-  }, []);
-
-  // Approver追加ハンドラ
-  const handleAddApprover = async () => {
-    if (!newApprover.refId || !newApprover.userId) return;
-    const base = {
-      department_id: newApprover.type === 'department' ? newApprover.refId : undefined,
-      event_id: newApprover.type === 'event' ? newApprover.refId : undefined,
-      project_id: newApprover.type === 'project' ? newApprover.refId : undefined,
-      user_id: newApprover.userId,
-    };
-    try {
-      const created = await addApprover(base);
-      setApprovers([...approvers, created]);
-      setNewApprover({ type: 'department', refId: '', userId: '' });
-    } catch (e) {
-      alert('追加に失敗しました');
-    }
-  };
-
-  // Approver編集用state
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [editingApprover, setEditingApprover] = useState<ApproverSetting | null>(null);
-
-  // Approver削除ハンドラ
-  const handleDeleteApprover = async (id: string) => {
-    try {
-      await deleteApprover(id);
-      setApprovers(approvers.filter(a => a.id !== id));
-    } catch (e) {
-      alert('削除に失敗しました');
-    }
-  };
-
-  // Approver編集開始
-  const handleEditApprover = (a: ApproverSetting) => {
-    setEditingApprover(a);
-    setIsEditDialogOpen(true);
-  };
-
-  // Approver編集保存
-  const handleSaveEditApprover = async (updated: ApproverSetting) => {
-    try {
-      const saved = await updateApprover(updated.id, updated);
-      setApprovers(approvers.map(a => a.id === updated.id ? saved : a));
-      setIsEditDialogOpen(false);
-      setEditingApprover(null);
-    } catch (e) {
-      alert('更新に失敗しました');
-    }
-  };
+  // Remove all approver-related code
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -285,10 +229,6 @@ export default function SettingsPage() {
             <TabsTrigger value="projects" className="flex items-center space-x-2">
               <Briefcase className="h-4 w-4" />
               プロジェクト管理
-            </TabsTrigger>
-            <TabsTrigger value="approvers" className="flex items-center space-x-2">
-              <Users className="h-4 w-4" />
-              承認者設定
             </TabsTrigger>
           </TabsList>
 
@@ -581,147 +521,9 @@ export default function SettingsPage() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="approvers" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>承認者設定</CardTitle>
-                <CardDescription>部門・イベント・プロジェクトごとに承認者を設定できます</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="mb-4 flex gap-2">
-                  <select
-                    className="border rounded px-2 py-1"
-                    value={newApprover.type}
-                    onChange={e => setNewApprover({ ...newApprover, type: e.target.value as any, refId: '' })}
-                  >
-                    <option value="department">部門</option>
-                    <option value="event">イベント</option>
-                    <option value="project">プロジェクト</option>
-                  </select>
-                  <select
-                    className="border rounded px-2 py-1"
-                    value={newApprover.refId}
-                    onChange={e => setNewApprover({ ...newApprover, refId: e.target.value })}
-                  >
-                    <option value="">選択</option>
-                    {newApprover.type === 'department' && departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                    {newApprover.type === 'event' && events.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
-                    {newApprover.type === 'project' && projects?.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                  </select>
-                  <select
-                    className="border rounded px-2 py-1"
-                    value={newApprover.userId}
-                    onChange={e => setNewApprover({ ...newApprover, userId: e.target.value })}
-                  >
-                    <option value="">承認者選択</option>
-                    {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
-                  </select>
-                  <Button onClick={handleAddApprover}>追加</Button>
-                </div>
-                <table className="w-full border">
-                  <thead>
-                    <tr>
-                      <th className="border px-2 py-1">種別</th>
-                      <th className="border px-2 py-1">対象名</th>
-                      <th className="border px-2 py-1">承認者</th>
-                      <th className="border px-2 py-1">作成日</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {approvers.map(a => {
-                      let type = '-';
-                      let name = '-';
-                      if (a.department_id) {
-                        type = '部門';
-                        name = departments.find(d => d.id === a.department_id)?.name || '-';
-                      } else if (a.event_id) {
-                        type = 'イベント';
-                        name = events.find(e => e.id === a.event_id)?.name || '-';
-                      } else if (a.project_id) {
-                        type = 'プロジェクト';
-                        name = projects?.find(p => p.id === a.project_id)?.name || '-';
-                      }
-                      const user = users.find(u => u.id === a.user_id)?.name || '-';
-                      return (
-                        <tr key={a.id}>
-                          <td className="border px-2 py-1">{type}</td>
-                          <td className="border px-2 py-1">{name}</td>
-                          <td className="border px-2 py-1">{user}</td>
-                          <td className="border px-2 py-1">
-                            {a.created_at.split('T')[0]}
-                            <Button size="sm" variant="outline" onClick={() => handleEditApprover(a)}>編集</Button>
-                            <Button size="sm" variant="destructive" onClick={() => handleDeleteApprover(a.id)}>削除</Button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </CardContent>
-            </Card>
-          </TabsContent>
         </Tabs>
       </div>
 
-      {/* 編集ダイアログ */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>承認者設定の編集</DialogTitle>
-          </DialogHeader>
-          {editingApprover && (
-            <div className="space-y-2">
-              <select
-                className="border rounded px-2 py-1 w-full"
-                value={editingApprover.department_id ? 'department' : editingApprover.event_id ? 'event' : 'project'}
-                onChange={e => {
-                  const type = e.target.value as 'department' | 'event' | 'project';
-                  setEditingApprover({
-                    ...editingApprover,
-                    department_id: type === 'department' ? editingApprover.department_id || '' : undefined,
-                    event_id: type === 'event' ? editingApprover.event_id || '' : undefined,
-                    project_id: type === 'project' ? editingApprover.project_id || '' : undefined,
-                  });
-                }}
-              >
-                <option value="department">部門</option>
-                <option value="event">イベント</option>
-                <option value="project">プロジェクト</option>
-              </select>
-              <select
-                className="border rounded px-2 py-1 w-full"
-                value={editingApprover.department_id || editingApprover.event_id || editingApprover.project_id || ''}
-                onChange={e => {
-                  const type = editingApprover.department_id ? 'department' : editingApprover.event_id ? 'event' : 'project';
-                  setEditingApprover({
-                    ...editingApprover,
-                    department_id: type === 'department' ? e.target.value : undefined,
-                    event_id: type === 'event' ? e.target.value : undefined,
-                    project_id: type === 'project' ? e.target.value : undefined,
-                  });
-                }}
-              >
-                <option value="">選択</option>
-                {editingApprover.department_id && departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                {editingApprover.event_id && events.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
-                {editingApprover.project_id && projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-              </select>
-              <select
-                className="border rounded px-2 py-1 w-full"
-                value={editingApprover.user_id}
-                onChange={e => setEditingApprover({ ...editingApprover, user_id: e.target.value })}
-              >
-                <option value="">承認者選択</option>
-                {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
-              </select>
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>キャンセル</Button>
-                <Button onClick={() => editingApprover && handleSaveEditApprover(editingApprover)}>保存</Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </MainLayout>
   );
 }
