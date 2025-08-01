@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Search, Filter, Download } from 'lucide-react';
+import { Plus, Search, Filter, Download, Trash2 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 import { useMasterDataStore, useExpenseStore, useEventStore } from '@/lib/store';
 import { expenseService, userService, invoicePaymentService } from '@/lib/database';
 import type { Database } from '@/lib/supabase';
@@ -26,6 +27,7 @@ export default function ExpensesPage() {
   // グローバルストアからマスターデータを取得
   const { categories, departments, projects } = useMasterDataStore();
   const { events } = useEventStore();
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -131,8 +133,36 @@ export default function ExpensesPage() {
   };
 
   const getUserName = (userId: string) => {
-    const user = users.find(u => u.id === userId);
-    return user?.name || user?.email || '不明';
+    const foundUser = users.find(u => u.id === userId);
+    return foundUser?.name || foundUser?.email || '不明';
+  };
+
+  // 申請削除機能
+  const handleDeleteApplication = async (applicationId: string, type: 'expense' | 'invoice') => {
+    if (!confirm(`この${type === 'expense' ? '経費申請' : '請求書払い申請'}を削除しますか？この操作は取り消せません。`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/applications/${applicationId}?type=${type}&userId=${user?.id}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert(`削除に失敗しました: ${data.error}`);
+        return;
+      }
+
+      // 成功時にローカルの状態を更新
+      setAllApplications(prev => prev.filter(app => app.id !== applicationId));
+      alert(data.message);
+
+    } catch (error) {
+      console.error('削除エラー:', error);
+      alert('削除に失敗しました。もう一度お試しください。');
+    }
   };
 
   const filteredApplications = allApplications.filter((application) => {
@@ -290,11 +320,24 @@ export default function ExpensesPage() {
                     <TableCell>{getPaymentMethodLabel(application.payment_method)}</TableCell>
                     <TableCell>{getStatusBadge(application.status)}</TableCell>
                     <TableCell>
-                      <Link href={`/expenses/${application.id}`}>
-                        <Button variant="outline" size="sm">
-                          詳細
-                        </Button>
-                      </Link>
+                      <div className="flex items-center space-x-2">
+                        <Link href={`/expenses/${application.id}`}>
+                          <Button variant="outline" size="sm">
+                            詳細
+                          </Button>
+                        </Link>
+                        {/* 承認待ちの申請のみ削除ボタンを表示 */}
+                        {application.status === 'pending' && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDeleteApplication(application.id, application.type)}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

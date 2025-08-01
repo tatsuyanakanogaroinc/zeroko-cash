@@ -12,7 +12,8 @@ import {
   DollarSign, 
   TrendingUp,
   FileText,
-  AlertCircle
+  AlertCircle,
+  Trash2
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -176,6 +177,34 @@ export default function DashboardPage() {
     }
   };
 
+  // 申請削除機能
+  const handleDeleteApplication = async (applicationId: string, type: 'expense' | 'invoice') => {
+    if (!confirm(`この${type === 'expense' ? '経費申請' : '請求書払い申請'}を削除しますか？この操作は取り消せません。`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/applications/${applicationId}?type=${type}&userId=${user?.id}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert(`削除に失敗しました: ${data.error}`);
+        return;
+      }
+
+      // 成功時にローカルの状態を更新
+      setAllApplications(prev => prev.filter(app => app.id !== applicationId));
+      alert(data.message);
+
+    } catch (error) {
+      console.error('削除エラー:', error);
+      alert('削除に失敗しました。もう一度お試しください。');
+    }
+  };
+
   if (!user) {
     return (
       <MainLayout>
@@ -300,10 +329,21 @@ export default function DashboardPage() {
                         </div>
                       </div>
                     </div>
-                    <div className="text-right">
+                    <div className="flex flex-col items-end space-y-2">
                       <span className="font-medium text-lg">¥{application.amount.toLocaleString()}</span>
-                      <div className="mt-1">
+                      <div className="flex items-center space-x-2">
                         {getStatusBadge(application.status)}
+                        {/* 承認待ちの申請のみ削除ボタンを表示 */}
+                        {application.status === 'pending' && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDeleteApplication(application.id, application.type)}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </div>
