@@ -23,8 +23,8 @@ export default function ExpensesPage() {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // グローバルストアからカテゴリを取得
-  const { categories } = useMasterDataStore();
+  // グローバルストアからマスターデータを取得
+  const { categories, departments, projects } = useMasterDataStore();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -78,6 +78,21 @@ export default function ExpensesPage() {
   const getCategoryName = (categoryId: string) => {
     const category = categories.find(c => c.id === categoryId);
     return category?.name || '不明';
+  };
+
+  const getDepartmentName = (departmentId: string) => {
+    const department = departments.find(d => d.id === departmentId);
+    return department?.name || '不明';
+  };
+
+  const getProjectName = (projectId: string) => {
+    const project = projects.find(p => p.id === projectId);
+    return project?.name || '不明';
+  };
+
+  const getUserName = (userId: string) => {
+    const user = users.find(u => u.id === userId);
+    return user?.name || user?.email || '不明';
   };
 
   const filteredExpenses = expenses.filter((expense) => {
@@ -184,6 +199,9 @@ export default function ExpensesPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>申請日</TableHead>
+                  <TableHead>申請ユーザー</TableHead>
+                  <TableHead>部門</TableHead>
+                  <TableHead>プロジェクト</TableHead>
                   <TableHead>説明</TableHead>
                   <TableHead>イベント</TableHead>
                   <TableHead>勘定科目</TableHead>
@@ -197,6 +215,25 @@ export default function ExpensesPage() {
                 {filteredExpenses.map((expense) => (
                   <TableRow key={expense.id}>
                     <TableCell>{expense.date}</TableCell>
+                    <TableCell>{getUserName(expense.user_id)}</TableCell>
+                    <TableCell>
+                      {expense.department_id ? (
+                        <Badge variant="outline" className="text-xs">
+                          {getDepartmentName(expense.department_id)}
+                        </Badge>
+                      ) : (
+                        <span className="text-gray-400 text-sm">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {expense.project_id ? (
+                        <Badge variant="outline" className="text-xs">
+                          {getProjectName(expense.project_id)}
+                        </Badge>
+                      ) : (
+                        <span className="text-gray-400 text-sm">-</span>
+                      )}
+                    </TableCell>
                     <TableCell className="font-medium">{expense.description}</TableCell>
                     <TableCell>
                       {expense.event_name ? (
