@@ -297,7 +297,7 @@ export default function SettingsPage() {
                           予算: ¥{(department.budget || 0).toLocaleString()}
                         </p>
                         <p className="text-sm text-gray-500">
-                          責任者: {getResponsibleUserName(department.responsible_user_id)}
+                          責任者: {getResponsibleUserName(department.manager_id)}
                         </p>
                       </div>
                       <div className="flex items-center space-x-2">
@@ -556,7 +556,7 @@ export default function SettingsPage() {
 function DepartmentForm({ onSubmit, editingItem }: { onSubmit: (data: any) => void; editingItem: any }) {
   const [formData, setFormData] = useState({
     name: editingItem?.name || '',
-    responsible_user_id: editingItem?.responsible_user_id || '',
+    manager_id: editingItem?.manager_id || '',
     budget: editingItem?.budget || 0
   });
   const [users, setUsers] = useState<any[]>([]);
@@ -593,8 +593,8 @@ function DepartmentForm({ onSubmit, editingItem }: { onSubmit: (data: any) => vo
       <div>
         <Label htmlFor="dept-responsible">責任者</Label>
         <Select 
-          value={formData.responsible_user_id} 
-          onValueChange={(value) => setFormData({ ...formData, responsible_user_id: value })}
+          value={formData.manager_id} 
+          onValueChange={(value) => setFormData({ ...formData, manager_id: value })}
         >
           <SelectTrigger>
             <SelectValue placeholder="責任者を選択" />
