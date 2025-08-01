@@ -25,7 +25,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   
   // マスターデータストアから取得
-  const { departments, projects } = useMasterDataStore();
+  const { departments, projects, categories } = useMasterDataStore();
   
   // モックユーザーデータ
   const user = {
@@ -50,6 +50,25 @@ export default function DashboardPage() {
     if (!eventId) return '未定';
     // TODO: イベントマスターから取得（現在はIDを表示）
     return eventId;
+  };
+
+  const getCategoryName = (categoryId: string | null) => {
+    if (!categoryId) return '未定';
+    const category = categories.find(c => c.id === categoryId);
+    return category?.name || '不明';
+  };
+
+  const getPaymentMethodLabel = (method: string) => {
+    switch (method) {
+      case 'cash':
+        return '現金';
+      case 'credit_card':
+        return 'クレジットカード';
+      case 'bank_transfer':
+        return '銀行振込';
+      default:
+        return method;
+    }
   };
 
   useEffect(() => {
@@ -115,6 +134,12 @@ export default function DashboardPage() {
       status: application.status,
       date: application.date,
       type: application.type,
+      department_id: application.department_id,
+      event_name: application.event_name,
+      project_id: application.project_id,
+      category_id: application.category_id,
+      payment_method: application.payment_method,
+      user_id: application.user_id,
     }));
 
   const getStatusBadge = (status: string) => {
@@ -198,21 +223,44 @@ export default function DashboardPage() {
           <CardContent>
             <div className="space-y-4">
               {recentApplications.map(application => (
-                <div key={application.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center space-x-4">
-                    {application.type === 'expense' ? ( 
-                      <DollarSign className="h-5 w-5 text-green-500" />
-                    ) : (
-                      <FileText className="h-5 w-5 text-blue-500" />
-                    )}
-                    <div>
-                      <p className="font-medium">{application.description}</p>
-                      <p className="text-sm text-gray-500">{application.date}</p>
+                <div key={application.id} className="border rounded-lg p-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center space-x-4">
+                      {application.type === 'expense' ? ( 
+                        <DollarSign className="h-5 w-5 text-green-500" />
+                      ) : (
+                        <FileText className="h-5 w-5 text-blue-500" />
+                      )}
+                      <div>
+                        <p className="font-medium">{application.description}</p>
+                        <p className="text-sm text-gray-500">{application.date}</p>
+                        <div className="flex gap-2 mt-2 flex-wrap">
+                          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                            部門: {getDepartmentName(application.department_id)}
+                          </span>
+                          {application.event_name && (
+                            <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded">
+                              イベント: {application.event_name}
+                            </span>
+                          )}
+                          <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                            プロジェクト: {getProjectName(application.project_id)}
+                          </span>
+                          <span className="text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded">
+                            勘定科目: {getCategoryName(application.category_id)}
+                          </span>
+                          <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
+                            支払方法: {getPaymentMethodLabel(application.payment_method)}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center space-x-4">
-                    <span className="font-medium">¥{application.amount.toLocaleString()}</span>
-                    {getStatusBadge(application.status)}
+                    <div className="text-right">
+                      <span className="font-medium text-lg">¥{application.amount.toLocaleString()}</span>
+                      <div className="mt-1">
+                        {getStatusBadge(application.status)}
+                      </div>
+                    </div>
                   </div>
                 </div>
               ))}
