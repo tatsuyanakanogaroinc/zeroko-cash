@@ -14,7 +14,8 @@ import {
   FileText,
   AlertCircle,
   Trash2,
-  RefreshCw
+  RefreshCw,
+  Edit
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -176,6 +177,7 @@ export default function DashboardPage() {
     category_id: application.category_id,
     payment_method: application.payment_method,
     user_id: application.user_id,
+    comments: application.comments,
   }));
 
   const getStatusBadge = (status: string) => {
@@ -189,6 +191,12 @@ export default function DashboardPage() {
       default:
         return <Badge variant="outline">不明</Badge>;
     }
+  };
+
+  // 申請編集機能
+  const handleEditApplication = async (applicationId: string, type: 'expense' | 'invoice') => {
+    const editUrl = type === 'expense' ? `/expenses/new?edit=${applicationId}` : `/invoice-payments/new?edit=${applicationId}`;
+    window.location.href = editUrl;
   };
 
   // 申請削除機能
@@ -312,57 +320,87 @@ export default function DashboardPage() {
                 <p className="text-sm mt-2">新しい申請を作成してください</p>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-2">
                 {displayApplications.map(application => (
-                  <div key={application.id} className="border rounded-lg p-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center space-x-4">
+                  <div key={application.id} className="border rounded-lg p-3 hover:bg-gray-50 transition-colors">
+                    <div className="flex items-center justify-between">
+                      {/* 左側：タイプアイコンと基本情報 */}
+                      <div className="flex items-center space-x-3 flex-1">
                         {application.type === 'expense' ? ( 
-                          <DollarSign className="h-5 w-5 text-green-500" />
+                          <DollarSign className="h-4 w-4 text-green-500 flex-shrink-0" />
                         ) : (
-                          <FileText className="h-5 w-5 text-blue-500" />
+                          <FileText className="h-4 w-4 text-blue-500 flex-shrink-0" />
                         )}
-                        <div>
-                        <p className="font-medium">{application.description}</p>
-                        <p className="text-sm text-gray-500">{application.date}</p>
-                        <div className="flex gap-2 mt-2 flex-wrap">
-                          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                            部門: {getDepartmentName(application.department_id)}
-                          </span>
-                          {application.event_name && (
-                            <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded">
-                              イベント: {application.event_name}
-                            </span>
-                          )}
-                          <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
-                            プロジェクト: {getProjectName(application.project_id)}
-                          </span>
-                          <span className="text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded">
-                            勘定科目: {getCategoryName(application.category_id)}
-                          </span>
-                          <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
-                            支払方法: {getPaymentMethodLabel(application.payment_method)}
-                          </span>
+                        
+                        {/* 説明と日付 */}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">{application.description}</p>
+                          <p className="text-xs text-gray-500">{application.date}</p>
                         </div>
+                        
+                        {/* 金額 */}
+                        <div className="text-right">
+                          <span className="font-semibold text-sm">¥{application.amount.toLocaleString()}</span>
+                        </div>
+                        
+                        {/* ステータス */}
+                        <div className="flex-shrink-0">
+                          {getStatusBadge(application.status)}
+                        </div>
+                        
+                        {/* アクションボタン */}
+                        <div className="flex items-center space-x-1 flex-shrink-0">
+                          {application.status === 'pending' && (
+                            <>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEditApplication(application.id, application.type)}
+                                className="h-7 w-7 p-0 text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50 border-yellow-200"
+                                title="編集"
+                              >
+                                <Edit className="w-3 h-3" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDeleteApplication(application.id, application.type)}
+                                className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                                title="削除"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
-                    <div className="flex flex-col items-end space-y-2">
-                      <span className="font-medium text-lg">¥{application.amount.toLocaleString()}</span>
-                      <div className="flex items-center space-x-2">
-                        {getStatusBadge(application.status)}
-                        {/* 承認待ちの申請のみ削除ボタンを表示 */}
-                        {application.status === 'pending' && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDeleteApplication(application.id, application.type)}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        )}
-                      </div>
+                    
+                    {/* 詳細情報（コンパクト） */}
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
+                        {getDepartmentName(application.department_id)}
+                      </span>
+                      {application.event_name && (
+                        <span className="text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded">
+                          {application.event_name}
+                        </span>
+                      )}
+                      <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded">
+                        {getProjectName(application.project_id)}
+                      </span>
+                      <span className="text-xs bg-gray-100 text-gray-800 px-2 py-0.5 rounded">
+                        {getCategoryName(application.category_id)}
+                      </span>
+                      <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded">
+                        {getPaymentMethodLabel(application.payment_method)}
+                      </span>
+                      {/* 却下理由がある場合は表示 */}
+                      {application.status === 'rejected' && application.comments && (
+                        <span className="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded" title={application.comments}>
+                          却下理由: {application.comments.length > 20 ? application.comments.substring(0, 20) + '...' : application.comments}
+                        </span>
+                      )}
                     </div>
                   </div>
                 ))}
