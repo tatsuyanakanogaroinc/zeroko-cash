@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus, Edit, Trash2, Users, Calendar, FileText, Briefcase } from 'lucide-react';
 import { useMasterDataStore } from '@/lib/store';
 import { useEffect } from 'react';
-import { departmentService, projectService, userService } from '@/lib/database';
+import { departmentService, projectService, userService, eventService } from '@/lib/database';
 import { toast } from 'sonner';
 
 // Remove ApproverSetting related imports
@@ -65,42 +65,8 @@ export default function SettingsPage() {
   }, []);
 
 
-  // イベントデータ（モック）
-  const [events, setEvents] = useState<Event[]>([
-    {
-      id: '1',
-      name: '東京展示会2024',
-      start_date: '2024-01-15',
-      end_date: '2024-01-17',
-      budget: 50000,
-      department_id: '1',
-      description: '東京ビッグサイトでの展示会',
-      status: 'active',
-      created_at: '2024-01-01',
-    },
-    {
-      id: '2',
-      name: '大阪商談会',
-      start_date: '2024-01-20',
-      end_date: '2024-01-22',
-      budget: 30000,
-      department_id: '2',
-      description: '大阪での商談会',
-      status: 'active',
-      created_at: '2024-01-01',
-    },
-    {
-      id: '3',
-      name: '名古屋セミナー',
-      start_date: '2024-01-25',
-      end_date: '2024-01-26',
-      budget: 15000,
-      department_id: '3',
-      description: '名古屋でのセミナー',
-      status: 'active',
-      created_at: '2024-01-01',
-    }
-  ]);
+  // イベントデータ
+  const [events, setEvents] = useState<Event[]>([]);
 
   const handleAddDepartment = async (data: any) => {
     try {
@@ -141,6 +107,20 @@ export default function SettingsPage() {
     };
     loadProjects();
   }, [setProjects]);
+
+  // イベントデータをロード
+  useEffect(() => {
+    const loadEvents = async () => {
+      try {
+        const evts = await eventService.getEvents();
+        setEvents(evts);
+      } catch (error) {
+        console.error('イベント取得エラー:', error);
+        toast.error('イベントデータの取得に失敗しました');
+      }
+    };
+    loadEvents();
+  }, []);
   const validateBudget = (budget: number, departmentBudget: number): boolean => {
     return budget >= 0 && budget <= departmentBudget;
   };
@@ -166,14 +146,16 @@ export default function SettingsPage() {
     }
   };
 
-  const handleAddEvent = (data: any) => {
-    const newEvent = {
-      ...data,
-      id: (events.length + 1).toString(),
-      created_at: new Date().toISOString().split('T')[0]
-    };
-    setEvents([...events, newEvent]);
-    setIsAddDialogOpen(false);
+  const handleAddEvent = async (data: any) => {
+    try {
+      const newEvent = await eventService.createEvent(data);
+      setEvents([...events, newEvent]);
+      setIsAddDialogOpen(false);
+      toast.success('イベントを追加しました');
+    } catch (error) {
+      console.error('イベント追加エラー:', error);
+      toast.error('イベントの追加に失敗しました');
+    }
   };
 
   const handleAddCategory = (data: any) => {
@@ -192,11 +174,25 @@ export default function SettingsPage() {
     setIsAddDialogOpen(true);
   };
 
-  const handleDeleteItem = (id: string, type: 'department' | 'event' | 'category') => {
+  const handleDeleteItem = async (id: string, type: 'department' | 'event' | 'category') => {
     if (type === 'department') {
-      setDepartments(departments.filter(dept => dept.id !== id));
+      try {
+        await departmentService.deleteDepartment(id);
+        setDepartments(departments.filter(dept => dept.id !== id));
+        toast.success('部門を削除しました');
+      } catch (error) {
+        console.error('部門削除エラー:', error);
+        toast.error('部門の削除に失敗しました');
+      }
     } else if (type === 'event') {
-      setEvents(events.filter(event => event.id !== id));
+      try {
+        await eventService.deleteEvent(id);
+        setEvents(events.filter(event => event.id !== id));
+        toast.success('イベントを削除しました');
+      } catch (error) {
+        console.error('イベント削除エラー:', error);
+        toast.error('イベントの削除に失敗しました');
+      }
     } else if (type === 'category') {
       deleteCategory(id);
     }
