@@ -69,26 +69,53 @@ export default function SettingsPage() {
   const [events, setEvents] = useState<Event[]>([]);
 
   const handleAddDepartment = async (data: any) => {
-    try {
-      const response = await fetch('/api/departments', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-      
-      if (!response.ok) {
-        throw new Error('部門の追加に失敗しました');
+    if (editingItem) {
+      // 部門の更新
+      try {
+        const response = await fetch('/api/departments', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ ...data, id: editingItem.id }),
+        });
+        
+        if (!response.ok) {
+          throw new Error('部門の編集に失敗しました');
+        }
+        
+        const updatedDepartment = await response.json();
+        setDepartments(departments.map(dep => dep.id === updatedDepartment.id ? updatedDepartment : dep));
+        setIsAddDialogOpen(false);
+        setEditingItem(null);
+        toast.success('部門を編集しました');
+      } catch (error) {
+        console.error('部門編集エラー:', error);
+        toast.error('部門の編集に失敗しました');
       }
-      
-      const newDepartment = await response.json();
-      setDepartments([...departments, newDepartment]);
-      setIsAddDialogOpen(false);
-      toast.success('部門を追加しました');
-    } catch (error) {
-      console.error('部門追加エラー:', error);
-      toast.error('部門の追加に失敗しました');
+    } else {
+      // 新規追加
+      try {
+        const response = await fetch('/api/departments', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data),
+        });
+        
+        if (!response.ok) {
+          throw new Error('部門の追加に失敗しました');
+        }
+        
+        const newDepartment = await response.json();
+        setDepartments([...departments, newDepartment]);
+        setIsAddDialogOpen(false);
+        toast.success('部門を追加しました');
+      } catch (error) {
+        console.error('部門追加エラー:', error);
+        toast.error('部門の追加に失敗しました');
+      }
     }
   };
 
@@ -144,93 +171,202 @@ export default function SettingsPage() {
   };
 
   const handleAddProject = async (data: any) => {
-    const department = departments.find(dep => dep.id === data.department_id);
-    if (!department) {
-      toast.error('選択した部門が見つかりません');
-      return;
-    }
-    if (!validateBudget(data.budget, department.budget)) {
-      toast.error(`プロジェクト予算が部門予算を超えています (¥${department.budget.toLocaleString()})`);
-      return;
-    }
-    try {
-      const response = await fetch('/api/projects', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-      
-      if (!response.ok) {
-        throw new Error('プロジェクトの追加に失敗しました');
+    // 部門予算の検証
+    if (data.department_id && data.department_id !== 'none') {
+      const department = departments.find(dep => dep.id === data.department_id);
+      if (!department) {
+        toast.error('選択した部門が見つかりません');
+        return;
       }
-      
-      const newProject = await response.json();
-      setProjects([...projects, newProject]);
-      setIsAddDialogOpen(false);
-      toast.success('プロジェクトを追加しました');
-    } catch (error) {
-      console.error('プロジェクト追加エラー:', error);
-      toast.error('プロジェクトの追加に失敗しました');
+      if (!validateBudget(data.budget, department.budget)) {
+        toast.error(`プロジェクト予算が部門予算を超えています (¥${department.budget.toLocaleString()})`);
+        return;
+      }
+    }
+
+    if (editingItem) {
+      // プロジェクトの更新
+      try {
+        const response = await fetch('/api/projects', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ ...data, id: editingItem.id }),
+        });
+        
+        if (!response.ok) {
+          throw new Error('プロジェクトの編集に失敗しました');
+        }
+        
+        const updatedProject = await response.json();
+        setProjects(projects.map(proj => proj.id === updatedProject.id ? updatedProject : proj));
+        setIsAddDialogOpen(false);
+        setEditingItem(null);
+        toast.success('プロジェクトを編集しました');
+      } catch (error) {
+        console.error('プロジェクト編集エラー:', error);
+        toast.error('プロジェクトの編集に失敗しました');
+      }
+    } else {
+      // 新規追加
+      try {
+        const response = await fetch('/api/projects', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data),
+        });
+        
+        if (!response.ok) {
+          throw new Error('プロジェクトの追加に失敗しました');
+        }
+        
+        const newProject = await response.json();
+        setProjects([...projects, newProject]);
+        setIsAddDialogOpen(false);
+        toast.success('プロジェクトを追加しました');
+      } catch (error) {
+        console.error('プロジェクト追加エラー:', error);
+        toast.error('プロジェクトの追加に失敗しました');
+      }
     }
   };
 
   const handleAddEvent = async (data: any) => {
-    try {
-      const response = await fetch('/api/events', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-      
-      if (!response.ok) {
-        throw new Error('イベントの追加に失敗しました');
+    if (editingItem) {
+      // イベントの更新
+      try {
+        const response = await fetch('/api/events', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ ...data, id: editingItem.id }),
+        });
+        
+        if (!response.ok) {
+          throw new Error('イベントの編集に失敗しました');
+        }
+        
+        const updatedEvent = await response.json();
+        setEvents(events.map(evt => evt.id === updatedEvent.id ? updatedEvent : evt));
+        setIsAddDialogOpen(false);
+        setEditingItem(null);
+        toast.success('イベントを編集しました');
+      } catch (error) {
+        console.error('イベント編集エラー:', error);
+        toast.error('イベントの編集に失敗しました');
       }
-      
-      const newEvent = await response.json();
-      setEvents([...events, newEvent]);
-      setIsAddDialogOpen(false);
-      toast.success('イベントを追加しました');
-    } catch (error) {
-      console.error('イベント追加エラー:', error);
-      toast.error('イベントの追加に失敗しました');
+    } else {
+      // 新規追加
+      try {
+        const response = await fetch('/api/events', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data),
+        });
+        
+        if (!response.ok) {
+          throw new Error('イベントの追加に失敗しました');
+        }
+        
+        const newEvent = await response.json();
+        setEvents([...events, newEvent]);
+        setIsAddDialogOpen(false);
+        toast.success('イベントを追加しました');
+      } catch (error) {
+        console.error('イベント追加エラー:', error);
+        toast.error('イベントの追加に失敗しました');
+      }
     }
   };
 
   const handleAddCategory = async (data: any) => {
-    try {
-      const response = await fetch('/api/categories', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-      
-      if (!response.ok) {
-        throw new Error('勘定科目の追加に失敗しました');
+    if (editingItem) {
+      // 勘定科目の更新
+      try {
+        const response = await fetch('/api/categories', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ ...data, id: editingItem.id }),
+        });
+        
+        if (!response.ok) {
+          throw new Error('勘定科目の編集に失敗しました');
+        }
+        
+        const updatedCategory = await response.json();
+        updateCategory(editingItem.id, updatedCategory);
+        setIsAddDialogOpen(false);
+        setEditingItem(null);
+        toast.success('勘定科目を編集しました');
+      } catch (error) {
+        console.error('勘定科目編集エラー:', error);
+        toast.error('勘定科目の編集に失敗しました');
       }
-      
-      const newCategory = await response.json();
-      addCategory(newCategory);
-      setIsAddDialogOpen(false);
-      toast.success('勘定科目を追加しました');
-    } catch (error) {
-      console.error('勘定科目追加エラー:', error);
-      toast.error('勘定科目の追加に失敗しました');
+    } else {
+      // 新規追加
+      try {
+        const response = await fetch('/api/categories', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data),
+        });
+        
+        if (!response.ok) {
+          throw new Error('勘定科目の追加に失敗しました');
+        }
+        
+        const newCategory = await response.json();
+        addCategory(newCategory);
+        setIsAddDialogOpen(false);
+        toast.success('勘定科目を追加しました');
+      } catch (error) {
+        console.error('勘定科目追加エラー:', error);
+        toast.error('勘定科目の追加に失敗しました');
+      }
     }
   };
 
-  const handleEditItem = (item: any, type: 'department' | 'event' | 'category') => {
+  const handleEditItem = (item: any, type: 'department' | 'event' | 'category' | 'project') => {
     setEditingItem(item);
     setDialogType(type);
     setIsAddDialogOpen(true);
   };
 
-  const handleDeleteItem = async (id: string, type: 'department' | 'event' | 'category') => {
+  const checkDependencies = async (id: string, type: 'department' | 'event' | 'category' | 'project') => {
+    try {
+      const response = await fetch(`/api/${type}s/dependencies?id=${id}`);
+      if (response.ok) {
+        const dependencies = await response.json();
+        return dependencies;
+      }
+    } catch (error) {
+      console.error('依存関係チェックエラー:', error);
+    }
+    return null;
+  };
+
+  const handleDeleteItem = async (id: string, type: 'department' | 'event' | 'category' | 'project') => {
+    // 依存関係をチェック
+    const dependencies = await checkDependencies(id, type);
+    if (dependencies && (dependencies.expenses > 0 || dependencies.projects > 0 || dependencies.events > 0)) {
+      let message = `この${type === 'department' ? '部門' : type === 'event' ? 'イベント' : type === 'category' ? '勘定科目' : 'プロジェクト'}は以下のデータで使用されているため削除できません:\n`;
+      if (dependencies.expenses > 0) message += `- ${dependencies.expenses}件の経費申請\n`;
+      if (dependencies.projects > 0) message += `- ${dependencies.projects}件のプロジェクト\n`;
+      if (dependencies.events > 0) message += `- ${dependencies.events}件のイベント\n`;
+      toast.error(message);
+      return;
+    }
+
     if (type === 'department') {
       try {
         const response = await fetch(`/api/departments?id=${id}`, {
@@ -278,6 +414,22 @@ export default function SettingsPage() {
       } catch (error) {
         console.error('勘定科目削除エラー:', error);
         toast.error('勘定科目の削除に失敗しました');
+      }
+    } else if (type === 'project') {
+      try {
+        const response = await fetch(`/api/projects?id=${id}`, {
+          method: 'DELETE',
+        });
+        
+        if (!response.ok) {
+          throw new Error('プロジェクトの削除に失敗しました');
+        }
+        
+        setProjects(projects.filter(proj => proj.id !== id));
+        toast.success('プロジェクトを削除しました');
+      } catch (error) {
+        console.error('プロジェクト削除エラー:', error);
+        toast.error('プロジェクトの削除に失敗しました');
       }
     }
   };
