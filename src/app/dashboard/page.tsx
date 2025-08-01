@@ -18,8 +18,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { expenseService, invoicePaymentService } from '@/lib/database';
 import { useMasterDataStore } from '@/lib/store';
-import type { Database } from '@/lib/supabase';
 
+import { useAuth } from '@/contexts/AuthContext';
 export default function DashboardPage() {
   const [allApplications, setAllApplications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -27,11 +27,17 @@ export default function DashboardPage() {
   // マスターデータストアから取得
   const { departments, projects, categories } = useMasterDataStore();
   
-  // モックユーザーデータ
-  const user = {
-    name: 'テストユーザー',
-    department: '開発部',
-  };
+  const { user } = useAuth();
+  
+  if (!user) {
+    return (
+      <MainLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-lg text-gray-600">ログイン情報を読み込み中...</div>
+        </div>
+      </MainLayout>
+    );
+  }
   
   // マスターデータから名前を取得する関数
   const getDepartmentName = (departmentId: string | null) => {
@@ -80,8 +86,8 @@ export default function DashboardPage() {
         ]);
 
         // 自分の申請のみをフィルタリング
-        const userFilteredExpenses = expenseData.filter(expense => expense.user_id === user.name);
-        const userFilteredInvoices = invoiceData.filter(invoice => invoice.user_id === user.name);
+        const userFilteredExpenses = expenseData.filter(expense =ee expense.user_id === user.id);
+        const userFilteredInvoices = invoiceData.filter(invoice =ee invoice.user_id === user.id);
 
         // 経費申請データの正規化
         const normalizedExpenses = userFilteredExpenses.map(expense => ({
@@ -116,8 +122,10 @@ export default function DashboardPage() {
       }
     };
     
-    fetchData();
-  }, []);
+    if (user) {
+      fetchData();
+    }
+  }, [user]);
 
   // 実データから統計を計算
   const stats = {
