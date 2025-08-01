@@ -3,15 +3,17 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import {
+  BarChart3,
+  FileText,
   Home,
   Plus,
-  List,
-  BarChart3,
-  Users,
   Settings,
+  Users,
   CheckCircle,
+  List,
 } from 'lucide-react';
 
 const userMenuItems = [
@@ -42,24 +44,31 @@ const adminMenuItems = [
     title: '承認管理',
     href: '/admin/approvals',
     icon: CheckCircle,
+    adminOnly: true,
   },
   {
     title: 'ユーザー管理',
     href: '/admin/users',
     icon: Users,
+    adminOnly: true,
   },
   {
     title: 'マスター設定',
     href: '/admin/settings',
     icon: Settings,
+    adminOnly: true,
   },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { isAdmin } = useAuth();
   
-  // すべてのメニューアイテムを表示
-  const menuItems = [...userMenuItems, ...adminMenuItems];
+  // 権限に基づいてメニューアイテムをフィルタリング
+  const allMenuItems = [...userMenuItems, ...adminMenuItems];
+  const menuItems = allMenuItems.filter(item => 
+    !item.adminOnly || isAdmin
+  );
 
   return (
     <div className="flex h-full w-64 flex-col bg-gray-50">
@@ -89,4 +98,4 @@ export function Sidebar() {
       </div>
     </div>
   );
-} 
+}

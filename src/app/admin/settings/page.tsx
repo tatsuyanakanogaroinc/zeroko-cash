@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Edit, Trash2, Users, Calendar, FileText } from 'lucide-react';
+import { Plus, Edit, Trash2, Users, Calendar, FileText, Briefcase } from 'lucide-react';
 import { useMasterDataStore } from '@/lib/store';
 import { useEffect } from 'react';
 
@@ -233,6 +233,10 @@ export default function SettingsPage() {
             <TabsTrigger value="categories" className="flex items-center space-x-2">
               <FileText className="h-4 w-4" />
               勘定科目管理
+            </TabsTrigger>
+            <TabsTrigger value="projects" className="flex items-center space-x-2">
+              <Briefcase className="h-4 w-4" />
+              プロジェクト管理
             </TabsTrigger>
             <TabsTrigger value="approvers" className="flex items-center space-x-2">
               <Users className="h-4 w-4" />
