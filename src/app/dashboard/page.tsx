@@ -14,12 +14,13 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { expenseService } from '@/lib/database';
+import { expenseService, invoicePaymentService } from '@/lib/database';
 import { useMasterDataStore } from '@/lib/store';
 import type { Database } from '@/lib/supabase';
 
 export default function DashboardPage() {
   const [expenses, setExpenses] = useState<Database['public']['Tables']['expenses']['Row'][]>([]);
+  const [invoicePayments, setInvoicePayments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
   // マスターデータストアから取得
@@ -51,18 +52,22 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    const fetchExpenses = async () => {
+    const fetchData = async () => {
       try {
-        const data = await expenseService.getExpenses();
-        setExpenses(data);
+        const [expenseData, invoiceData] = await Promise.all([
+          expenseService.getExpenses(),
+          invoicePaymentService.getInvoicePayments().catch(() => []) // エラーの場合は空配列を返す
+        ]);
+        setExpenses(expenseData);
+        setInvoicePayments(invoiceData);
       } catch (error) {
-        console.error('経費データの取得に失敗しました:', error);
+        console.error('データの取得に失敗しました:', error);
       } finally {
         setLoading(false);
       }
     };
     
-    fetchExpenses();
+    fetchData();
   }, []);
 
   // 実データから統計を計算

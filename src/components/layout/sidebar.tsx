@@ -15,6 +15,8 @@ import {
   CheckCircle,
   List,
   UserCircle,
+  Receipt,
+  FileCheck,
 } from 'lucide-react';
 
 const userMenuItems = [
@@ -32,6 +34,16 @@ const userMenuItems = [
     title: '申請一覧',
     href: '/expenses',
     icon: List,
+  },
+  {
+    title: '請求書払い申請',
+    href: '/invoice-payments/new',
+    icon: Receipt,
+  },
+  {
+    title: '請求書払い一覧',
+    href: '/invoice-payments',
+    icon: FileCheck,
   },
   {
     title: 'レポート',

@@ -7,6 +7,7 @@ type Event = Database['public']['Tables']['events']['Row']
 type Category = Database['public']['Tables']['categories']['Row']
 type Project = Database['public']['Tables']['projects']['Row']
 type Expense = Database['public']['Tables']['expenses']['Row']
+type InvoicePayment = Database['public']['Tables']['invoice_payments']['Row']
 
 // ユーザー関連
 export const userService = {
@@ -269,6 +270,76 @@ export const categoryService = {
   async deleteCategory(id: string): Promise<void> {
     const { error } = await supabase
       .from('categories')
+      .delete()
+      .eq('id', id)
+    
+    if (error) throw error
+  }
+}
+
+// 請求書払い関連
+export const invoicePaymentService = {
+  async getInvoicePayments(): Promise<InvoicePayment[]> {
+    const { data, error } = await supabase
+      .from('invoice_payments')
+      .select(`
+        *,
+        users(name, email),
+        departments(name),
+        projects(name),
+        categories(name),
+        events(name)
+      `)
+      .order('created_at', { ascending: false })
+    
+    if (error) throw error
+    return data || []
+  },
+
+  async getInvoicePaymentById(id: string): Promise<InvoicePayment | null> {
+    const { data, error } = await supabase
+      .from('invoice_payments')
+      .select(`
+        *,
+        users(name, email),
+        departments(name),
+        projects(name),
+        categories(name),
+        events(name)
+      `)
+      .eq('id', id)
+      .single()
+    
+    if (error) throw error
+    return data
+  },
+
+  async createInvoicePayment(invoice: Database['public']['Tables']['invoice_payments']['Insert']): Promise<InvoicePayment> {
+    const { data, error } = await supabase
+      .from('invoice_payments')
+      .insert(invoice)
+      .select()
+      .single()
+    
+    if (error) throw error
+    return data
+  },
+
+  async updateInvoicePayment(id: string, invoice: Database['public']['Tables']['invoice_payments']['Update']): Promise<InvoicePayment> {
+    const { data, error } = await supabase
+      .from('invoice_payments')
+      .update(invoice)
+      .eq('id', id)
+      .select()
+      .single()
+    
+    if (error) throw error
+    return data
+  },
+
+  async deleteInvoicePayment(id: string): Promise<void> {
+    const { error } = await supabase
+      .from('invoice_payments')
       .delete()
       .eq('id', id)
     

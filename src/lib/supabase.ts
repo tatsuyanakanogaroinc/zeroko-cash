@@ -171,6 +171,56 @@ export interface Database {
           created_at?: string
         }
       }
+      invoice_payments: {
+        Row: {
+          id: string
+          user_id: string
+          department_id: string | null
+          project_id: string | null
+          category_id: string
+          event_id: string | null
+          amount: number
+          description: string
+          invoice_date: string
+          due_date: string
+          vendor_name: string
+          status: string
+          receipt_url: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          department_id?: string | null
+          project_id?: string | null
+          category_id: string
+          event_id?: string | null
+          amount: number
+          description: string
+          invoice_date: string
+          due_date: string
+          vendor_name: string
+          status?: string
+          receipt_url?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          department_id?: string | null
+          project_id?: string | null
+          category_id?: string
+          event_id?: string | null
+          amount?: number
+          description?: string
+          invoice_date?: string
+          due_date?: string
+          vendor_name?: string
+          status?: string
+          receipt_url?: string | null
+          created_at?: string
+        }
+      }
     }
   }
 } 
