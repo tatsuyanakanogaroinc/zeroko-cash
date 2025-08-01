@@ -3,6 +3,7 @@
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { 
   Clock, 
@@ -14,13 +15,13 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { expenseService, invoicePaymentService } from '@/lib/database';
 import { useMasterDataStore } from '@/lib/store';
 import type { Database } from '@/lib/supabase';
 
 export default function DashboardPage() {
-  const [expenses, setExpenses] = useState<Database['public']['Tables']['expenses']['Row'][]>([]);
-  const [invoicePayments, setInvoicePayments] = useState<any[]>([]);
+  const [allApplications, setAllApplications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
   // マスターデータストアから取得
@@ -56,10 +57,35 @@ export default function DashboardPage() {
       try {
         const [expenseData, invoiceData] = await Promise.all([
           expenseService.getExpenses(),
-          invoicePaymentService.getInvoicePayments().catch(() => []) // エラーの場合は空配列を返す
+          invoicePaymentService.getInvoicePayments().catch(() => [])
         ]);
-        setExpenses(expenseData);
-        setInvoicePayments(invoiceData);
+
+        // 経費申請データの正規化
+        const normalizedExpenses = expenseData.map(expense => ({
+          ...expense,
+          type: 'expense',
+          date: expense.expense_date,
+          payment_method: expense.payment_method || 'credit_card',
+          vendor_name: null,
+          invoice_date: null,
+          due_date: null
+        }));
+        
+        // 請求書払い申請データの正規化
+        const normalizedInvoices = invoiceData.map(invoice => ({
+          ...invoice,
+          type: 'invoice',
+          date: invoice.invoice_date,
+          payment_method: '請求書払い',
+          expense_date: invoice.invoice_date,
+          event_name: invoice.events?.name || null
+        }));
+        
+        // 統合してソート（作成日時の降順）
+        const combinedData = [...normalizedExpenses, ...normalizedInvoices]
+          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+        setAllApplications(combinedData);
       } catch (error) {
         console.error('データの取得に失敗しました:', error);
       } finally {
@@ -72,22 +98,23 @@ export default function DashboardPage() {
 
   // 実データから統計を計算
   const stats = {
-    pending: expenses.filter(e => e.status === 'pending').length,
-    approved: expenses.filter(e => e.status === 'approved').length,
-    rejected: expenses.filter(e => e.status === 'rejected').length,
-    totalThisMonth: expenses.reduce((sum, e) => sum + e.amount, 0),
+    pending: allApplications.filter(e => e.status === 'pending').length,
+    approved: allApplications.filter(e => e.status === 'approved').length,
+    rejected: allApplications.filter(e => e.status === 'rejected').length,
+    totalThisMonth: allApplications.reduce((sum, e) => sum + e.amount, 0),
     budgetUsed: 75, // 仮の値（後で部門予算から計算）
   };
 
   // 最新の5件を取得
-  const recentExpenses = expenses
+  const recentApplications = allApplications
     .slice(0, 5)
-    .map(expense => ({
-      id: expense.id,
-      description: expense.description,
-      amount: expense.amount,
-      status: expense.status,
-      date: expense.expense_date,
+    .map(application => ({
+      id: application.id,
+      description: application.description,
+      amount: application.amount,
+      status: application.status,
+      date: application.date,
+      type: application.type,
     }));
 
   const getStatusBadge = (status: string) => {
@@ -153,28 +180,39 @@ export default function DashboardPage() {
           </Card>
         </div>
 
-        {/* 承認待ちの申請 */}
+        {/* 申請一覧 */}
         <Card>
-          <CardHeader>
-            <CardTitle>承認待ちの申請</CardTitle>
-            <CardDescription>
-              承認待ちの経費申請一覧です
-            </CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <div>
+              <CardTitle>申請一覧</CardTitle>
+              <CardDescription>
+                経費申請と請求書払い申請の履歴を確認できます
+              </CardDescription>
+            </div>
+            <Link href="/expenses">
+              <Button variant="outline" size="sm">
+                すべて表示
+              </Button>
+            </Link>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {expenses.filter(e => e.status === 'pending').map(expense => (
-                <div key={expense.id} className="flex items-center justify-between p-4 border rounded-lg">
+              {recentApplications.map(application => (
+                <div key={application.id} className="flex items-center justify-between p-4 border rounded-lg">
                   <div className="flex items-center space-x-4">
-                    <Clock className="h-5 w-5 text-orange-500" />
+                    {application.type === 'expense' ? ( 
+                      <DollarSign className="h-5 w-5 text-green-500" />
+                    ) : (
+                      <FileText className="h-5 w-5 text-blue-500" />
+                    )}
                     <div>
-                      <p className="font-medium">{expense.description}</p>
-                      <p className="text-sm text-gray-500">{expense.expense_date}</p>
+                      <p className="font-medium">{application.description}</p>
+                      <p className="text-sm text-gray-500">{application.date}</p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-4">
-                    <span className="font-medium">¥{expense.amount.toLocaleString()}</span>
-                    {getStatusBadge(expense.status)}
+                    <span className="font-medium">¥{application.amount.toLocaleString()}</span>
+                    {getStatusBadge(application.status)}
                   </div>
                 </div>
               ))}
@@ -187,32 +225,37 @@ export default function DashboardPage() {
           <CardHeader>
             <CardTitle>承認済みの申請詳細</CardTitle>
             <CardDescription>
-              承認済みの経費申請の状況です
+              承認済みの申請の状況です
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {expenses.filter(e => e.status === 'approved').map(expense => (
-                <div key={expense.id} className="flex items-center justify-between p-4 border rounded-lg">
+              {allApplications.filter(e => e.status === 'approved').slice(0, 5).map(application => (
+                <div key={application.id} className="flex items-center justify-between p-4 border rounded-lg">
                   <div className="flex items-center space-x-4">
                     <CheckCircle className="h-5 w-5 text-green-500" />
                     <div>
-                      <p className="font-medium">{expense.description}</p>
-                      <p className="text-sm text-gray-500">{expense.expense_date}</p>
+                      <p className="font-medium">{application.description}</p>
+                      <p className="text-sm text-gray-500">{application.date}</p>
                       <div className="flex gap-4 mt-1">
                         <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-部門: {getDepartmentName(expense.department_id)}
+部門: {getDepartmentName(application.department_id)}
                         </span>
-                        <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded">
-イベント: {getEventName(expense.event_id)}
-                        </span>
+                        {application.event_name && (
+                          <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded">
+イベント: {application.event_name}
+                          </span>
+                        )}
                         <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
-プロジェクト: {getProjectName(expense.project_id)}
+プロジェクト: {getProjectName(application.project_id)}
+                        </span>
+                        <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded">
+{application.type === 'expense' ? '経費申請' : '請求書払い'}
                         </span>
                       </div>
                     </div>
                   </div>
-                  <span className="font-medium">¥{expense.amount.toLocaleString()}</span>
+                  <span className="font-medium">¥{application.amount.toLocaleString()}</span>
                 </div>
               ))}
             </div>

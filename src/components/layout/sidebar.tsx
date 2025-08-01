@@ -41,11 +41,6 @@ const userMenuItems = [
     icon: Receipt,
   },
   {
-    title: '請求書払い一覧',
-    href: '/invoice-payments',
-    icon: FileCheck,
-  },
-  {
     title: 'レポート',
     href: '/reports',
     icon: BarChart3,

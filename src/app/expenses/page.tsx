@@ -12,14 +12,14 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Plus, Search, Filter, Download } from 'lucide-react';
 import { useMasterDataStore } from '@/lib/store';
-import { expenseService, userService } from '@/lib/database';
+import { expenseService, userService, invoicePaymentService } from '@/lib/database';
 import type { Database } from '@/lib/supabase';
 
 export default function ExpensesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
-  const [expenses, setExpenses] = useState<any[]>([]);
+  const [allApplications, setAllApplications] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -29,11 +29,38 @@ export default function ExpensesPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [expenseData, userData] = await Promise.all([
+        const [expenseData, invoiceData, userData] = await Promise.all([
           expenseService.getExpenses(),
+          invoicePaymentService.getInvoicePayments().catch(() => []),
           userService.getUsers()
         ]);
-        setExpenses(expenseData);
+        
+        // 経費申請データの正規化
+        const normalizedExpenses = expenseData.map(expense => ({
+          ...expense,
+          type: 'expense',
+          date: expense.expense_date,
+          payment_method: expense.payment_method || 'credit_card',
+          vendor_name: null,
+          invoice_date: null,
+          due_date: null
+        }));
+        
+        // 請求書払い申請データの正規化
+        const normalizedInvoices = invoiceData.map(invoice => ({
+          ...invoice,
+          type: 'invoice',
+          date: invoice.invoice_date,
+          payment_method: '請求書払い',
+          expense_date: invoice.invoice_date,
+          event_name: invoice.events?.name || null
+        }));
+        
+        // 統合してソート（作成日時の降順）
+        const combinedData = [...normalizedExpenses, ...normalizedInvoices]
+          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        
+        setAllApplications(combinedData);
         setUsers(userData);
       } catch (error) {
         console.error('データの取得に失敗しました:', error);
@@ -95,10 +122,11 @@ export default function ExpensesPage() {
     return user?.name || user?.email || '不明';
   };
 
-  const filteredExpenses = expenses.filter((expense) => {
-    const matchesSearch = expense.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || expense.status === statusFilter;
-    const matchesCategory = categoryFilter === 'all' || expense.category_id === categoryFilter;
+  const filteredApplications = allApplications.filter((application) => {
+    const matchesSearch = application.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (application.vendor_name && application.vendor_name.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesStatus = statusFilter === 'all' || application.status === statusFilter;
+    const matchesCategory = categoryFilter === 'all' || application.category_id === categoryFilter;
     
     return matchesSearch && matchesStatus && matchesCategory;
   });
@@ -109,7 +137,7 @@ export default function ExpensesPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold">申請一覧</h1>
-            <p className="text-gray-600">経費申請の履歴を確認できます</p>
+            <p className="text-gray-600">経費申請と請求書払い申請の履歴を確認できます</p>
           </div>
           <Link href="/expenses/new">
             <Button>
@@ -191,7 +219,7 @@ export default function ExpensesPage() {
           <CardHeader>
             <CardTitle>申請一覧</CardTitle>
             <CardDescription>
-              {filteredExpenses.length}件の申請が見つかりました
+              {filteredApplications.length}件の申請が見つかりました
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -212,44 +240,44 @@ export default function ExpensesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredExpenses.map((expense) => (
-                  <TableRow key={expense.id}>
-                    <TableCell>{expense.date}</TableCell>
-                    <TableCell>{getUserName(expense.user_id)}</TableCell>
+                {filteredApplications.map((application) => (
+                  <TableRow key={application.id}>
+                    <TableCell>{application.date}</TableCell>
+                    <TableCell>{getUserName(application.user_id)}</TableCell>
                     <TableCell>
-                      {expense.department_id ? (
+                      {application.department_id ? (
                         <Badge variant="outline" className="text-xs">
-                          {getDepartmentName(expense.department_id)}
+                          {getDepartmentName(application.department_id)}
                         </Badge>
                       ) : (
                         <span className="text-gray-400 text-sm">-</span>
                       )}
                     </TableCell>
                     <TableCell>
-                      {expense.project_id ? (
+                      {application.project_id ? (
                         <Badge variant="outline" className="text-xs">
-                          {getProjectName(expense.project_id)}
+                          {getProjectName(application.project_id)}
                         </Badge>
                       ) : (
                         <span className="text-gray-400 text-sm">-</span>
                       )}
                     </TableCell>
-                    <TableCell className="font-medium">{expense.description}</TableCell>
+                    <TableCell className="font-medium">{application.description}</TableCell>
                     <TableCell>
-                      {expense.event_name ? (
+                      {application.event_name ? (
                         <Badge variant="outline" className="text-xs">
-                          {expense.event_name}
+                          {application.event_name}
                         </Badge>
                       ) : (
                         <span className="text-gray-400 text-sm">-</span>
                       )}
                     </TableCell>
-                    <TableCell>{getCategoryName(expense.category_id)}</TableCell>
-                    <TableCell>¥{expense.amount.toLocaleString()}</TableCell>
-                    <TableCell>{getPaymentMethodLabel(expense.payment_method)}</TableCell>
-                    <TableCell>{getStatusBadge(expense.status)}</TableCell>
+                    <TableCell>{getCategoryName(application.category_id)}</TableCell>
+                    <TableCell>¥{application.amount.toLocaleString()}</TableCell>
+                    <TableCell>{getPaymentMethodLabel(application.payment_method)}</TableCell>
+                    <TableCell>{getStatusBadge(application.status)}</TableCell>
                     <TableCell>
-                      <Link href={`/expenses/${expense.id}`}>
+                      <Link href={`/expenses/${application.id}`}>
                         <Button variant="outline" size="sm">
                           詳細
                         </Button>
