@@ -17,7 +17,13 @@ import { useMasterDataStore, useEventStore } from '@/lib/store';
 import { getApprovers } from '@/lib/approvers';
 import { ApproverSetting } from '@/lib/types';
 import { userService, expenseService, invoicePaymentService } from '@/lib/database';
-import { supabase } from '@/lib/auth';
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+
+// フロントエンド用のSupabaseクライアント
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 import { useAuth } from '@/contexts/AuthContext';
 
 interface Application {
@@ -44,6 +50,8 @@ export default function ApprovalsPage() {
   const [selectedRequest, setSelectedRequest] = useState<Application | null>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [isApprovalDialogOpen, setIsApprovalDialogOpen] = useState(false);
+  const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
+  const [approvalAction, setApprovalAction] = useState<'approve' | 'reject'>('approve');
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [comments, setComments] = useState('');
   const [editForm, setEditForm] = useState<Partial<Application>>({});
@@ -218,35 +226,40 @@ export default function ApprovalsPage() {
       const application = allApplications.find(app => app.id === applicationId);
       if (!application) return;
 
-      // APIエンドポイントを呼び出してデータベースを更新
-      const tableName = application.type === 'expense' ? 'expenses' : 'invoice_payments';
-      const { error } = await supabase
-        .from(tableName)
-        .update({ 
-          status: 'approved',
-          comments: comments || null,
-          approved_by: currentUserId,
-          approved_at: new Date().toISOString()
+      const response = await fetch(`/api/applications/${applicationId}/approve`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'approve',
+          type: application.type,
+          userId: currentUserId,
+          comments: comments?.trim() || null
         })
-        .eq('id', applicationId);
+      });
 
-      if (error) throw error;
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || '承認処理に失敗しました');
+      }
 
       // ローカル状態を更新
       setAllApplications(prev => 
         prev.map(req => 
           req.id === applicationId 
-            ? { ...req, status: 'approved' as const, comments }
+            ? { ...req, status: 'approved' as const, comments: comments?.trim() || null }
             : req
         )
       );
       
       setComments('');
       setIsApprovalDialogOpen(false);
-      alert('申請が承認されました');
+      alert(data.message);
     } catch (error) {
       console.error('承認処理エラー:', error);
-      alert('承認処理に失敗しました');
+      alert(error instanceof Error ? error.message : '承認処理に失敗しました');
     }
   };
 
@@ -255,35 +268,46 @@ export default function ApprovalsPage() {
       const application = allApplications.find(app => app.id === applicationId);
       if (!application) return;
 
-      // APIエンドポイントを呼び出してデータベースを更新
-      const tableName = application.type === 'expense' ? 'expenses' : 'invoice_payments';
-      const { error } = await supabase
-        .from(tableName)
-        .update({ 
-          status: 'rejected',
-          comments: comments || null,
-          approved_by: currentUserId,
-          approved_at: new Date().toISOString()
-        })
-        .eq('id', applicationId);
+      // 却下時はコメント必須
+      if (!comments?.trim()) {
+        alert('却下の理由を入力してください');
+        return;
+      }
 
-      if (error) throw error;
+      const response = await fetch(`/api/applications/${applicationId}/approve`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'reject',
+          type: application.type,
+          userId: currentUserId,
+          comments: comments.trim()
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || '却下処理に失敗しました');
+      }
 
       // ローカル状態を更新
       setAllApplications(prev => 
         prev.map(req => 
           req.id === applicationId 
-            ? { ...req, status: 'rejected' as const, comments }
+            ? { ...req, status: 'rejected' as const, comments: comments.trim() }
             : req
         )
       );
       
       setComments('');
-      setIsApprovalDialogOpen(false);
-      alert('申請が却下されました');
+      setIsRejectDialogOpen(false);
+      alert(data.message);
     } catch (error) {
       console.error('却下処理エラー:', error);
-      alert('却下処理に失敗しました');
+      alert(error instanceof Error ? error.message : '却下処理に失敗しました');
     }
   };
 
@@ -590,6 +614,8 @@ export default function ApprovalsPage() {
                                   size="sm"
                                   onClick={() => {
                                     setSelectedRequest(application);
+                                    setApprovalAction('approve');
+                                    setComments(''); // 承認時はコメントをクリア
                                     setIsApprovalDialogOpen(true);
                                   }}
                                 >
@@ -601,7 +627,9 @@ export default function ApprovalsPage() {
                                   size="sm"
                                   onClick={() => {
                                     setSelectedRequest(application);
-                                    setIsApprovalDialogOpen(true);
+                                    setApprovalAction('reject');
+                                    setComments(''); // 却下時はコメントをクリア
+                                    setIsRejectDialogOpen(true);
                                   }}
                                 >
                                   <XCircle className="h-4 w-4" />
@@ -808,24 +836,24 @@ export default function ApprovalsPage() {
           </DialogContent>
         </Dialog>
 
-        {/* 承認/却下ダイアログ */}
+        {/* 承認ダイアログ */}
         <Dialog open={isApprovalDialogOpen} onOpenChange={setIsApprovalDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>承認・却下</DialogTitle>
+              <DialogTitle>申請を承認</DialogTitle>
               <DialogDescription>
-                コメントを入力して承認または却下してください
+                この申請を承認します。コメントは任意です。
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="comments">コメント</Label>
+                <Label htmlFor="approval-comments">コメント（任意）</Label>
                 <Textarea
-                  id="comments"
-                  placeholder="コメントを入力してください（任意）"
+                  id="approval-comments"
+                  placeholder="承認に関するコメントがあれば入力してください"
                   value={comments}
                   onChange={(e) => setComments(e.target.value)}
-                  rows={4}
+                  rows={3}
                 />
               </div>
             </div>
@@ -834,15 +862,49 @@ export default function ApprovalsPage() {
                 キャンセル
               </Button>
               <Button
-                variant="destructive"
-                onClick={() => selectedRequest && handleReject(selectedRequest.id)}
-              >
-                却下
-              </Button>
-              <Button
                 onClick={() => selectedRequest && handleApprove(selectedRequest.id)}
               >
-                承認
+                承認する
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* 却下ダイアログ */}
+        <Dialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>申請を却下</DialogTitle>
+              <DialogDescription>
+                この申請を却下します。却下理由は必須です。
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="reject-comments">却下理由（必須）</Label>
+                <Textarea
+                  id="reject-comments"
+                  placeholder="却下の理由を具体的に入力してください"
+                  value={comments}
+                  onChange={(e) => setComments(e.target.value)}
+                  rows={4}
+                  className={!comments?.trim() ? 'border-red-300' : ''}
+                />
+                {!comments?.trim() && (
+                  <p className="text-sm text-red-600">却下理由の入力は必須です</p>
+                )}
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsRejectDialogOpen(false)}>
+                キャンセル
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => selectedRequest && handleReject(selectedRequest.id)}
+                disabled={!comments?.trim()}
+              >
+                却下する
               </Button>
             </DialogFooter>
           </DialogContent>

@@ -1,5 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+
+// サーバーサイド用のSupabaseクライアント（RLS回避）
+const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false
+  }
+});
 
 export async function DELETE(
   request: NextRequest,
@@ -20,7 +31,7 @@ export async function DELETE(
 
     if (type === 'expense') {
       // まず申請が存在し、現在のユーザーのものか確認
-      const { data: expense, error: fetchError } = await supabase
+      const { data: expense, error: fetchError } = await supabaseAdmin
         .from('expenses')
         .select('user_id, status')
         .eq('id', id)
@@ -49,7 +60,7 @@ export async function DELETE(
       }
 
       // 経費申請を削除
-      const { error: deleteError } = await supabase
+      const { error: deleteError } = await supabaseAdmin
         .from('expenses')
         .delete()
         .eq('id', id);
@@ -66,7 +77,7 @@ export async function DELETE(
 
     } else if (type === 'invoice') {
       // まず申請が存在し、現在のユーザーのものか確認
-      const { data: invoice, error: fetchError } = await supabase
+      const { data: invoice, error: fetchError } = await supabaseAdmin
         .from('invoice_payments')
         .select('user_id, status')
         .eq('id', id)
@@ -95,7 +106,7 @@ export async function DELETE(
       }
 
       // 請求書払い申請を削除
-      const { error: deleteError } = await supabase
+      const { error: deleteError } = await supabaseAdmin
         .from('invoice_payments')
         .delete()
         .eq('id', id);
