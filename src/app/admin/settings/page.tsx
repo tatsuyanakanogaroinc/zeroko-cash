@@ -154,7 +154,19 @@ export default function SettingsPage() {
       return;
     }
     try {
-      const newProject = await projectService.createProject(data);
+      const response = await fetch('/api/projects', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+      
+      if (!response.ok) {
+        throw new Error('プロジェクトの追加に失敗しました');
+      }
+      
+      const newProject = await response.json();
       setProjects([...projects, newProject]);
       setIsAddDialogOpen(false);
       toast.success('プロジェクトを追加しました');
@@ -166,7 +178,19 @@ export default function SettingsPage() {
 
   const handleAddEvent = async (data: any) => {
     try {
-      const newEvent = await eventService.createEvent(data);
+      const response = await fetch('/api/events', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+      
+      if (!response.ok) {
+        throw new Error('イベントの追加に失敗しました');
+      }
+      
+      const newEvent = await response.json();
       setEvents([...events, newEvent]);
       setIsAddDialogOpen(false);
       toast.success('イベントを追加しました');

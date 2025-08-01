@@ -97,15 +97,20 @@ export default function NewExpensePage() {
         event_id: data.event_id === 'none' ? null : data.event_id,
       };
 
-      const { data: newExpense, error } = await supabase
-        .from('expenses')
-        .insert(expenseData)
-        .select()
-        .single();
+      const response = await fetch('/api/expenses', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(expenseData),
+      });
 
-      if (error) {
-        throw error;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || '経費申請の送信に失敗しました');
       }
+
+      const newExpense = await response.json();
 
       console.log('経費申請がSupabaseに保存されました:', newExpense);
       
