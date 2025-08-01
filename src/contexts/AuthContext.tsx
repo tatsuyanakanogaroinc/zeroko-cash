@@ -57,37 +57,95 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 const login = async (email: string, password: string) => {
   setLoading(true);
+  console.log('ログイン処理開始:', { email });
+  
   try {
     const { error: authError, data: authData } = await supabase.auth.signInWithPassword({
       email,
       password
     });
 
-    if (authError || !authData.user) {
-      throw authError || new Error('不明なエラー');
+    console.log('Supabase認証結果:', { error: authError, user: authData?.user?.id });
+
+    if (authError) {
+      console.error('Supabase認証エラー:', authError);
+      throw new Error(authError.message || 'ログインに失敗しました');
     }
 
-    // 認証成功後、ユーザー情報を一時的に保存
-    // TODO: RLSポリシーが修正されたら、usersテーブルから完全な情報を取得する
-    const tempUser: User = {
-      id: authData.user.id,
-      email: authData.user.email || '',
-      name: '中野達哉', // 一時的にハードコード
-      role: 'admin' as const,
-      department_id: '1867faf8-3732-4503-9dbb-59316ab062d8', // 経営部門ID
-      initial_password: null,
-      password_changed: true,
-      created_at: new Date().toISOString()
-    };
-
-    setUser(tempUser);
-    // ローカルストレージにユーザー情報を保存
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('currentUser', JSON.stringify(tempUser));
-      localStorage.setItem('currentUserId', tempUser.id);
+    if (!authData?.user) {
+      throw new Error('認証データが取得できませんでした');
     }
+
+    console.log('認証成功、ユーザー情報取得中...');
+    
+    // ユーザー情報をusersテーブルから取得
+    try {
+      const response = await fetch('/api/user-data', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId: authData.user.id }),
+      });
+
+      if (response.ok) {
+        const userData = await response.json();
+        console.log('ユーザーデータ取得成功:', userData);
+        
+        setUser(userData);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('currentUser', JSON.stringify(userData));
+          localStorage.setItem('currentUserId', userData.id);
+        }
+      } else {
+        console.warn('ユーザーデータ取得失敗、一時的なユーザー情報を使用');
+        // フォールバック: 一時的なユーザー情報を使用
+        const tempUser: User = {
+          id: authData.user.id,
+          email: authData.user.email || '',
+          name: 'ユーザー', // 一時的にデフォルト名
+          role: 'user' as const,
+          department_id: null,
+          initial_password: null,
+          password_changed: true,
+          created_at: new Date().toISOString()
+        };
+
+        setUser(tempUser);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('currentUser', JSON.stringify(tempUser));
+          localStorage.setItem('currentUserId', tempUser.id);
+        }
+      }
+    } catch (userDataError) {
+      console.error('ユーザーデータ取得エラー:', userDataError);
+      // フォールバック処理
+      const tempUser: User = {
+        id: authData.user.id,
+        email: authData.user.email || '',
+        name: 'ユーザー',
+        role: 'user' as const,
+        department_id: null,
+        initial_password: null,
+        password_changed: true,
+        created_at: new Date().toISOString()
+      };
+
+      setUser(tempUser);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('currentUser', JSON.stringify(tempUser));
+        localStorage.setItem('currentUserId', tempUser.id);
+      }
+    }
+
+    console.log('ログイン処理完了');
   } catch (error) {
     console.error('ログインエラー:', error);
+    setUser(null);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('currentUser');
+      localStorage.removeItem('currentUserId');
+    }
     throw error; // エラーを再スロー
   } finally {
     setLoading(false);

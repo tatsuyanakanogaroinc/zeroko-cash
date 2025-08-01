@@ -24,13 +24,32 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
     
+    console.log('ログイン試行:', { email });
+    
     try {
       await login(email, password);
+      console.log('ログイン成功');
       toast.success("ログインしました");
       router.push("/dashboard");
     } catch (error) {
       console.error("ログインエラー:", error);
-      setError("ログインに失敗しました。メールアドレスとパスワードを確認してください。");
+      
+      let errorMessage = "ログインに失敗しました。";
+      
+      if (error instanceof Error) {
+        if (error.message.includes('Invalid login credentials')) {
+          errorMessage = "メールアドレスまたはパスワードが間違っています。";
+        } else if (error.message.includes('Email not confirmed')) {
+          errorMessage = "メールアドレスが確認されていません。";
+        } else if (error.message.includes('Too many requests')) {
+          errorMessage = "リクエストが多すぎます。しばらく待ってから再度お試しください。";
+        } else {
+          errorMessage = error.message || "ログインに失敗しました。";
+        }
+      }
+      
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }

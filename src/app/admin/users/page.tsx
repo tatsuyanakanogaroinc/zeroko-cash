@@ -405,42 +405,127 @@ const handleDeleteUser = async (userId: string) => {
                   </p>
                 </div>
                 
-                <div className="space-y-2">
+                <div className="space-y-4">
+                  {/* 一括コピー */}
                   <div>
-                    <Label className="text-sm font-medium">メールアドレス</Label>
+                    <Label className="text-sm font-medium">ログイン情報（一括コピー）</Label>
                     <div className="flex items-center space-x-2 mt-1">
-                      <Input value={createdUserInfo.email} readOnly className="bg-gray-50" />
+                      <Input 
+                        value={`メール: ${createdUserInfo.email} | パスワード: ${createdUserInfo.password}`}
+                        readOnly 
+                        className="bg-blue-50 font-mono text-sm" 
+                      />
                       <Button
                         size="sm"
-                        variant="outline"
+                        variant="default"
                         onClick={() => {
-                          navigator.clipboard.writeText(createdUserInfo.email);
-                          toast.success('メールアドレスをコピーしました');
+                          const copyText = `メールアドレス: ${createdUserInfo.email}\n初期パスワード: ${createdUserInfo.password}`;
+                          if (navigator.clipboard && window.isSecureContext) {
+                            navigator.clipboard.writeText(copyText).then(() => {
+                              toast.success('ログイン情報をコピーしました');
+                            }).catch(() => {
+                              // フォールバック処理
+                              const textArea = document.createElement('textarea');
+                              textArea.value = copyText;
+                              document.body.appendChild(textArea);
+                              textArea.select();
+                              document.execCommand('copy');
+                              document.body.removeChild(textArea);
+                              toast.success('ログイン情報をコピーしました');
+                            });
+                          } else {
+                            // フォールバック処理
+                            const textArea = document.createElement('textarea');
+                            textArea.value = copyText;
+                            document.body.appendChild(textArea);
+                            textArea.select();
+                            document.execCommand('copy');
+                            document.body.removeChild(textArea);
+                            toast.success('ログイン情報をコピーしました');
+                          }
                         }}
                       >
-                        <Copy className="h-4 w-4" />
+                        <Copy className="h-4 w-4 mr-1" />
+                        一括コピー
                       </Button>
                     </div>
                   </div>
                   
-                  <div>
-                    <Label className="text-sm font-medium">初期パスワード</Label>
-                    <div className="flex items-center space-x-2 mt-1">
-                      <Input value={createdUserInfo.password} readOnly className="bg-gray-50 font-mono" />
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          navigator.clipboard.writeText(createdUserInfo.password);
-                          toast.success('初期パスワードをコピーしました');
-                        }}
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-medium">メールアドレス</Label>
+                      <div className="flex items-center space-x-2 mt-1">
+                        <Input value={createdUserInfo.email} readOnly className="bg-gray-50" />
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            if (navigator.clipboard && window.isSecureContext) {
+                              navigator.clipboard.writeText(createdUserInfo.email).then(() => {
+                                toast.success('メールアドレスをコピーしました');
+                              }).catch(() => {
+                                const textArea = document.createElement('textarea');
+                                textArea.value = createdUserInfo.email;
+                                document.body.appendChild(textArea);
+                                textArea.select();
+                                document.execCommand('copy');
+                                document.body.removeChild(textArea);
+                                toast.success('メールアドレスをコピーしました');
+                              });
+                            } else {
+                              const textArea = document.createElement('textarea');
+                              textArea.value = createdUserInfo.email;
+                              document.body.appendChild(textArea);
+                              textArea.select();
+                              document.execCommand('copy');
+                              document.body.removeChild(textArea);
+                              toast.success('メールアドレスをコピーしました');
+                            }
+                          }}
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">
-                      ユーザーは初回ログイン時にパスワードの変更を求められます。
-                    </p>
+                    
+                    <div>
+                      <Label className="text-sm font-medium">初期パスワード</Label>
+                      <div className="flex items-center space-x-2 mt-1">
+                        <Input value={createdUserInfo.password} readOnly className="bg-gray-50 font-mono" />
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            if (navigator.clipboard && window.isSecureContext) {
+                              navigator.clipboard.writeText(createdUserInfo.password).then(() => {
+                                toast.success('初期パスワードをコピーしました');
+                              }).catch(() => {
+                                const textArea = document.createElement('textarea');
+                                textArea.value = createdUserInfo.password;
+                                document.body.appendChild(textArea);
+                                textArea.select();
+                                document.execCommand('copy');
+                                document.body.removeChild(textArea);
+                                toast.success('初期パスワードをコピーしました');
+                              });
+                            } else {
+                              const textArea = document.createElement('textarea');
+                              textArea.value = createdUserInfo.password;
+                              document.body.appendChild(textArea);
+                              textArea.select();
+                              document.execCommand('copy');
+                              document.body.removeChild(textArea);
+                              toast.success('初期パスワードをコピーしました');
+                            }
+                          }}
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        ユーザーは初回ログイン時にパスワードの変更を求められます。
+                      </p>
+                    </div>
                   </div>
                 </div>
                 
