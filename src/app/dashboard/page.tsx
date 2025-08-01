@@ -13,7 +13,8 @@ import {
   TrendingUp,
   FileText,
   AlertCircle,
-  Trash2
+  Trash2,
+  RefreshCw
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -78,63 +79,73 @@ export default function DashboardPage() {
     }
   };
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // 新しいAPIエンドポイントを使用してデータを取得
-        const response = await fetch(`/api/user-data?userId=${user.id}`);
-        const data = await response.json();
-        
-        if (!response.ok) {
-          console.error('APIエラー:', data.error);
-          return;
-        }
-
-        const userFilteredExpenses = data.expenses || [];
-        const userFilteredInvoices = data.invoicePayments || [];
-        
-        console.log('User info:', { id: user.id, name: user.name });
-        console.log('User filtered expenses:', userFilteredExpenses.length);
-        console.log('User filtered invoices:', userFilteredInvoices.length);
-
-        // 経費申請データの正規化
-        const normalizedExpenses = userFilteredExpenses.map(expense => ({
-          ...expense,
-          type: 'expense',
-          date: expense.expense_date,
-          payment_method: expense.payment_method || 'personal_cash',
-          vendor_name: null,
-          invoice_date: null,
-          due_date: null
-        }));
-        
-        // 請求書払い申請データの正規化
-        const normalizedInvoices = userFilteredInvoices.map(invoice => ({
-          ...invoice,
-          type: 'invoice',
-          date: invoice.invoice_date,
-          payment_method: '請求書払い',
-          expense_date: invoice.invoice_date,
-          event_name: invoice.events?.name || null
-        }));
-        
-        // 統合してソート（作成日時の降順）
-        const combinedData = [...normalizedExpenses, ...normalizedInvoices]
-          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-
-        console.log('統合データ:', combinedData.length, '件');
-        console.log('統合データサンプル:', combinedData.slice(0, 2));
-        setAllApplications(combinedData);
-      } catch (error) {
-        console.error('データの取得に失敗しました:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchData = async () => {
+    if (!user) return;
     
-    if (user) {
-      fetchData();
+    try {
+      // 新しいAPIエンドポイントを使用してデータを取得
+      const response = await fetch(`/api/user-data?userId=${user.id}&t=${Date.now()}`);
+      const data = await response.json();
+      
+      if (!response.ok) {
+        console.error('APIエラー:', data.error);
+        return;
+      }
+
+      const userFilteredExpenses = data.expenses || [];
+      const userFilteredInvoices = data.invoicePayments || [];
+      
+      console.log('User info:', { id: user.id, name: user.name });
+      console.log('User filtered expenses:', userFilteredExpenses.length);
+      console.log('User filtered invoices:', userFilteredInvoices.length);
+
+      // 経費申請データの正規化
+      const normalizedExpenses = userFilteredExpenses.map(expense => ({
+        ...expense,
+        type: 'expense',
+        date: expense.expense_date,
+        payment_method: expense.payment_method || 'personal_cash',
+        vendor_name: null,
+        invoice_date: null,
+        due_date: null
+      }));
+      
+      // 請求書払い申請データの正規化
+      const normalizedInvoices = userFilteredInvoices.map(invoice => ({
+        ...invoice,
+        type: 'invoice',
+        date: invoice.invoice_date,
+        payment_method: '請求書払い',
+        expense_date: invoice.invoice_date,
+        event_name: invoice.events?.name || null
+      }));
+      
+      // 統合してソート（作成日時の降順）
+      const combinedData = [...normalizedExpenses, ...normalizedInvoices]
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+      console.log('統合データ:', combinedData.length, '件');
+      console.log('統合データサンプル:', combinedData.slice(0, 2));
+      setAllApplications(combinedData);
+    } catch (error) {
+      console.error('データの取得に失敗しました:', error);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [user]);
+
+  // ページがフォーカスされたときにデータを再取得
+  useEffect(() => {
+    const handleFocus = () => {
+      fetchData();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
   }, [user]);
 
   // 実データから統計を計算
@@ -216,12 +227,23 @@ export default function DashboardPage() {
   return (
     <MainLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">ダッシュボード</h1>
-          <p className="text-gray-600">あなたの申請状況を確認できます</p>
-          <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg inline-block">
-            <p className="text-blue-800 font-medium">ユーザー名: {user.name}</p>
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-3xl font-bold">ダッシュボード</h1>
+            <p className="text-gray-600">あなたの申請状況を確認できます</p>
+            <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg inline-block">
+              <p className="text-blue-800 font-medium">ユーザー名: {user.name}</p>
+            </div>
           </div>
+          <Button
+            onClick={fetchData}
+            disabled={loading}
+            variant="outline"
+            className="flex items-center gap-2 mt-2"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            データ更新
+          </Button>
         </div>
 
         {/* 統計カード */}

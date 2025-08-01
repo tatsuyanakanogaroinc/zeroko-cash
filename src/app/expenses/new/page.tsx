@@ -25,6 +25,7 @@ export default function NewExpensePage() {
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [sortedCategories, setSortedCategories] = useState<any[]>([]);
   const [availableEvents, setAvailableEvents] = useState<any[]>([]);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const router = useRouter();
 
   const {
@@ -131,6 +132,8 @@ export default function NewExpensePage() {
         payment_method: data.payment_method || 'personal_cash',
         status: 'pending',
         event_id: data.event_id === 'none' ? null : data.event_id,
+        department_id: data.department_id || null,
+        project_id: data.project_id || null,
       };
 
       const response = await fetch('/api/expenses', {

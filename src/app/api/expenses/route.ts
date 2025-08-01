@@ -48,7 +48,25 @@ export async function POST(request: NextRequest) {
       event_id,
       description,
       payment_method,
+      department_id,
+      project_id,
     } = body;
+
+    // ユーザー情報を取得して部門IDを自動設定
+    let finalDepartmentId = department_id;
+    let finalProjectId = project_id;
+    
+    if (!finalDepartmentId) {
+      const { data: userData } = await supabaseAdmin
+        .from('users')
+        .select('department_id')
+        .eq('id', user_id)
+        .single();
+      
+      if (userData?.department_id) {
+        finalDepartmentId = userData.department_id;
+      }
+    }
 
     const { data, error } = await supabaseAdmin
       .from('expenses')
@@ -60,6 +78,8 @@ export async function POST(request: NextRequest) {
         event_id,
         description,
         payment_method,
+        department_id: finalDepartmentId,
+        project_id: finalProjectId,
         status: 'pending',
       })
       .select()
@@ -73,4 +93,4 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
-} 
+}

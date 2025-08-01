@@ -4,6 +4,7 @@ export const expenseFormSchema = z.object({
   expense_date: z.date().refine((date) => date, '支出日を選択してください'),
   amount: z.number().min(1, '金額は1円以上で入力してください'),
   category_id: z.string().min(1, 'カテゴリを選択してください'),
+  department_id: z.string().optional(),
   project_id: z.string().optional(),
   event_id: z.string().optional().refine((val) => val !== 'none', {
     message: 'イベントを選択してください',

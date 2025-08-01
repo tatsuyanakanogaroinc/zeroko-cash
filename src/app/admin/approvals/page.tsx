@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CheckCircle, XCircle, Clock, Eye, Edit, Trash2, Filter } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Eye, Edit, Trash2, Filter, FileImage } from 'lucide-react';
 import { useMasterDataStore, useEventStore } from '@/lib/store';
 import { getApprovers } from '@/lib/approvers';
 import { ApproverSetting } from '@/lib/types';
@@ -525,6 +525,7 @@ export default function ApprovalsPage() {
                       <TableHead>金額</TableHead>
                       <TableHead>申請日</TableHead>
                       <TableHead>ステータス</TableHead>
+                      <TableHead>領収書</TableHead>
                       <TableHead>操作</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -540,6 +541,22 @@ export default function ApprovalsPage() {
                         <TableCell>¥{application.amount.toLocaleString()}</TableCell>
                         <TableCell>{application.date}</TableCell>
                         <TableCell>{getStatusBadge(application.status)}</TableCell>
+                        <TableCell>
+                          {(application as any).receipt_image ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                // 領収書画像を新しいタブで表示
+                                window.open((application as any).receipt_image, '_blank');
+                              }}
+                            >
+                              <FileImage className="h-4 w-4" />
+                            </Button>
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
+                        </TableCell>
                         <TableCell>
                           <div className="flex space-x-2">
                             <Button
@@ -736,7 +753,7 @@ export default function ApprovalsPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">なし</SelectItem>
+                        <SelectItem value="none">なし</SelectItem>
                         {projects.map(project => (
                           <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
                         ))}
@@ -753,7 +770,7 @@ export default function ApprovalsPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">なし</SelectItem>
+                        <SelectItem value="none">なし</SelectItem>
                         {departments.map(dept => (
                           <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
                         ))}
@@ -770,7 +787,7 @@ export default function ApprovalsPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">なし</SelectItem>
+                        <SelectItem value="none">なし</SelectItem>
                         {events.map(event => (
                           <SelectItem key={event.id} value={event.id}>{event.name}</SelectItem>
                         ))}
