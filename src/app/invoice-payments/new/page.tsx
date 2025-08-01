@@ -106,8 +106,20 @@ export default function NewInvoicePaymentPage() {
       console.log('請求書払い申請データ:', invoicePaymentData);
       console.log('アップロードファイル:', uploadedFiles);
       
-      // TODO: 実際のAPI呼び出しに置き換える
-      await invoicePaymentService.createInvoicePayment(invoicePaymentData);
+      const response = await fetch('/api/invoice-payments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(invoicePaymentData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || '請求書支払い申請の送信に失敗しました');
+      }
+
+      const newInvoicePayment = await response.json();
       
       // 申請成功ページにリダイレクト（申請内容を含む）
       const params = new URLSearchParams({
