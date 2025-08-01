@@ -75,8 +75,13 @@ export const userService = {
       throw new Error('ユーザーデータの取得に失敗しました');
     }
 
-    // ユーザーにメール通知を送信（例としてconsole.logで出力）
-    console.log(`ユーザー ${data.email} にメールを送信: 初期パスワードは ${initial_password} です。`);
+// ユーザーにメール通知を送信
+typeof window === 'undefined' && await sendAccountCreationEmail(
+      data.email,
+      data.name,
+      initial_password,
+      'https://yourapp.com/login'
+    );
 
     return data as User;
   },

@@ -232,8 +232,15 @@ export default function UsersPage() {
     setEditingUser(user);
   };
 
-  const handleDeleteUser = (userId: string) => {
-    setUsers(users.filter(user => user.id !== userId));
+const handleDeleteUser = async (userId: string) => {
+    try {
+      await userService.deleteUser(userId);
+      setUsers(users.filter(user => user.id !== userId));
+      toast.success('ユーザーが成功的に削除されました');
+    } catch (error) {
+      console.error('ユーザー削除エラー:', error);
+      toast.error('ユーザーの削除中にエラーが発生しました');
+    }
   };
 
   return (
