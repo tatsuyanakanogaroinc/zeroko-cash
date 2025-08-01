@@ -192,7 +192,7 @@ export default function ReportsPage() {
     { id: '6', name: '伊藤三郎', department: '経営管理' }
   ];
 
-  useEffect(() => {
+  useEffect(() => {
     const activeProjects = projects.map(p => ({
       ...p,
       project_name: p.name
