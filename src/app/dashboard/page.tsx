@@ -326,11 +326,6 @@ export default function DashboardPage() {
                     <div className="flex items-center justify-between">
                       {/* 左側：タイプアイコンと基本情報 */}
                       <div className="flex items-center space-x-3 flex-1">
-                        {application.type === 'expense' ? ( 
-                          <DollarSign className="h-4 w-4 text-green-500 flex-shrink-0" />
-                        ) : (
-                          <FileText className="h-4 w-4 text-blue-500 flex-shrink-0" />
-                        )}
                         
                         {/* 説明と日付 */}
                         <div className="flex-1 min-w-0">
@@ -359,7 +354,7 @@ export default function DashboardPage() {
                                 className="h-7 w-7 p-0 text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50 border-yellow-200"
                                 title="編集"
                               >
-                                <Edit className="w-3 h-3" />
+                          <span>編集</span>
                               </Button>
                               <Button
                                 variant="outline"
@@ -368,7 +363,7 @@ export default function DashboardPage() {
                                 className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
                                 title="削除"
                               >
-                                <Trash2 className="w-3 h-3" />
+                          <span>削除</span>
                               </Button>
                             </>
                           )}
@@ -378,23 +373,23 @@ export default function DashboardPage() {
                     
                     {/* 詳細情報（コンパクト） */}
                     <div className="flex flex-wrap gap-1 mt-2">
-                      <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
-                        {getDepartmentName(application.department_id)}
-                      </span>
+                        <span className="text-xs">
+                          {getDepartmentName(application.department_id)}
+                        </span>
                       {application.event_name && (
-                        <span className="text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded">
+                        <span className="text-xs">
                           {application.event_name}
                         </span>
                       )}
-                      <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded">
-                        {getProjectName(application.project_id)}
-                      </span>
-                      <span className="text-xs bg-gray-100 text-gray-800 px-2 py-0.5 rounded">
-                        {getCategoryName(application.category_id)}
-                      </span>
-                      <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded">
-                        {getPaymentMethodLabel(application.payment_method)}
-                      </span>
+                        <span className="text-xs">
+                          {getProjectName(application.project_id)}
+                        </span>
+                        <span className="text-xs">
+                          {getCategoryName(application.category_id)}
+                        </span>
+                        <span className="text-xs">
+                          {getPaymentMethodLabel(application.payment_method)}
+                        </span>
                       {/* 却下理由がある場合は表示 */}
                       {application.status === 'rejected' && application.comments && (
                         <span className="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded" title={application.comments}>

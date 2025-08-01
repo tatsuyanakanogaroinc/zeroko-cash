@@ -279,9 +279,9 @@ export const invoicePaymentService = {
       .from('invoice_payments')
       .select(`
         *,
-        users(name, email),
+        users(name, email, department_id, departments(name)),
         departments(name),
-        projects(name),
+        projects(name, code),
         categories(name),
         events(name)
       `)
@@ -296,9 +296,9 @@ export const invoicePaymentService = {
       .from('invoice_payments')
       .select(`
         *,
-        users(name, email),
+        users(name, email, department_id, departments(name)),
         departments(name),
-        projects(name),
+        projects(name, code),
         categories(name),
         events(name)
       `)
@@ -405,9 +405,10 @@ export const expenseService = {
       .from('expenses')
       .select(`
         *,
-        users(name, email),
+        users(name, email, department_id, departments(name)),
         categories(name),
-        events(name)
+        events(name),
+        projects(name, code)
       `)
       .order('created_at', { ascending: false })
     
@@ -420,9 +421,10 @@ export const expenseService = {
       .from('expenses')
       .select(`
         *,
-        users(name, email),
+        users(name, email, department_id, departments(name)),
         categories(name),
-        events(name)
+        events(name),
+        projects(name, code)
       `)
       .eq('id', id)
       .single()
@@ -469,7 +471,8 @@ export const expenseService = {
       .select(`
         *,
         categories(name),
-        events(name)
+        events(name),
+        projects(name, code)
       `)
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
@@ -483,9 +486,10 @@ export const expenseService = {
       .from('expenses')
       .select(`
         *,
-        users!inner(department_id),
+        users!inner(department_id, name, email),
         categories(name),
-        events(name)
+        events(name),
+        projects(name, code)
       `)
       .eq('users.department_id', departmentId)
       .order('created_at', { ascending: false })
