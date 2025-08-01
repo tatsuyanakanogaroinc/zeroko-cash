@@ -23,10 +23,44 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { name, email, role, department_id } = body;
 
-    const initial_password = Math.random().toString(36).slice(-8); // ランダムな8文字のパスワード生成
+    // よりセキュアな初期パスワードを生成（12文字、英数字と記号を含む）
+    const generateSecurePassword = () => {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+      let password = '';
+      for (let i = 0; i < 12; i++) {
+        password += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return password;
+    };
+    const initial_password = generateSecurePassword();
     
-    // デフォルト値を設定
+    // まずSupabaseの認証システムにユーザーを作成
+    const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password: initial_password,
+      email_confirm: true, // メール確認をスキップ
+      user_metadata: {
+        name,
+        role: role || 'user'
+      }
+    });
+
+    if (authError) {
+      console.error('Supabase auth createUser error:', authError);
+      let errorMessage = 'ユーザーの認証アカウント作成に失敗しました';
+      if (authError.message.includes('already registered')) {
+        errorMessage = 'このメールアドレスは既に登録されています';
+      }
+      return NextResponse.json({ error: errorMessage }, { status: 500 });
+    }
+
+    if (!authUser.user) {
+      return NextResponse.json({ error: '認証ユーザーの作成に失敗しました' }, { status: 500 });
+    }
+
+    // 次にusersテーブルにユーザー情報を保存（auth.userのIDを使用）
     const userToInsert = {
+      id: authUser.user.id, // 認証システムのUUIDを使用
       name,
       email,
       role: role || 'user',
@@ -44,15 +78,14 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error('Supabase createUser error details:', {
-        message: error.message,
-        details: error.details,
-        hint: error.hint,
-        code: error.code
-      });
+      console.error('Supabase users table insert error:', error);
+      
+      // 認証ユーザーの作成に成功したが、usersテーブルへの挿入に失敗した場合、
+      // 認証ユーザーも削除する（クリーンアップ）
+      await supabaseAdmin.auth.admin.deleteUser(authUser.user.id);
       
       // より詳細なエラーメッセージを作成
-      let errorMessage = 'ユーザーの作成に失敗しました';
+      let errorMessage = 'ユーザー情報の保存に失敗しました';
       if (error.code === '23505') {
         errorMessage = 'このメールアドレスは既に使用されています';
       } else if (error.code === '23502') {
@@ -65,14 +98,19 @@ export async function POST(request: NextRequest) {
     }
 
     if (!data) {
+      // 同様にクリーンアップ
+      await supabaseAdmin.auth.admin.deleteUser(authUser.user.id);
       return NextResponse.json({ error: 'ユーザーデータの取得に失敗しました' }, { status: 500 });
     }
 
-    // TODO: サーバーサイドでのメール送信は後で実装
     console.log(`ユーザー作成完了: ${data.email}, 初期パスワード: ${initial_password}`);
 
-    return NextResponse.json(data);
+    return NextResponse.json({
+      ...data,
+      initial_password // フロントエンドで表示するために初期パスワードを返す
+    });
   } catch (error) {
+    console.error('User creation error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
@@ -108,17 +146,29 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
     }
 
-    const { error } = await supabaseAdmin
+    // まずusersテーブルから削除
+    const { error: dbError } = await supabaseAdmin
       .from('users')
       .delete()
       .eq('id', id);
     
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+    if (dbError) {
+      console.error('Database user deletion error:', dbError);
+      return NextResponse.json({ error: dbError.message }, { status: 500 });
+    }
+
+    // 次に認証システムからも削除
+    const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(id);
+    
+    if (authError) {
+      console.error('Auth user deletion error:', authError);
+      // 認証ユーザーの削除に失敗しても、DBのユーザーは削除済みなので警告として継続
+      console.warn('認証ユーザーの削除に失敗しましたが、ユーザー情報は削除されました');
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
+    console.error('User deletion error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

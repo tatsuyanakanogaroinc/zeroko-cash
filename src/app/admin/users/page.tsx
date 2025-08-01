@@ -157,14 +157,21 @@ export default function UsersPage() {
       console.log('Loaded users:', usersData);
       
       // データベースのユーザーをUIで表示する形式に変換
-      const formattedUsers = usersData.map(user => ({
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role as 'admin' | 'manager' | 'user',
-        department: user.department_id || '未設定',
-        status: 'active' as 'active' | 'inactive' // デフォルトでactive
-      }));
+      const formattedUsers = usersData.map(user => {
+        // 部門名を取得（department_idから部門名を検索）
+        const departmentName = user.department_id 
+          ? departments.find(dept => dept.id === user.department_id)?.name || '未設定'
+          : '未設定';
+        
+        return {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role as 'admin' | 'manager' | 'user',
+          department: departmentName,
+          status: 'active' as 'active' | 'inactive' // デフォルトでactive
+        };
+      });
       
       setUsers(formattedUsers);
     } catch (error) {
@@ -176,9 +183,19 @@ export default function UsersPage() {
   };
 
   useEffect(() => {
-    loadUsers();
-    initializeDepartments();
+    const loadData = async () => {
+      await initializeDepartments();
+      await loadUsers();
+    };
+    loadData();
   }, []);
+  
+  // 部門データが更新されたらユーザーデータも再読み込み
+  useEffect(() => {
+    if (departments.length > 0) {
+      loadUsers();
+    }
+  }, [departments]);
 
   const filteredUsers = users.filter(user =>
     user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
