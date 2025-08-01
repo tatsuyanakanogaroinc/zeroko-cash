@@ -320,84 +320,83 @@ export default function DashboardPage() {
                 <p className="text-sm mt-2">新しい申請を作成してください</p>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="grid gap-4">
                 {displayApplications.map(application => (
-                  <div key={application.id} className="border rounded-lg p-3 hover:bg-gray-50 transition-colors">
-                    <div className="flex items-center justify-between">
-                      {/* 左側：タイプアイコンと基本情報 */}
-                      <div className="flex items-center space-x-3 flex-1">
-                        
-                        {/* 説明と日付 */}
+                  <Card key={application.id} className="hover:shadow-md transition-shadow">
+                    <CardContent className="p-4">
+                      {/* メインコンテンツ行 */}
+                      <div className="flex items-start justify-between mb-3">
+                        {/* 左側：基本情報 */}
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">{application.description}</p>
-                          <p className="text-xs text-gray-500">{application.date}</p>
+                          <div className="flex items-center gap-2 mb-1">
+                            {application.type === 'expense' ? (
+                              <FileText className="w-4 h-4 text-blue-600" />
+                            ) : (
+                              <DollarSign className="w-4 h-4 text-green-600" />
+                            )}
+                            <h3 className="font-medium text-base truncate">{application.description}</h3>
+                          </div>
+                          <p className="text-sm text-gray-600 mb-2">{application.date}</p>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xl font-bold text-gray-900">¥{application.amount.toLocaleString()}</span>
+                            {getStatusBadge(application.status)}
+                          </div>
                         </div>
                         
-                        {/* 金額 */}
-                        <div className="text-right">
-                          <span className="font-semibold text-sm">¥{application.amount.toLocaleString()}</span>
-                        </div>
-                        
-                        {/* ステータス */}
-                        <div className="flex-shrink-0">
-                          {getStatusBadge(application.status)}
-                        </div>
-                        
-                        {/* アクションボタン */}
-                        <div className="flex items-center space-x-1 flex-shrink-0">
-                          {application.status === 'pending' && (
-                            <>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleEditApplication(application.id, application.type)}
-                                className="h-7 w-7 p-0 text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50 border-yellow-200"
-                                title="編集"
-                              >
-                          <span>編集</span>
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleDeleteApplication(application.id, application.type)}
-                                className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
-                                title="削除"
-                              >
-                          <span>削除</span>
-                              </Button>
-                            </>
-                          )}
-                        </div>
+                        {/* 右側：アクションボタン */}
+                        {application.status === 'pending' && (
+                          <div className="flex gap-2 ml-4">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEditApplication(application.id, application.type)}
+                              className="h-9 px-3 text-blue-600 hover:text-white hover:bg-blue-600 border-blue-200 flex items-center gap-1"
+                            >
+                              <Edit className="w-4 h-4" />
+                              編集
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDeleteApplication(application.id, application.type)}
+                              className="h-9 px-3 text-red-600 hover:text-white hover:bg-red-600 border-red-200 flex items-center gap-1"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              削除
+                            </Button>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                    
-                    {/* 詳細情報（コンパクト） */}
-                    <div className="flex flex-wrap gap-1 mt-2">
-                        <span className="text-xs">
+                      
+                      {/* 詳細情報タグ */}
+                      <div className="flex flex-wrap gap-2">
+                        <Badge variant="secondary" className="text-xs">
                           {getDepartmentName(application.department_id)}
-                        </span>
-                      {application.event_name && (
-                        <span className="text-xs">
-                          {application.event_name}
-                        </span>
-                      )}
-                        <span className="text-xs">
+                        </Badge>
+                        {application.event_name && (
+                          <Badge variant="secondary" className="text-xs">
+                            イベント: {application.event_name}
+                          </Badge>
+                        )}
+                        <Badge variant="secondary" className="text-xs">
                           {getProjectName(application.project_id)}
-                        </span>
-                        <span className="text-xs">
+                        </Badge>
+                        <Badge variant="secondary" className="text-xs">
                           {getCategoryName(application.category_id)}
-                        </span>
-                        <span className="text-xs">
+                        </Badge>
+                        <Badge variant="outline" className="text-xs">
                           {getPaymentMethodLabel(application.payment_method)}
-                        </span>
-                      {/* 却下理由がある場合は表示 */}
-                      {application.status === 'rejected' && application.comments && (
-                        <span className="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded" title={application.comments}>
-                          却下理由: {application.comments.length > 20 ? application.comments.substring(0, 20) + '...' : application.comments}
-                        </span>
-                      )}
-                    </div>
-                  </div>
+                        </Badge>
+                        
+                        {/* 却下理由がある場合は表示 */}
+                        {application.status === 'rejected' && application.comments && (
+                          <Badge variant="destructive" className="text-xs max-w-xs" title={application.comments}>
+                            却下理由: {application.comments.length > 15 ? application.comments.substring(0, 15) + '...' : application.comments}
+                          </Badge>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
                 ))}
               </div>
             )}
