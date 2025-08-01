@@ -164,7 +164,10 @@ export default function DashboardPage() {
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold">ダッシュボード</h1>
-          <p className="text-gray-600">お疲れ様です、{user.name}さん</p>
+          <p className="text-gray-600">あなたの申請状況を確認できます</p>
+          <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg inline-block">
+            <p className="text-blue-800 font-medium">ユーザー名: {user.name}</p>
+          </div>
         </div>
 
         {/* 統計カード */}
