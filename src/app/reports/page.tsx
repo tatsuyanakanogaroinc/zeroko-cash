@@ -23,7 +23,8 @@ import {
   AlertTriangle,
   CheckCircle,
   Clock,
-  Target
+  Target,
+  Tag
 } from 'lucide-react';
 
 interface Summary {
@@ -63,15 +64,24 @@ interface Event {
   created_at: string;
 }
 
+interface Category {
+  id: string;
+  name: string;
+  budget: number;
+  created_at: string;
+}
+
 interface ReportData {
   expenses: any[];
   invoicePayments: any[];
   departments: Department[];
   projects: Project[];
   events: Event[];
+  categories: Category[];
   departmentExpenses: Record<string, number>;
   projectExpenses: Record<string, number>;
   eventExpenses: Record<string, number>;
+  categoryExpenses: Record<string, number>;
 }
 
 interface ExpenseDetail {
@@ -164,6 +174,75 @@ export default function ReportsPage() {
     };
   }) || [];
 
+  const categories: Summary[] = reportData?.categories?.map(c => {
+    const budget = typeof c.budget === 'number' && !isNaN(c.budget) ? c.budget : 0;
+    const expenses = reportData?.categoryExpenses[c.id] || 0;
+    const summary = calculateSummary(budget, expenses);
+    return {
+      id: c.id,
+      name: c.name,
+      budget: budget,
+      total_expenses: expenses,
+      remaining: budget - expenses,
+      ...summary
+    };
+  }) || [];
+
+  // Get real expenses for categories
+  const getExpensesForCategory = (categoryId: string): ExpenseDetail[] => {
+    if (!reportData) return [];
+    
+    const allExpenses = [...(reportData.expenses || []), ...(reportData.invoicePayments || [])];
+    
+    const filteredExpenses = allExpenses.filter(expense => expense.category_id === categoryId);
+    
+    return filteredExpenses.map(expense => ({
+      id: expense.id,
+      date: new Date(expense.created_at).toISOString().split('T')[0],
+      amount: expense.amount,
+      category: expense.categories?.name || '未分類',
+      user_name: expense.users?.name || '不明',
+      description: expense.description || expense.purpose || '説明なし',
+      status: expense.status || 'approved'
+    })).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  };
+
+  // Get monthly expense data for trends
+  const getMonthlyExpenses = (itemId: string, itemType: 'department' | 'project' | 'event' | 'category'): number[] => {
+    if (!reportData) return Array(6).fill(0);
+    
+    const allExpenses = [...(reportData.expenses || []), ...(reportData.invoicePayments || [])];
+    let filteredExpenses = [];
+    
+    if (itemType === 'department') {
+      filteredExpenses = allExpenses.filter(expense => 
+        (expense.users?.department_id === itemId) || (expense.department_id === itemId)
+      );
+    } else if (itemType === 'project') {
+      filteredExpenses = allExpenses.filter(expense => expense.project_id === itemId);
+    } else if (itemType === 'event') {
+      filteredExpenses = allExpenses.filter(expense => expense.event_id === itemId);
+    } else if (itemType === 'category') {
+      filteredExpenses = allExpenses.filter(expense => expense.category_id === itemId);
+    }
+    
+    // Group by month (last 6 months)
+    const monthlyTotals = Array(6).fill(0);
+    const currentDate = new Date();
+    
+    filteredExpenses.forEach(expense => {
+      const expenseDate = new Date(expense.created_at);
+      const monthDiff = (currentDate.getFullYear() - expenseDate.getFullYear()) * 12 + 
+                       currentDate.getMonth() - expenseDate.getMonth();
+      
+      if (monthDiff >= 0 && monthDiff < 6) {
+        monthlyTotals[5 - monthDiff] += expense.amount;
+      }
+    });
+    
+    return monthlyTotals;
+  };
+
   // Get real expenses for details from API data
   const getExpensesForItem = (itemId: string, itemType: 'department' | 'project' | 'event'): ExpenseDetail[] => {
     if (!reportData) return [];
@@ -219,6 +298,244 @@ export default function ReportsPage() {
     if (percentage >= 70) return 'bg-yellow-500';
     return 'bg-green-500';
   };
+
+  const CategoryCard = ({ item, icon: Icon, type }: { item: Summary; icon: any; type: string }) => (
+    <Card className="hover:shadow-lg transition-shadow duration-200">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Icon className="h-5 w-5 text-purple-600" />
+            <CardTitle className="text-lg font-semibold">{item.name}</CardTitle>
+          </div>
+          <Badge className={getStatusColor(item.status)}>
+            {item.status === 'healthy' ? '健全' : item.status === 'warning' ? '要注意' : '危険'}
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-3 gap-4 text-sm">
+          <div className="text-center p-3 bg-purple-50 rounded-lg">
+            <div className="text-purple-600 font-semibold">予算</div>
+            <div className="text-lg font-bold text-purple-800">¥{item.budget.toLocaleString()}</div>
+          </div>
+          <div className="text-center p-3 bg-orange-50 rounded-lg">
+            <div className="text-orange-600 font-semibold">使用額</div>
+            <div className="text-lg font-bold text-orange-800">¥{item.total_expenses.toLocaleString()}</div>
+          </div>
+          <div className="text-center p-3 bg-green-50 rounded-lg">
+            <div className="text-green-600 font-semibold">残額</div>
+            <div className="text-lg font-bold text-green-800">¥{item.remaining.toLocaleString()}</div>
+          </div>
+        </div>
+        
+        <div className="space-y-2">
+          <div className="flex justify-between text-sm">
+            <span>使用率</span>
+            <span className="font-semibold">{item.usage_percentage.toFixed(1)}%</span>
+          </div>
+          <Progress value={item.usage_percentage} className="h-2" />
+        </div>
+        
+        <div className="flex justify-end">
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm" className="text-xs">
+                <Eye className="h-3 w-3 mr-1" />
+                詳細を見る
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-none w-[95vw] max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="flex items-center space-x-2">
+                  <Icon className="h-5 w-5 text-purple-600" />
+                  <span>{item.name} - 勘定科目詳細</span>
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-8 mt-6">
+                {/* Summary */}
+                <div className="grid grid-cols-4 gap-4">
+                  <div className="text-center p-4 bg-purple-50 rounded-lg">
+                    <div className="text-purple-600 font-semibold text-sm">予算</div>
+                    <div className="text-2xl font-bold text-purple-800">¥{item.budget.toLocaleString()}</div>
+                  </div>
+                  <div className="text-center p-4 bg-orange-50 rounded-lg">
+                    <div className="text-orange-600 font-semibold text-sm">使用額</div>
+                    <div className="text-2xl font-bold text-orange-800">¥{item.total_expenses.toLocaleString()}</div>
+                  </div>
+                  <div className="text-center p-4 bg-green-50 rounded-lg">
+                    <div className="text-green-600 font-semibold text-sm">残額</div>
+                    <div className="text-2xl font-bold text-green-800">¥{item.remaining.toLocaleString()}</div>
+                  </div>
+                  <div className="text-center p-4 bg-gray-50 rounded-lg">
+                    <div className="text-gray-600 font-semibold text-sm">使用率</div>
+                    <div className="text-2xl font-bold text-gray-800">{item.usage_percentage.toFixed(1)}%</div>
+                  </div>
+                </div>
+                
+                {/* Progress Bar */}
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm font-medium">
+                    <span>予算使用状況</span>
+                    <span>{item.usage_percentage.toFixed(1)}%</span>
+                  </div>
+                  <Progress value={item.usage_percentage} className="h-3" />
+                </div>
+                
+                {/* User Analysis for Categories */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <Users className="h-5 w-5 text-green-600" />
+                      <span>ユーザー別支出</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {(() => {
+                        const expenses = getExpensesForCategory(item.id);
+                        const userTotals = expenses.reduce((acc, expense) => {
+                          if (!acc[expense.user_name]) {
+                            acc[expense.user_name] = { total: 0, count: 0 };
+                          }
+                          acc[expense.user_name].total += expense.amount;
+                          acc[expense.user_name].count += 1;
+                          return acc;
+                        }, {} as Record<string, { total: number; count: number }>);
+                        
+                        if (Object.keys(userTotals).length === 0) {
+                          return <div className="text-center text-gray-500 py-4">経費データがありません</div>;
+                        }
+                        
+                        return Object.entries(userTotals)
+                          .sort(([,a], [,b]) => b.total - a.total)
+                          .map(([userName, data]) => {
+                            const percentage = item.total_expenses > 0 ? (data.total / item.total_expenses) * 100 : 0;
+                            return (
+                              <div key={userName} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                <div className="flex items-center space-x-3">
+                                  <Avatar className="h-8 w-8">
+                                    <AvatarFallback className="bg-purple-100 text-purple-600 text-xs">
+                                      {userName.charAt(0)}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <div>
+                                    <div className="font-medium text-sm">{userName}</div>
+                                    <div className="text-xs text-gray-500">{data.count}件の申請</div>
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <div className="font-semibold">¥{data.total.toLocaleString()}</div>
+                                  <div className="text-xs text-gray-500">{Math.round(percentage)}%</div>
+                                </div>
+                              </div>
+                            );
+                          });
+                      })()}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Monthly Trend for Categories */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <TrendingUp className="h-5 w-5 text-purple-600" />
+                      <span>月別支出推移</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-6 gap-4">
+                      {(() => {
+                        const currentDate = new Date();
+                        const months = [];
+                        const monthlyAmounts = getMonthlyExpenses(item.id, 'category');
+                        const maxAmount = Math.max(...monthlyAmounts, 1);
+                        
+                        // Generate month labels (last 6 months)
+                        for (let i = 5; i >= 0; i--) {
+                          const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+                          months.push(`${date.getMonth() + 1}月`);
+                        }
+                        
+                        return months.map((month, index) => {
+                          const amount = monthlyAmounts[index];
+                          const percentage = maxAmount > 0 ? (amount / maxAmount) * 100 : 0;
+                          return (
+                            <div key={month} className="text-center">
+                              <div className="text-xs text-gray-600 mb-2">{month}</div>
+                              <div className="h-20 bg-gray-100 rounded relative flex items-end justify-center">
+                                <div 
+                                  className="bg-purple-500 rounded w-full transition-all duration-300" 
+                                  style={{ height: `${Math.max(percentage, 5)}%` }}
+                                ></div>
+                              </div>
+                              <div className="text-xs font-medium mt-2">¥{amount.toLocaleString()}</div>
+                            </div>
+                          );
+                        });
+                      })()}
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                {/* Detailed Expenses List for Categories */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <FileText className="h-5 w-5 text-gray-600" />
+                      <span>申請詳細一覧</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3 max-h-96 overflow-y-auto">
+                      {(() => {
+                        const expenses = getExpensesForCategory(item.id);
+                        
+                        if (expenses.length === 0) {
+                          return <div className="text-center text-gray-500 py-8">経費データがありません</div>;
+                        }
+                        
+                        return expenses.map(expense => (
+                          <div key={expense.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
+                            <div className="flex items-center space-x-4">
+                              <Avatar className="h-10 w-10">
+                                <AvatarFallback className="bg-purple-100 text-purple-600 text-sm">
+                                  {expense.user_name.charAt(0)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <div className="font-medium">{expense.user_name}</div>
+                                <div className="text-sm text-gray-600">{expense.description}</div>
+                                <div className="text-xs text-gray-500">{expense.date}</div>
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-3">
+                              <div className="text-right">
+                                <div className="text-lg font-semibold">¥{expense.amount.toLocaleString()}</div>
+                              </div>
+                              <Badge className={
+                                expense.status === 'approved' 
+                                  ? 'bg-green-100 text-green-800' 
+                                  : expense.status === 'pending'
+                                  ? 'bg-yellow-100 text-yellow-800'
+                                  : 'bg-red-100 text-red-800'
+                              }>
+                                {expense.status === 'approved' ? '承認済み' : expense.status === 'pending' ? '承認待ち' : '却下'}
+                              </Badge>
+                            </div>
+                          </div>
+                        ));
+                      })()}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </CardContent>
+    </Card>
+  );
 
   const SummaryCard = ({ item, icon: Icon, type }: { item: Summary; icon: any; type: string }) => (
     <Card className="hover:shadow-lg transition-shadow duration-200">
@@ -417,18 +734,30 @@ export default function ReportsPage() {
                   <CardContent>
                     <div className="grid grid-cols-6 gap-4">
                       {(() => {
-                        const months = ['1月', '2月', '3月', '4月', '5月', '6月'];
+                        const currentDate = new Date();
+                        const months = [];
+                        const itemType = departments.find(d => d.id === item.id) ? 'department' : 
+                                       projects.find(p => p.id === item.id) ? 'project' : 
+                                       categories.find(c => c.id === item.id) ? 'category' : 'event';
+                        const monthlyAmounts = getMonthlyExpenses(item.id, itemType);
+                        const maxAmount = Math.max(...monthlyAmounts, 1);
+                        
+                        // Generate month labels (last 6 months)
+                        for (let i = 5; i >= 0; i--) {
+                          const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+                          months.push(`${date.getMonth() + 1}月`);
+                        }
+                        
                         return months.map((month, index) => {
-                          const amount = Math.floor(Math.random() * (item.total_expenses / 3)) + (item.total_expenses / 6);
-                          const maxAmount = item.total_expenses / 2;
-                          const percentage = (amount / maxAmount) * 100;
+                          const amount = monthlyAmounts[index];
+                          const percentage = maxAmount > 0 ? (amount / maxAmount) * 100 : 0;
                           return (
                             <div key={month} className="text-center">
                               <div className="text-xs text-gray-600 mb-2">{month}</div>
                               <div className="h-20 bg-gray-100 rounded relative flex items-end justify-center">
                                 <div 
                                   className="bg-purple-500 rounded w-full transition-all duration-300" 
-                                  style={{ height: `${Math.max(percentage, 10)}%` }}
+                                  style={{ height: `${Math.max(percentage, 5)}%` }}
                                 ></div>
                               </div>
                               <div className="text-xs font-medium mt-2">¥{amount.toLocaleString()}</div>
@@ -563,7 +892,7 @@ export default function ReportsPage() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid grid-cols-4 w-full max-w-2xl">
+          <TabsList className="grid grid-cols-5 w-full max-w-3xl">
             <TabsTrigger value="overview" className="flex items-center space-x-2">
               <TrendingUp className="h-4 w-4" />
               <span>概要</span>
@@ -579,6 +908,10 @@ export default function ReportsPage() {
             <TabsTrigger value="projects" className="flex items-center space-x-2">
               <FolderOpen className="h-4 w-4" />
               <span>プロジェクト別</span>
+            </TabsTrigger>
+            <TabsTrigger value="categories" className="flex items-center space-x-2">
+              <Tag className="h-4 w-4" />
+              <span>勘定科目別</span>
             </TabsTrigger>
           </TabsList>
 
@@ -776,6 +1109,20 @@ export default function ReportsPage() {
                   item={project} 
                   icon={FolderOpen} 
                   type="project" 
+                />
+              ))}
+            </div>
+          </TabsContent>
+
+          {/* Categories Tab */}
+          <TabsContent value="categories">
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+              {categories.map(category => (
+                <CategoryCard 
+                  key={category.id} 
+                  item={category} 
+                  icon={Tag} 
+                  type="category" 
                 />
               ))}
             </div>

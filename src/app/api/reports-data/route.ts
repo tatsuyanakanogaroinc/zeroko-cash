@@ -15,7 +15,7 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
 export async function GET(request: Request) {
   try {
     // マスタデータを並行して取得
-    const [expensesResult, invoicesResult, departmentsResult, projectsResult, eventsResult] = await Promise.all([
+    const [expensesResult, invoicesResult, departmentsResult, projectsResult, eventsResult, categoriesResult] = await Promise.all([
       // すべての経費データを取得
       supabaseAdmin
         .from('expenses')
@@ -56,6 +56,12 @@ export async function GET(request: Request) {
       supabaseAdmin
         .from('events')
         .select('*')
+        .order('name'),
+      
+      // カテゴリデータを取得
+      supabaseAdmin
+        .from('categories')
+        .select('*')
         .order('name')
     ]);
 
@@ -64,6 +70,7 @@ export async function GET(request: Request) {
     const { data: departments, error: departmentsError } = departmentsResult;
     const { data: projects, error: projectsError } = projectsResult;
     const { data: events, error: eventsError } = eventsResult;
+    const { data: categories, error: categoriesError } = categoriesResult;
 
     if (expensesError) {
       console.error('Expenses fetch error:', expensesError);
@@ -80,11 +87,15 @@ export async function GET(request: Request) {
     if (eventsError) {
       console.error('Events fetch error:', eventsError);
     }
+    if (categoriesError) {
+      console.error('Categories fetch error:', categoriesError);
+    }
 
-    // 部門ごとの集計
+    // 各種集計
     const departmentExpenses: Record<string, number> = {};
     const projectExpenses: Record<string, number> = {};
     const eventExpenses: Record<string, number> = {};
+    const categoryExpenses: Record<string, number> = {};
 
     // 経費データを集計
     (expenses || []).forEach(expense => {
@@ -95,6 +106,10 @@ export async function GET(request: Request) {
       if (expense.event_id) {
         eventExpenses[expense.event_id] = 
           (eventExpenses[expense.event_id] || 0) + expense.amount;
+      }
+      if (expense.category_id) {
+        categoryExpenses[expense.category_id] = 
+          (categoryExpenses[expense.category_id] || 0) + expense.amount;
       }
     });
 
@@ -112,6 +127,10 @@ export async function GET(request: Request) {
         eventExpenses[invoice.event_id] = 
           (eventExpenses[invoice.event_id] || 0) + invoice.amount;
       }
+      if (invoice.category_id) {
+        categoryExpenses[invoice.category_id] = 
+          (categoryExpenses[invoice.category_id] || 0) + invoice.amount;
+      }
     });
 
     return NextResponse.json({
@@ -120,9 +139,11 @@ export async function GET(request: Request) {
       departments: departments || [],
       projects: projects || [],
       events: events || [],
+      categories: categories || [],
       departmentExpenses,
       projectExpenses,
-      eventExpenses
+      eventExpenses,
+      categoryExpenses
     });
   } catch (error) {
     console.error('API error:', error);
