@@ -79,8 +79,12 @@ export default function DashboardPage() {
           invoicePaymentService.getInvoicePayments().catch(() => [])
         ]);
 
+        // 自分の申請のみをフィルタリング
+        const userFilteredExpenses = expenseData.filter(expense => expense.user_id === user.name);
+        const userFilteredInvoices = invoiceData.filter(invoice => invoice.user_id === user.name);
+
         // 経費申請データの正規化
-        const normalizedExpenses = expenseData.map(expense => ({
+        const normalizedExpenses = userFilteredExpenses.map(expense => ({
           ...expense,
           type: 'expense',
           date: expense.expense_date,
@@ -91,7 +95,7 @@ export default function DashboardPage() {
         }));
         
         // 請求書払い申請データの正規化
-        const normalizedInvoices = invoiceData.map(invoice => ({
+        const normalizedInvoices = userFilteredInvoices.map(invoice => ({
           ...invoice,
           type: 'invoice',
           date: invoice.invoice_date,
