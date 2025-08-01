@@ -128,7 +128,7 @@ export default function NewExpensePage() {
         amount: data.amount,
         category_id: data.category_id,
         description: data.description,
-        payment_method: data.payment_method || 'credit_card',
+        payment_method: data.payment_method || 'personal_cash',
         status: 'pending',
         event_id: data.event_id === 'none' ? null : data.event_id,
       };

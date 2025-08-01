@@ -111,7 +111,7 @@ export default function DashboardPage() {
           ...expense,
           type: 'expense',
           date: expense.expense_date,
-          payment_method: expense.payment_method || 'credit_card',
+          payment_method: expense.payment_method || 'personal_cash',
           vendor_name: null,
           invoice_date: null,
           due_date: null
