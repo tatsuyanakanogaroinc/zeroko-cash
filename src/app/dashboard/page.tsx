@@ -66,7 +66,7 @@ export default function DashboardPage() {
     return category?.name || '不明';
   };
 
-  const getPaymentMethodLabel = (method: string) = {
+  const getPaymentMethodLabel = (method: string) => {
     switch (method) {
       case 'personal_cash':
         return '自費現金';
