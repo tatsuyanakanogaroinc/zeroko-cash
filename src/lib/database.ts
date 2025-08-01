@@ -282,7 +282,7 @@ export const projectService = {
     const { data, error } = await supabase
       .from('projects')
       .select('*')
-      .order('start_date', { ascending: false })
+      .order('created_at', { ascending: false })
     
     if (error) throw error
     return data || []

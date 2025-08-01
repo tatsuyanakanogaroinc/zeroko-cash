@@ -117,31 +117,19 @@ export interface Database {
         Row: {
           id: string
           name: string
-          description: string | null
-          budget: number
-          start_date: string
-          end_date: string | null
-          status: string
+          code: string
           created_at: string
         }
         Insert: {
           id?: string
           name: string
-          description?: string | null
-          budget?: number
-          start_date: string
-          end_date?: string | null
-          status?: string
+          code: string
           created_at?: string
         }
         Update: {
           id?: string
           name?: string
-          description?: string | null
-          budget?: number
-          start_date?: string
-          end_date?: string | null
-          status?: string
+          code?: string
           created_at?: string
         }
       }
