@@ -31,16 +31,6 @@ export default function DashboardPage() {
   
   const { user } = useAuth();
   
-  if (!user) {
-    return (
-      <MainLayout>
-        <div className="flex items-center justify-center h-64">
-          <div className="text-lg text-gray-600">ログイン情報を読み込み中...</div>
-        </div>
-      </MainLayout>
-    );
-  }
-  
   // マスターデータから名前を取得する関数
   const getDepartmentName = (departmentId: string | null) => {
     if (!departmentId) return '未定';
@@ -185,6 +175,16 @@ export default function DashboardPage() {
         return <Badge variant="outline">不明</Badge>;
     }
   };
+
+  if (!user) {
+    return (
+      <MainLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-lg text-gray-600">ログイン情報を読み込み中...</div>
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>
