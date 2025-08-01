@@ -30,6 +30,7 @@ export async function POST(request: NextRequest) {
       .from('projects')
       .insert({
         name,
+        code: name.replace(/\s+/g, '_').toLowerCase(), // Generate code from name
         description,
         budget: budget || 0,
         start_date,
