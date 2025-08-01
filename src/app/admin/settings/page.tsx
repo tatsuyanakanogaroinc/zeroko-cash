@@ -424,6 +424,7 @@ export default function SettingsPage() {
                     <EventForm 
                       onSubmit={handleAddEvent}
                       editingItem={editingItem}
+                      departments={departments}
                     />
                   </DialogContent>
                 </Dialog>
@@ -572,6 +573,7 @@ export default function SettingsPage() {
                     <ProjectForm 
                       onSubmit={handleAddProject}
                       editingItem={editingItem}
+                      departments={departments}
                     />
                   </DialogContent>
                 </Dialog>
@@ -666,18 +668,31 @@ function DepartmentForm({ onSubmit, editingItem }: { onSubmit: (data: any) => vo
 }
 
 // イベントフォーム
-function EventForm({ onSubmit, editingItem }: { onSubmit: (data: any) => void; editingItem: any }) {
+function EventForm({ onSubmit, editingItem, departments }: { onSubmit: (data: any) => void; editingItem: any; departments: any[] }) {
   const [formData, setFormData] = useState({
     name: editingItem?.name || '',
+    description: editingItem?.description || '',
+    budget: editingItem?.budget || 0,
     start_date: editingItem?.start_date || '',
     end_date: editingItem?.end_date || '',
-    budget: editingItem?.budget || 0,
-    description: editingItem?.description || '',
-    status: editingItem?.status || 'active'
+    status: editingItem?.status || 'active',
+    department_id: editingItem?.department_id || ''
   });
+  const [budgetError, setBudgetError] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // 部門の予算制限チェック
+    if (formData.department_id && formData.budget > 0) {
+      const selectedDepartment = departments.find(dept => dept.id === formData.department_id);
+      if (selectedDepartment && formData.budget > selectedDepartment.budget) {
+        setBudgetError(`予算が部門の上限（¥${selectedDepartment.budget.toLocaleString()}）を超えています`);
+        return;
+      }
+    }
+    
+    setBudgetError('');
     onSubmit(formData);
   };
 
@@ -715,6 +730,22 @@ function EventForm({ onSubmit, editingItem }: { onSubmit: (data: any) => void; e
         </div>
       </div>
       <div>
+        <Label htmlFor="event-department">部門</Label>
+        <Select value={formData.department_id} onValueChange={(value) => setFormData({ ...formData, department_id: value })}>
+          <SelectTrigger>
+            <SelectValue placeholder="部門を選択" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">部門なし</SelectItem>
+            {departments.map((dept) => (
+              <SelectItem key={dept.id} value={dept.id}>
+                {dept.name} (予算: ¥{dept.budget.toLocaleString()})
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div>
         <Label htmlFor="event-budget">予算</Label>
         <Input
           id="event-budget"
@@ -723,6 +754,9 @@ function EventForm({ onSubmit, editingItem }: { onSubmit: (data: any) => void; e
           onChange={(e) => setFormData({ ...formData, budget: parseInt(e.target.value) })}
           required
         />
+        {budgetError && (
+          <p className="text-sm text-red-600 mt-1">{budgetError}</p>
+        )}
       </div>
       <div>
         <Label htmlFor="event-description">説明</Label>
@@ -806,18 +840,31 @@ function CategoryForm({ onSubmit, editingItem }: { onSubmit: (data: any) => void
 }
 
 // プロジェクトフォーム
-function ProjectForm({ onSubmit, editingItem }: { onSubmit: (data: any) => void; editingItem: any }) {
+function ProjectForm({ onSubmit, editingItem, departments }: { onSubmit: (data: any) => void; editingItem: any; departments: any[] }) {
   const [formData, setFormData] = useState({
     name: editingItem?.name || '',
     description: editingItem?.description || '',
     budget: editingItem?.budget || 0,
     start_date: editingItem?.start_date || '',
     end_date: editingItem?.end_date || '',
-    status: editingItem?.status || 'active'
+    status: editingItem?.status || 'active',
+    department_id: editingItem?.department_id || ''
   });
+  const [budgetError, setBudgetError] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // 部門の予算制限チェック
+    if (formData.department_id && formData.budget > 0) {
+      const selectedDepartment = departments.find(dept => dept.id === formData.department_id);
+      if (selectedDepartment && formData.budget > selectedDepartment.budget) {
+        setBudgetError(`予算が部門の上限（¥${selectedDepartment.budget.toLocaleString()}）を超えています`);
+        return;
+      }
+    }
+    
+    setBudgetError('');
     onSubmit(formData);
   };
 
@@ -841,6 +888,22 @@ function ProjectForm({ onSubmit, editingItem }: { onSubmit: (data: any) => void;
         />
       </div>
       <div>
+        <Label htmlFor="project-department">部門</Label>
+        <Select value={formData.department_id} onValueChange={(value) => setFormData({ ...formData, department_id: value })}>
+          <SelectTrigger>
+            <SelectValue placeholder="部門を選択" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">部門なし</SelectItem>
+            {departments.map((dept) => (
+              <SelectItem key={dept.id} value={dept.id}>
+                {dept.name} (予算: ¥{dept.budget.toLocaleString()})
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div>
         <Label htmlFor="project-budget">予算</Label>
         <Input
           id="project-budget"
@@ -849,6 +912,9 @@ function ProjectForm({ onSubmit, editingItem }: { onSubmit: (data: any) => void;
           onChange={(e) => setFormData({ ...formData, budget: parseInt(e.target.value) || 0 })}
           required
         />
+        {budgetError && (
+          <p className="text-sm text-red-600 mt-1">{budgetError}</p>
+        )}
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
