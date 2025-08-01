@@ -14,7 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { expenseFormSchema, type ExpenseFormData } from '@/lib/validations';
 import { Upload, X, FileText } from 'lucide-react';
-import { useMasterDataStore } from '@/lib/store';
+import { useMasterDataStore, useExpenseStore } from '@/lib/store';
 import { getApprovers } from '@/lib/approvers';
 import { supabase } from '@/lib/auth';
 import { userService } from '@/lib/database';
@@ -41,6 +41,7 @@ export default function NewExpensePage() {
 
   // グローバルストアからデータを取得
   const { categories, getActiveProjects, departments } = useMasterDataStore();
+  const { addExpense } = useExpenseStore();
   const activeProjects = getActiveProjects();
 
   // イベントデータ（モック）
@@ -80,26 +81,25 @@ export default function NewExpensePage() {
     try {
       // ログインユーザー情報取得
       const userRes = await supabase.auth.getUser();
-      const userId = userRes.data.user?.id;
-      let department_id: string | undefined = undefined;
-      if (userId) {
-        const user = await userService.getUserById(userId);
-        department_id = user?.department_id ?? undefined;
-      }
-      // 承認者自動割当
-      const approvers = await getApprovers();
-      const approver = approvers.find(a =>
-        (a.department_id && department_id && a.department_id === department_id) ||
-        (a.event_id && data.event_id && a.event_id === data.event_id) ||
-        (a.project_id && data.project_id && a.project_id === data.project_id)
-      );
-      let approverId: string | undefined = undefined;
-      if (approver?.user_id) {
-        approverId = approver.user_id ?? undefined;
-      }
-      console.log('申請データ:', { ...data, approverId });
-      console.log('アップロードファイル:', uploadedFiles);
-      // TODO: 申請API呼び出し時にapproverIdも保存
+      
+      // Zustandストアに保存
+      addExpense({
+        id: Date.now().toString(), // 一意のIDを生成（例としてタイムスタンプを使用）
+        date: data.expense_date.toISOString().split('T')[0],
+        amount: data.amount,
+        category_id: data.category_id,
+        department_id: data.department_id,
+        project_id: data.project_id,
+        event_id: data.event_id,
+        user_name: userRes.data.user?.email || '不明',
+        description: data.description,
+        status: 'pending', // デフォルトのステータス
+        receipt_url: '', // アップロードされた領収書の処理が必要
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+      // 申請が正常に作成されました
+      console.log('申請データがZustandストアに保存されました');
       await new Promise(resolve => setTimeout(resolve, 1000));
       router.push('/expenses');
     } catch (error) {

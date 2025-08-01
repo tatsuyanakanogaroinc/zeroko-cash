@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Plus, Search, Filter, Download } from 'lucide-react';
-import { useMasterDataStore } from '@/lib/store';
+import { useMasterDataStore, useExpenseStore } from '@/lib/store';
 import { expenseService, userService, invoicePaymentService } from '@/lib/database';
 import type { Database } from '@/lib/supabase';
 
@@ -26,42 +26,32 @@ export default function ExpensesPage() {
   // グローバルストアからマスターデータを取得
   const { categories, departments, projects } = useMasterDataStore();
 
-  useEffect(() => {
-    const fetchData = async () => {
+  const { expenses } = useExpenseStore();
+
+  useEffect(() => {
+    const fetchData = async () => {
       try {
-        const [expenseData, invoiceData, userData] = await Promise.all([
-          expenseService.getExpenses(),
-          invoicePaymentService.getInvoicePayments().catch(() => []),
-          userService.getUsers()
-        ]);
+        // Zustandから経費データを取得
+        const expenseData = expenses || [];
         
         // 経費申請データの正規化
         const normalizedExpenses = expenseData.map(expense => ({
           ...expense,
           type: 'expense',
-          date: expense.expense_date,
-          payment_method: expense.payment_method || 'credit_card',
+          expense_date: expense.date, // dateフィールドをexpense_dateにマッピング
+          payment_method: 'credit_card', // デフォルト値
           vendor_name: null,
           invoice_date: null,
-          due_date: null
-        }));
-        
-        // 請求書払い申請データの正規化
-        const normalizedInvoices = invoiceData.map(invoice => ({
-          ...invoice,
-          type: 'invoice',
-          date: invoice.invoice_date,
-          payment_method: '請求書払い',
-          expense_date: invoice.invoice_date,
-          event_name: invoice.events?.name || null
+          due_date: null,
+          user_id: 'user1' // 仮のユーザーID
         }));
         
         // 統合してソート（作成日時の降順）
-        const combinedData = [...normalizedExpenses, ...normalizedInvoices]
+        const combinedData = [...normalizedExpenses]
           .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
         
         setAllApplications(combinedData);
-        setUsers(userData);
+        setUsers([{ id: 'user1', name: '経費申請者', email: 'user@example.com' }]); // 仮のユーザーデータ
       } catch (error) {
         console.error('データの取得に失敗しました:', error);
       } finally {
@@ -70,7 +60,7 @@ export default function ExpensesPage() {
     };
     
     fetchData();
-  }, []);
+  }, [expenses]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
