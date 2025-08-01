@@ -270,12 +270,12 @@ export default function DashboardPage() {
                   <div key={application.id} className="border rounded-lg p-4">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center space-x-4">
-                      {application.type === 'expense' ? ( 
-                        <DollarSign className="h-5 w-5 text-green-500" />
-                      ) : (
-                        <FileText className="h-5 w-5 text-blue-500" />
-                      )}
-                      <div>
+                        {application.type === 'expense' ? ( 
+                          <DollarSign className="h-5 w-5 text-green-500" />
+                        ) : (
+                          <FileText className="h-5 w-5 text-blue-500" />
+                        )}
+                        <div>
                         <p className="font-medium">{application.description}</p>
                         <p className="text-sm text-gray-500">{application.date}</p>
                         <div className="flex gap-2 mt-2 flex-wrap">
@@ -296,6 +296,7 @@ export default function DashboardPage() {
                           <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
                             支払方法: {getPaymentMethodLabel(application.payment_method)}
                           </span>
+                        </div>
                         </div>
                       </div>
                     </div>
