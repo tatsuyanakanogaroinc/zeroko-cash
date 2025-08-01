@@ -200,14 +200,28 @@ export default function SettingsPage() {
     }
   };
 
-  const handleAddCategory = (data: any) => {
-    const newCategory = {
-      ...data,
-      id: (categories.length + 1).toString(),
-      created_at: new Date().toISOString().split('T')[0]
-    };
-    addCategory(newCategory);
-    setIsAddDialogOpen(false);
+  const handleAddCategory = async (data: any) => {
+    try {
+      const response = await fetch('/api/categories', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+      
+      if (!response.ok) {
+        throw new Error('勘定科目の追加に失敗しました');
+      }
+      
+      const newCategory = await response.json();
+      addCategory(newCategory);
+      setIsAddDialogOpen(false);
+      toast.success('勘定科目を追加しました');
+    } catch (error) {
+      console.error('勘定科目追加エラー:', error);
+      toast.error('勘定科目の追加に失敗しました');
+    }
   };
 
   const handleEditItem = (item: any, type: 'department' | 'event' | 'category') => {
@@ -219,7 +233,14 @@ export default function SettingsPage() {
   const handleDeleteItem = async (id: string, type: 'department' | 'event' | 'category') => {
     if (type === 'department') {
       try {
-        await departmentService.deleteDepartment(id);
+        const response = await fetch(`/api/departments?id=${id}`, {
+          method: 'DELETE',
+        });
+        
+        if (!response.ok) {
+          throw new Error('部門の削除に失敗しました');
+        }
+        
         setDepartments(departments.filter(dept => dept.id !== id));
         toast.success('部門を削除しました');
       } catch (error) {
@@ -228,7 +249,14 @@ export default function SettingsPage() {
       }
     } else if (type === 'event') {
       try {
-        await eventService.deleteEvent(id);
+        const response = await fetch(`/api/events?id=${id}`, {
+          method: 'DELETE',
+        });
+        
+        if (!response.ok) {
+          throw new Error('イベントの削除に失敗しました');
+        }
+        
         setEvents(events.filter(event => event.id !== id));
         toast.success('イベントを削除しました');
       } catch (error) {
@@ -236,7 +264,21 @@ export default function SettingsPage() {
         toast.error('イベントの削除に失敗しました');
       }
     } else if (type === 'category') {
-      deleteCategory(id);
+      try {
+        const response = await fetch(`/api/categories?id=${id}`, {
+          method: 'DELETE',
+        });
+        
+        if (!response.ok) {
+          throw new Error('勘定科目の削除に失敗しました');
+        }
+        
+        deleteCategory(id);
+        toast.success('勘定科目を削除しました');
+      } catch (error) {
+        console.error('勘定科目削除エラー:', error);
+        toast.error('勘定科目の削除に失敗しました');
+      }
     }
   };
 
