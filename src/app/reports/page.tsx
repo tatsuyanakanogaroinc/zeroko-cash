@@ -27,7 +27,7 @@ export default function ReportsPage() {
   const [departments, setDepartments] = useState<Summary[]>([]);
   const [events, setEvents] = useState<Summary[]>([]);
   const [projects, setProjects] = useState<Summary[]>([]);
-  const [activeTab, setActiveTab] = useState<'departments' | 'events' | 'projects'>('departments');
+  const [activeTab, setActiveTab] = useState<string>('departments');
 
   useEffect(() => {
     const fetchData = async () => {

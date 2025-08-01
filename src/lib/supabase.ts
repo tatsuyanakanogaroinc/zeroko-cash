@@ -45,18 +45,21 @@ export interface Database {
         Row: {
           id: string
           name: string
+          manager_id: string
           budget: number
           created_at: string
         }
         Insert: {
           id?: string
           name: string
+          manager_id: string
           budget?: number
           created_at?: string
         }
         Update: {
           id?: string
           name?: string
+          manager_id?: string
           budget?: number
           created_at?: string
         }
@@ -118,18 +121,27 @@ export interface Database {
           id: string
           name: string
           code: string
+          department_id: string
+          budget: number
+          status: 'active' | 'completed' | 'suspended'
           created_at: string
         }
         Insert: {
           id?: string
           name: string
           code: string
+          department_id: string
+          budget?: number
+          status?: 'active' | 'completed' | 'suspended'
           created_at?: string
         }
         Update: {
           id?: string
           name?: string
           code?: string
+          department_id?: string
+          budget?: number
+          status?: 'active' | 'completed' | 'suspended'
           created_at?: string
         }
       }
