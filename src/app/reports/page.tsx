@@ -222,7 +222,7 @@ export default function ReportsPage() {
                 詳細を見る
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-none w-[95vw] max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className="flex items-center space-x-2">
                   <Icon className="h-5 w-5 text-blue-600" />
@@ -340,7 +340,7 @@ export default function ReportsPage() {
                                   </div>
                                   <div className="text-right">
                                     <div className="font-semibold">¥{data.total.toLocaleString()}</div>
-                                    <div className="text-xs text-gray-500">{percentage.toFixed(1)}%</div>
+                                    <div className="text-xs text-gray-500">{Math.round(percentage)}%</div>
                                   </div>
                                 </div>
                               );
