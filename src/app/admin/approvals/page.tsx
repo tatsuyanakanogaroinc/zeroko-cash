@@ -13,7 +13,7 @@ import { CheckCircle, XCircle, Clock, Eye } from 'lucide-react';
 import { useMasterDataStore } from '@/lib/store';
 import { getApprovers } from '@/lib/approvers';
 import { ApproverSetting } from '@/lib/types';
-import { userService } from '@/lib/database';
+import { userService, expenseService, invoicePaymentService } from '@/lib/database';
 import { supabase } from '@/lib/auth';
 
 interface ApprovalRequest {
@@ -33,43 +33,9 @@ interface ApprovalRequest {
 }
 
 export default function ApprovalsPage() {
-  const [approvalRequests, setApprovalRequests] = useState<ApprovalRequest[]>([
-    {
-      id: '1',
-      expense_id: '1',
-      user_name: '田中太郎',
-      description: '交通費',
-      amount: 2500,
-      category_id: '1',
-      event_name: '東京展示会2024',
-      date: '2024-01-15',
-      status: 'pending',
-    },
-    {
-      id: '2',
-      expense_id: '2',
-      user_name: '佐藤花子',
-      description: '会議費',
-      amount: 8000,
-      category_id: '2',
-      project_id: '1',
-      event_name: '東京展示会2024',
-      date: '2024-01-14',
-      status: 'pending',
-    },
-    {
-      id: '3',
-      expense_id: '3',
-      user_name: '鈴木一郎',
-      description: '書籍代',
-      amount: 3500,
-      category_id: '3',
-      date: '2024-01-13',
-      status: 'pending',
-    },
-  ]);
+  const [allApplications, setAllApplications] = useState<any[]>([]);
 
-  const [selectedRequest, setSelectedRequest] = useState<ApprovalRequest | null>(null);
+  const [selectedRequest, setSelectedRequest] = useState<any | null>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [isApprovalDialogOpen, setIsApprovalDialogOpen] = useState(false);
   const [comments, setComments] = useState('');
@@ -82,6 +48,48 @@ export default function ApprovalsPage() {
   useEffect(() => {
     getApprovers().then(setApprovers).catch(console.error);
     userService.getUsers().then(setUsers).catch(console.error);
+
+    // 統合データの取得
+    const fetchData = async () => {
+      try {
+        const [expenseData, invoiceData] = await Promise.all([
+          expenseService.getExpenses(),
+          invoicePaymentService.getInvoicePayments().catch(() => [])
+        ]);
+
+        // 経費申請データの正規化
+        const normalizedExpenses = expenseData.map(expense => ({
+          ...expense,
+          type: 'expense',
+          date: expense.expense_date,
+          payment_method: expense.payment_method || 'credit_card',
+          vendor_name: null,
+          invoice_date: null,
+          due_date: null
+        }));
+
+        // 請求書払い申請データの正規化
+        const normalizedInvoices = invoiceData.map(invoice => ({
+          ...invoice,
+          type: 'invoice',
+          date: invoice.invoice_date,
+          payment_method: '請求書払い',
+          expense_date: invoice.invoice_date,
+          event_name: invoice.events?.name || null
+        }));
+
+        // 統合してソート（作成日時の降順）
+        const combinedData = [...normalizedExpenses, ...normalizedInvoices]
+          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+        setAllApplications(combinedData);
+      } catch (error) {
+        console.error('データの取得に失敗しました:', error);
+      }
+    };
+
+    fetchData();
+
     // Supabase Authから現在のユーザーIDを取得
     const user = supabase.auth.getUser().then(res => setCurrentUserId(res.data.user?.id || null));
   }, []);
@@ -111,7 +119,7 @@ export default function ApprovalsPage() {
   };
 
   const handleApprove = (requestId: string) => {
-    setApprovalRequests(prev => 
+    setAllApplications(prev => 
       prev.map(req => 
         req.id === requestId 
           ? { ...req, status: 'approved' as const, comments }
@@ -123,7 +131,7 @@ export default function ApprovalsPage() {
   };
 
   const handleReject = (requestId: string) => {
-    setApprovalRequests(prev => 
+    setAllApplications(prev => 
       prev.map(req => 
         req.id === requestId 
           ? { ...req, status: 'rejected' as const, comments }
@@ -135,7 +143,14 @@ export default function ApprovalsPage() {
   };
 
   // 承認者名を取得する関数
-  const getApproverName = (request: ApprovalRequest) => {
+  // ユーザー名を取得する関数
+  const getUserName = (userId: string) => {
+    if (!userId) return '不明';
+    const user = users.find(u => u.id === userId);
+    return user?.name || user?.email || '不明';
+  };
+
+  const getApproverName = (request: any) => {
     const approver =
       approvers.find(a =>
         (a.department_id && request.department_id && a.department_id === request.department_id) ||
@@ -147,14 +162,14 @@ export default function ApprovalsPage() {
     return user ? user.name : approver.user_id;
   };
 
-  const pendingRequests = approvalRequests.filter(req => req.status === 'pending');
+  const pendingRequests = allApplications.filter(req => req.status === 'pending');
 
   return (
     <MainLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold">承認管理</h1>
-          <p className="text-gray-600">承認待ちの申請を管理します</p>
+          <h1 className="text-3xl font-bold">申請管理</h1>
+          <p className="text-gray-600">経費申請と請求書払い申請の承認を管理します</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -178,7 +193,7 @@ export default function ApprovalsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {approvalRequests.filter(req => req.status === 'approved').length}
+                {allApplications.filter(req => req.status === 'approved').length}
               </div>
               <p className="text-xs text-muted-foreground">
                 件が承認されています
@@ -193,7 +208,7 @@ export default function ApprovalsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {approvalRequests.filter(req => req.status === 'rejected').length}
+                {allApplications.filter(req => req.status === 'rejected').length}
               </div>
               <p className="text-xs text-muted-foreground">
                 件が却下されています
@@ -234,7 +249,7 @@ export default function ApprovalsPage() {
                   const isMyApproval = approver?.user_id === currentUserId;
                   return (
                     <TableRow key={request.id}>
-                      <TableCell className="font-medium">{request.user_name}</TableCell>
+                      <TableCell className="font-medium">{getUserName(request.user_id)}</TableCell>
                       <TableCell>{request.description}</TableCell>
                       <TableCell>
                         {request.event_name ? (
@@ -309,7 +324,7 @@ export default function ApprovalsPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label className="text-sm font-medium">申請者</Label>
-                    <p>{selectedRequest.user_name}</p>
+                    <p>{getUserName(selectedRequest.user_id)}</p>
                   </div>
                   <div>
                     <Label className="text-sm font-medium">申請日</Label>
