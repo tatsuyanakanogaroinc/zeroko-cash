@@ -16,7 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Upload, X, FileText } from 'lucide-react';
 import { useMasterDataStore } from '@/lib/store';
 import { invoicePaymentService } from '@/lib/database';
-import { supabase } from '@/lib/auth';
+import { supabase } from '@/lib/supabase';
 import { userService } from '@/lib/database';
 
 // バリデーションスキーマ

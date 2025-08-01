@@ -16,7 +16,7 @@ import { expenseFormSchema, type ExpenseFormData } from '@/lib/validations';
 import { Upload, X, FileText } from 'lucide-react';
 import { useMasterDataStore, useExpenseStore } from '@/lib/store';
 import { getApprovers } from '@/lib/approvers';
-import { supabase } from '@/lib/auth';
+import { supabase } from '@/lib/supabase';
 import { userService } from '@/lib/database';
 
 export default function NewExpensePage() {
@@ -81,26 +81,33 @@ export default function NewExpensePage() {
     try {
       // ログインユーザー情報取得
       const userRes = await supabase.auth.getUser();
+      if (!userRes.data.user) {
+        throw new Error('ユーザー情報が取得できません');
+      }
       
-      // Zustandストアに保存
-      addExpense({
-        id: Date.now().toString(), // 一意のIDを生成（例としてタイムスタンプを使用）
-        date: data.expense_date.toISOString().split('T')[0],
+      // Supabaseに経費データを保存
+      const expenseData = {
+        user_id: userRes.data.user.id,
+        expense_date: data.expense_date.toISOString().split('T')[0],
         amount: data.amount,
         category_id: data.category_id,
-        department_id: data.department_id,
-        project_id: data.project_id,
-        event_id: data.event_id,
-        user_name: userRes.data.user?.email || '不明',
         description: data.description,
-        status: 'pending', // デフォルトのステータス
-        receipt_url: '', // アップロードされた領収書の処理が必要
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      });
-      // 申請が正常に作成されました
-      console.log('申請データがZustandストアに保存されました');
-      await new Promise(resolve => setTimeout(resolve, 1000));
+        payment_method: data.payment_method || 'credit_card',
+        status: 'pending',
+        event_id: data.event_id === 'none' ? null : data.event_id,
+      };
+
+      const { data: newExpense, error } = await supabase
+        .from('expenses')
+        .insert(expenseData)
+        .select()
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      console.log('経費申請がSupabaseに保存されました:', newExpense);
       
       // 申請完了ページに遷移（申請内容を含む）
       const params = new URLSearchParams({
@@ -111,6 +118,7 @@ export default function NewExpensePage() {
       router.push(`/application-success?${params.toString()}`);
     } catch (error) {
       console.error('申請エラー:', error);
+      alert('申請の送信に失敗しました。もう一度お試しください。');
     } finally {
       setIsLoading(false);
     }
