@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,11 +24,12 @@ interface Department {
 }
 
 export default function ProfilePage() {
-  const { user, login } = useAuth();
+  const { user, loading, login } = useAuth();
+  const router = useRouter();
   const [departments, setDepartments] = useState<Department[]>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(false);
   
   const [profileData, setProfileData] = useState({
     name: user?.name || '',
@@ -102,7 +104,7 @@ export default function ProfilePage() {
     e.preventDefault();
     if (!user) return;
 
-    setLoading(true);
+    setProfileLoading(true);
     try {
       await userService.updateUser(user.id, {
         name: profileData.name,
@@ -119,7 +121,7 @@ export default function ProfilePage() {
       console.error('プロフィール更新エラー:', error);
       toast.error('プロフィールの更新に失敗しました');
     } finally {
-      setLoading(false);
+      setProfileLoading(false);
     }
   };
 
@@ -136,7 +138,7 @@ export default function ProfilePage() {
       return;
     }
 
-    setLoading(true);
+    setProfileLoading(true);
     try {
       // 実際の実装では、パスワード変更のAPIを呼び出す
       // ここではデモとして成功メッセージを表示
@@ -151,7 +153,7 @@ export default function ProfilePage() {
       console.error('パスワード変更エラー:', error);
       toast.error('パスワードの変更に失敗しました');
     } finally {
-      setLoading(false);
+      setProfileLoading(false);
     }
   };
 
@@ -165,6 +167,12 @@ export default function ProfilePage() {
     }
     setIsEditing(false);
   };
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push("/login");
+    }
+  }, [loading, user, router]);
 
   if (!user) {
     return (
@@ -255,9 +263,9 @@ export default function ProfilePage() {
                           </select>
                         </div>
                         <div className="flex space-x-2">
-                          <Button type="submit" disabled={loading}>
+                          <Button type="submit" disabled={profileLoading}>
                             <Save className="mr-2 h-4 w-4" />
-                            {loading ? '保存中...' : '保存'}
+                            {profileLoading ? '保存中...' : '保存'}
                           </Button>
                           <Button type="button" variant="outline" onClick={handleCancel}>
                             キャンセル
@@ -362,8 +370,8 @@ export default function ProfilePage() {
                         <Button type="button" variant="outline" onClick={() => setIsChangePasswordOpen(false)}>
                           キャンセル
                         </Button>
-                        <Button type="submit" disabled={loading}>
-                          {loading ? '変更中...' : '変更する'}
+                        <Button type="submit" disabled={profileLoading}>
+                          {profileLoading ? '変更中...' : '変更する'}
                         </Button>
                       </div>
                     </form>

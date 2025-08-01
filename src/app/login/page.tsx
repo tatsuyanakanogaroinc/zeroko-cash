@@ -1,30 +1,49 @@
 "use client";
-import { useState } from "react";
-import { supabase } from "@/lib/auth";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { user, login, loading: authLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // 既にログインしている場合はダッシュボードにリダイレクト
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.push("/dashboard");
+    }
+  }, [authLoading, user, router]);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    setLoading(false);
-    if (error) {
-      setError(error.message);
-    } else {
+    
+    try {
+      await login(email);
+      toast.success("ログインしました");
       router.push("/dashboard");
+    } catch (error) {
+      console.error("ログインエラー:", error);
+      setError("ログインに失敗しました。メールアドレスを確認してください。");
+    } finally {
+      setLoading(false);
     }
   };
+
+  // ローディング中の表示
+  if (authLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <p className="text-gray-500">読み込み中...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50">
