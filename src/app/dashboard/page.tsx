@@ -131,6 +131,8 @@ export default function DashboardPage() {
         const combinedData = [...normalizedExpenses, ...normalizedInvoices]
           .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
+        console.log('統合データ:', combinedData.length, '件');
+        console.log('統合データサンプル:', combinedData.slice(0, 2));
         setAllApplications(combinedData);
       } catch (error) {
         console.error('データの取得に失敗しました:', error);
@@ -253,11 +255,21 @@ export default function DashboardPage() {
             </Link>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {recentApplications.map(application => (
-                <div key={application.id} className="border rounded-lg p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center space-x-4">
+            {loading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="text-gray-600">データを読み込み中...</div>
+              </div>
+            ) : recentApplications.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <p>申請データがありません</p>
+                <p className="text-sm mt-2">新しい申請を作成してください</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {recentApplications.map(application => (
+                  <div key={application.id} className="border rounded-lg p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center space-x-4">
                       {application.type === 'expense' ? ( 
                         <DollarSign className="h-5 w-5 text-green-500" />
                       ) : (
@@ -294,51 +306,9 @@ export default function DashboardPage() {
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* 承認済み申請詳細 */}
-        <Card>
-          <CardHeader>
-            <CardTitle>承認済みの申請詳細</CardTitle>
-            <CardDescription>
-              承認済みの申請の状況です
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {allApplications.filter(e => e.status === 'approved').slice(0, 5).map(application => (
-                <div key={application.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center space-x-4">
-                    <CheckCircle className="h-5 w-5 text-green-500" />
-                    <div>
-                      <p className="font-medium">{application.description}</p>
-                      <p className="text-sm text-gray-500">{application.date}</p>
-                      <div className="flex gap-4 mt-1">
-                        <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-部門: {getDepartmentName(application.department_id)}
-                        </span>
-                        {application.event_name && (
-                          <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded">
-イベント: {application.event_name}
-                          </span>
-                        )}
-                        <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
-プロジェクト: {getProjectName(application.project_id)}
-                        </span>
-                        <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded">
-{application.type === 'expense' ? '経費申請' : '請求書払い'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  <span className="font-medium">¥{application.amount.toLocaleString()}</span>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
