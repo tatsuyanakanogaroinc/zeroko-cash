@@ -163,10 +163,10 @@ export default function NewExpensePage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="category_id">カテゴリ *</Label>
+                  <Label htmlFor="category_id">勘定科目 *</Label>
                   <Select onValueChange={(value) => setValue('category_id', value)}>
                     <SelectTrigger>
-                      <SelectValue placeholder="カテゴリを選択" />
+                      <SelectValue placeholder="勘定科目を選択" />
                     </SelectTrigger>
                     <SelectContent>
                       {categories.map((category) => (
@@ -182,6 +182,27 @@ export default function NewExpensePage() {
                 </div>
 
                 <div className="space-y-2">
+                  <Label htmlFor="department_id">部門 *</Label>
+                  <Select onValueChange={(value) => setValue('department_id', value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="部門を選択" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {departments.map((department) => (
+                        <SelectItem key={department.id} value={department.id}>
+                          {department.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.department_id && (
+                    <p className="text-sm text-red-500">{errors.department_id.message}</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
                   <Label htmlFor="project_id">プロジェクト</Label>
                   <Select onValueChange={(value) => setValue('project_id', value)}>
                     <SelectTrigger>
@@ -196,25 +217,6 @@ export default function NewExpensePage() {
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="event_id">イベント</Label>
-                  <Select onValueChange={(value) => setValue('event_id', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="イベントを選択（任意）" />
-                    </SelectTrigger>
-                                       <SelectContent>
-                     <SelectItem value="none">イベントなし</SelectItem>
-                     {events.map((event) => (
-                       <SelectItem key={event.id} value={event.id}>
-                         {event.name} ({event.start_date} - {event.end_date})
-                       </SelectItem>
-                     ))}
-                   </SelectContent>
-                  </Select>
-                </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="payment_method">支払方法 *</Label>
@@ -223,9 +225,7 @@ export default function NewExpensePage() {
                       <SelectValue placeholder="支払方法を選択" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="cash">現金</SelectItem>
                       <SelectItem value="credit_card">クレジットカード</SelectItem>
-                      <SelectItem value="bank_transfer">銀行振込</SelectItem>
                     </SelectContent>
                   </Select>
                   {errors.payment_method && (
@@ -235,20 +235,20 @@ export default function NewExpensePage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="payment_method">支払方法 *</Label>
-                <Select onValueChange={(value) => setValue('payment_method', value as any)}>
+                <Label htmlFor="event_id">イベント</Label>
+                <Select onValueChange={(value) => setValue('event_id', value)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="支払方法を選択" />
+                    <SelectValue placeholder="イベントを選択（任意）" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="cash">現金</SelectItem>
-                    <SelectItem value="credit_card">クレジットカード</SelectItem>
-                    <SelectItem value="bank_transfer">銀行振込</SelectItem>
+                    <SelectItem value="none">イベントなし</SelectItem>
+                    {events.map((event) => (
+                      <SelectItem key={event.id} value={event.id}>
+                        {event.name} ({event.start_date} - {event.end_date})
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
-                {errors.payment_method && (
-                  <p className="text-sm text-red-500">{errors.payment_method.message}</p>
-                )}
               </div>
 
               <div className="space-y-2">

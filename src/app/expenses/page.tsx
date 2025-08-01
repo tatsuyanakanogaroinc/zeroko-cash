@@ -145,10 +145,10 @@ export default function ExpensesPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="category-filter">カテゴリ</Label>
+                <Label htmlFor="category-filter">勘定科目</Label>
                 <Select value={categoryFilter} onValueChange={setCategoryFilter}>
                   <SelectTrigger>
-                    <SelectValue placeholder="カテゴリを選択" />
+                    <SelectValue placeholder="勘定科目を選択" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">すべて</SelectItem>
@@ -186,7 +186,7 @@ export default function ExpensesPage() {
                   <TableHead>申請日</TableHead>
                   <TableHead>説明</TableHead>
                   <TableHead>イベント</TableHead>
-                  <TableHead>カテゴリ</TableHead>
+                  <TableHead>勘定科目</TableHead>
                   <TableHead>金額</TableHead>
                   <TableHead>支払方法</TableHead>
                   <TableHead>ステータス</TableHead>
