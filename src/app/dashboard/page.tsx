@@ -15,16 +15,39 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { expenseService } from '@/lib/database';
+import { useMasterDataStore } from '@/lib/store';
 import type { Database } from '@/lib/supabase';
 
 export default function DashboardPage() {
   const [expenses, setExpenses] = useState<Database['public']['Tables']['expenses']['Row'][]>([]);
   const [loading, setLoading] = useState(true);
   
+  // マスターデータストアから取得
+  const { departments, projects } = useMasterDataStore();
+  
   // モックユーザーデータ
   const user = {
     name: 'テストユーザー',
     department: '開発部',
+  };
+  
+  // マスターデータから名前を取得する関数
+  const getDepartmentName = (departmentId: string | null) => {
+    if (!departmentId) return '未定';
+    const dept = departments.find(d => d.id === departmentId);
+    return dept?.name || '不明';
+  };
+  
+  const getProjectName = (projectId: string | null) => {
+    if (!projectId) return '未定';
+    const project = projects.find(p => p.id === projectId);
+    return project?.name || '不明';
+  };
+  
+  const getEventName = (eventId: string | null) => {
+    if (!eventId) return '未定';
+    // TODO: イベントマスターから取得（現在はIDを表示）
+    return eventId;
   };
 
   useEffect(() => {
@@ -84,7 +107,7 @@ export default function DashboardPage() {
         </div>
 
         {/* 統計カード */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">承認待ち</CardTitle>
@@ -123,42 +146,68 @@ export default function DashboardPage() {
               </p>
             </CardContent>
           </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">予算使用率</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.budgetUsed}%</div>
-              <Progress value={stats.budgetUsed} className="mt-2" />
-            </CardContent>
-          </Card>
         </div>
 
-        {/* 最近の申請 */}
+        {/* 承認待ちの申請 */}
         <Card>
           <CardHeader>
-            <CardTitle>最近の申請</CardTitle>
+            <CardTitle>承認待ちの申請</CardTitle>
             <CardDescription>
-              最近の経費申請の状況です
+              承認待ちの経費申請一覧です
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {recentExpenses.map((expense) => (
+              {expenses.filter(e => e.status === 'pending').map(expense => (
                 <div key={expense.id} className="flex items-center justify-between p-4 border rounded-lg">
                   <div className="flex items-center space-x-4">
-                    <FileText className="h-5 w-5 text-gray-400" />
+                    <Clock className="h-5 w-5 text-orange-500" />
                     <div>
                       <p className="font-medium">{expense.description}</p>
-                      <p className="text-sm text-gray-500">{expense.date}</p>
+                      <p className="text-sm text-gray-500">{expense.expense_date}</p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-4">
                     <span className="font-medium">¥{expense.amount.toLocaleString()}</span>
                     {getStatusBadge(expense.status)}
                   </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 承認済み申請詳細 */}
+        <Card>
+          <CardHeader>
+            <CardTitle>承認済みの申請詳細</CardTitle>
+            <CardDescription>
+              承認済みの経費申請の状況です
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {expenses.filter(e => e.status === 'approved').map(expense => (
+                <div key={expense.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex items-center space-x-4">
+                    <CheckCircle className="h-5 w-5 text-green-500" />
+                    <div>
+                      <p className="font-medium">{expense.description}</p>
+                      <p className="text-sm text-gray-500">{expense.expense_date}</p>
+                      <div className="flex gap-4 mt-1">
+                        <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+部門: {getDepartmentName(expense.department_id)}
+                        </span>
+                        <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded">
+イベント: {getEventName(expense.event_id)}
+                        </span>
+                        <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+プロジェクト: {getProjectName(expense.project_id)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <span className="font-medium">¥{expense.amount.toLocaleString()}</span>
                 </div>
               ))}
             </div>
