@@ -6,8 +6,9 @@ import { Button } from '@/components/ui/button';
 import { CheckCircle, Plus, BarChart3 } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 
-export default function ApplicationSuccessPage() {
+function ApplicationSuccessContent() {
   const searchParams = useSearchParams();
   const type = searchParams.get('type'); // 'expense' or 'invoice'
   const amount = searchParams.get('amount');
@@ -129,5 +130,31 @@ export default function ApplicationSuccessPage() {
         </Card>
       </div>
     </MainLayout>
+  );
+}
+
+// ローディングフォールバック
+function LoadingFallback() {
+  return (
+    <MainLayout>
+      <div className="space-y-6 max-w-2xl mx-auto">
+        <div className="text-center">
+          <div className="flex justify-center mb-4">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-green-500"></div>
+          </div>
+          <h1 className="text-3xl font-bold text-gray-700 mb-2">
+            申請情報を読み込み中...
+          </h1>
+        </div>
+      </div>
+    </MainLayout>
+  );
+}
+
+export default function ApplicationSuccessPage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <ApplicationSuccessContent />
+    </Suspense>
   );
 }
