@@ -55,7 +55,7 @@ export interface Expense {
   category_id: string;
   project_id?: string;
   description: string;
-  payment_method: 'cash' | 'credit_card' | 'bank_transfer';
+  payment_method: 'personal_cash' | 'personal_credit' | 'company_cash' | 'company_credit';
   status: 'draft' | 'pending' | 'approved' | 'rejected' | 'paid';
   created_at: string;
   updated_at: string;

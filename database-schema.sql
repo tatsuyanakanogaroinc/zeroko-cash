@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS expenses (
   amount INTEGER NOT NULL,
   description TEXT NOT NULL,
   expense_date DATE NOT NULL,
-  payment_method VARCHAR(20) NOT NULL CHECK (payment_method IN ('cash', 'credit_card', 'bank_transfer')),
+  payment_method VARCHAR(20) NOT NULL CHECK (payment_method IN ('personal_cash', 'personal_credit', 'company_cash', 'company_credit')),
   status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -124,10 +124,10 @@ ON CONFLICT (id) DO NOTHING;
 
 -- Insert sample expenses
 INSERT INTO expenses (id, user_id, category_id, event_id, amount, description, expense_date, payment_method, status) VALUES
-  ('550e8400-e29b-41d4-a716-446655440040', '550e8400-e29b-41d4-a716-446655440010', '550e8400-e29b-41d4-a716-446655440020', '550e8400-e29b-41d4-a716-446655440030', 2500, '東京展示会への交通費', '2024-01-15', 'cash', 'approved'),
-  ('550e8400-e29b-41d4-a716-446655440041', '550e8400-e29b-41d4-a716-446655440011', '550e8400-e29b-41d4-a716-446655440021', '550e8400-e29b-41d4-a716-446655440030', 8000, '東京展示会での会議費', '2024-01-14', 'credit_card', 'approved'),
-  ('550e8400-e29b-41d4-a716-446655440042', '550e8400-e29b-41d4-a716-446655440012', '550e8400-e29b-41d4-a716-446655440022', NULL, 3500, '業務書籍購入', '2024-01-13', 'cash', 'pending'),
-  ('550e8400-e29b-41d4-a716-446655440043', '550e8400-e29b-41d4-a716-446655440013', '550e8400-e29b-41d4-a716-446655440023', '550e8400-e29b-41d4-a716-446655440031', 12000, '大阪商談会での通信費', '2024-01-12', 'bank_transfer', 'approved')
+  ('550e8400-e29b-41d4-a716-446655440040', '550e8400-e29b-41d4-a716-446655440010', '550e8400-e29b-41d4-a716-446655440020', '550e8400-e29b-41d4-a716-446655440030', 2500, '東京展示会への交通費', '2024-01-15', 'personal_cash', 'approved'),
+  ('550e8400-e29b-41d4-a716-446655440041', '550e8400-e29b-41d4-a716-446655440011', '550e8400-e29b-41d4-a716-446655440021', '550e8400-e29b-41d4-a716-446655440030', 8000, '東京展示会での会議費', '2024-01-14', 'company_credit', 'approved'),
+  ('550e8400-e29b-41d4-a716-446655440042', '550e8400-e29b-41d4-a716-446655440012', '550e8400-e29b-41d4-a716-446655440022', NULL, 3500, '業務書籍購入', '2024-01-13', 'personal_cash', 'pending'),
+  ('550e8400-e29b-41d4-a716-446655440043', '550e8400-e29b-41d4-a716-446655440013', '550e8400-e29b-41d4-a716-446655440023', '550e8400-e29b-41d4-a716-446655440031', 12000, '大阪商談会での通信費', '2024-01-12', 'company_cash', 'approved')
 ON CONFLICT (id) DO NOTHING; 
 
 ---

@@ -96,6 +96,14 @@ export default function ExpensesPage() {
 
   const getPaymentMethodLabel = (method: string) => {
     switch (method) {
+      case 'personal_cash':
+        return '自費現金';
+      case 'personal_credit':
+        return '自費クレカ';
+      case 'company_cash':
+        return '会社現金';
+      case 'company_credit':
+        return '会社クレカ';
       case 'cash':
         return '現金';
       case 'credit_card':
