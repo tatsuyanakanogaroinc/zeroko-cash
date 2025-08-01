@@ -11,6 +11,20 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Download, BarChart3, PieChart, TrendingUp, Users, Calendar, Filter } from 'lucide-react';
 import { useMasterDataStore } from '@/lib/store';
+import { 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
+  PieChart as RechartsPieChart,
+  Pie,
+  Cell,
+  LineChart,
+  Line
+} from 'recharts';
 
 interface ExpenseData {
   id: string;
@@ -178,8 +192,16 @@ export default function ReportsPage() {
     { id: '6', name: '伊藤三郎', department: '経営管理' }
   ];
 
-  useEffect(() => {
-    setExpenseData(mockExpenseData);
+  useEffect(() => {
+    const activeProjects = projects.map(p => ({
+      ...p,
+      project_name: p.name
+    }));
+    const updatedExpenses = mockExpenseData.map(exp => ({
+      ...exp,
+      project_name: activeProjects.find(p => p.id === exp.project_id)?.name || '不明'
+    }));
+    setExpenseData(updatedExpenses);
     setEvents(mockEvents);
     setUsers(mockUsers);
   }, []);
@@ -287,6 +309,13 @@ export default function ReportsPage() {
   const userBreakdown = getUserBreakdown();
   const departmentBreakdown = getDepartmentBreakdown();
   const monthlyTrend = getMonthlyTrend();
+
+  // グラフ用データの準備
+  const categoryChartData = Object.entries(categoryBreakdown).map(([name, value]) => ({ name, value }));
+  const departmentChartData = Object.entries(departmentBreakdown).map(([name, value]) => ({ name, value }));
+  const monthlyChartData = Object.entries(monthlyTrend).map(([month, amount]) => ({ month, amount }));
+  
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
   return (
     <MainLayout>
@@ -447,48 +476,74 @@ export default function ReportsPage() {
             {/* カテゴリ別内訳 */}
             <Card>
               <CardHeader>
-                <CardTitle>カテゴリ別内訳</CardTitle>
-                <CardDescription>
-                  カテゴリごとの支出金額
-                </CardDescription>
+                <CardTitle>カテゴリ別支出</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {Object.entries(categoryBreakdown).map(([category, amount]) => (
-                    <div key={category} className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                        <span className="font-medium">{category}</span>
-                      </div>
-                      <div className="flex items-center space-x-4">
-                        <span className="text-sm text-gray-500">
-                          {Math.round((amount / getTotalAmount()) * 100)}%
-                        </span>
-                        <span className="font-medium">¥{amount.toLocaleString()}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <ResponsiveContainer width="100%" height={300}>
+                  <RechartsPieChart>
+                    <Pie 
+                      data={categoryChartData} 
+                      dataKey="value" 
+                      nameKey="name" 
+                      cx="50%" 
+                      cy="50%" 
+                      outerRadius={80} 
+                      fill="#8884d8"
+                      label
+                    >
+                      {categoryChartData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </RechartsPieChart>
+                </ResponsiveContainer>
               </CardContent>
             </Card>
 
-            {/* 月次推移 */}
+            {/* 部門別内訳 */}
             <Card>
               <CardHeader>
-                <CardTitle>月次推移</CardTitle>
-                <CardDescription>
-                  月別の支出推移
-                </CardDescription>
+                <CardTitle>部門別支出</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {Object.entries(monthlyTrend).map(([month, amount]) => (
-                    <div key={month} className="flex items-center justify-between">
-                      <span className="font-medium">{month}</span>
-                      <span className="font-medium">¥{amount.toLocaleString()}</span>
-                    </div>
-                  ))}
-                </div>
+                <ResponsiveContainer width="100%" height={300}>
+                  <RechartsPieChart>
+                    <Pie 
+                      data={departmentChartData} 
+                      dataKey="value" 
+                      nameKey="name" 
+                      cx="50%" 
+                      cy="50%" 
+                      outerRadius={80} 
+                      fill="#8884d8"
+                      label
+                    >
+                      {departmentChartData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </RechartsPieChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            {/* 月次支出推移 */}
+            <Card>
+              <CardHeader>
+                <CardTitle>月次支出推移</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={monthlyChartData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" />
+                    <YAxis />
+                    <Tooltip />
+                    <Line type="monotone" dataKey="amount" stroke="#8884d8" />
+                  </LineChart>
+                </ResponsiveContainer>
               </CardContent>
             </Card>
           </TabsContent>
@@ -622,6 +677,82 @@ export default function ReportsPage() {
                                 <div key={expense.id} className="flex items-center justify-between text-sm">
                                   <div className="flex items-center space-x-2">
                                     <span>{expense.event_name || 'イベントなし'}</span>
+                                    <span className="text-gray-500">-</span>
+                                    <span>{getCategoryName(expense.category_id)}</span>
+                                  </div>
+                                  <span className="font-medium">¥{expense.amount.toLocaleString()}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="projects" className="space-y-6">
+            {/* プロジェクト別分析 */}
+            <Card>
+              <CardHeader>
+                <CardTitle>プロジェクト別予算と支出</CardTitle>
+                <CardDescription>
+                  プロジェクトごとの予算、支出金額、残額
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  {projects.map(project => {
+                    const projectExpenses = expenseData.filter(expense => expense.project_id === project.id);
+                    const totalExpense = projectExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+                    const budgetUsage = (totalExpense / project.budget) * 100;
+                    const remaining = project.budget - totalExpense;
+                    const department = departments.find(d => d.id === project.department_id);
+                    
+                    return (
+                      <div key={project.id} className="border rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-4">
+                          <div>
+                            <h3 className="font-semibold text-lg">{project.name}</h3>
+                            <p className="text-sm text-gray-500">
+                              コード: {project.code} | 部門: {department?.name || '不明'}
+                            </p>
+                            <p className="text-sm text-gray-500">
+                              ステータス: {project.status === 'active' ? 'アクティブ' : project.status === 'completed' ? '完了' : '停止中'}
+                            </p>
+                          </div>
+                          <Badge className={budgetUsage > 100 ? 'bg-red-100 text-red-800' : budgetUsage > 80 ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}>
+                            {budgetUsage.toFixed(1)}%使用
+                          </Badge>
+                        </div>
+                        <div className="grid grid-cols-3 gap-4 text-sm mb-4">
+                          <div>
+                            <span className="text-gray-500">予算:</span>
+                            <span className="font-medium ml-2">¥{project.budget.toLocaleString()}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">支出:</span>
+                            <span className="font-medium ml-2">¥{totalExpense.toLocaleString()}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">残り:</span>
+                            <span className={`font-medium ml-2 ${remaining < 0 ? 'text-red-600' : 'text-green-600'}`}>¥{remaining.toLocaleString()}</span>
+                          </div>
+                        </div>
+                        {projectExpenses.length > 0 && (
+                          <div>
+                            <h4 className="font-medium mb-2">最近の申請 ({projectExpenses.length}件)</h4>
+                            <div className="space-y-2">
+                              {projectExpenses.slice(0, 3).map(expense => (
+                                <div key={expense.id} className="flex items-center justify-between text-sm">
+                                  <div className="flex items-center space-x-2">
+                                    <Avatar className="h-6 w-6">
+                                      <AvatarFallback>{expense.user_name.charAt(0)}</AvatarFallback>
+                                    </Avatar>
+                                    <span>{expense.user_name}</span>
                                     <span className="text-gray-500">-</span>
                                     <span>{getCategoryName(expense.category_id)}</span>
                                   </div>
