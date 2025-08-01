@@ -73,7 +73,7 @@ export interface Receipt {
 export interface Approval {
   id: string;
   expense_id: string;
-  approver_id: string;
+  manager_id: string; // approver_id -> manager_id
   status: 'pending' | 'approved' | 'rejected';
   comments?: string;
   approved_at?: string;

@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { userService } from '@/lib/database';
 import type { Database } from '@/lib/supabase';
+import type { UserRole } from '@/lib/permissions';
 
 type User = Database['public']['Tables']['users']['Row'];
 

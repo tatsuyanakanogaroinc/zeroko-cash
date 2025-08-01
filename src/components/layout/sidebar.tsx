@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
+import { shouldShowNavItem, type UserRole } from '@/lib/permissions';
 import { Button } from '@/components/ui/button';
 import {
   BarChart3,
@@ -20,66 +21,67 @@ interface MenuItem {
   title: string;
   href: string;
   icon: any;
-  adminOnly?: boolean;
+  permissionKey: keyof typeof import('@/lib/permissions').navigationPermissions;
 }
 
-const userMenuItems: MenuItem[] = [
+const menuItems: MenuItem[] = [
   {
     title: 'ダッシュボード',
     href: '/dashboard',
     icon: Home,
+    permissionKey: 'shouldShowDashboard',
   },
   {
     title: '経費申請',
     href: '/expenses/new',
     icon: Plus,
+    permissionKey: 'shouldShowExpenses',
   },
   {
     title: '請求書払い申請',
     href: '/invoice-payments/new',
     icon: Receipt,
+    permissionKey: 'shouldShowInvoicePayments',
   },
   {
     title: 'レポート',
     href: '/reports',
     icon: BarChart3,
+    permissionKey: 'shouldShowReports',
   },
-  {
-    title: 'マイページ',
-    href: '/profile',
-    icon: UserCircle,
-  },
-];
-
-const adminMenuItems: MenuItem[] = [
   {
     title: '申請管理',
     href: '/admin/approvals',
     icon: CheckCircle,
-    adminOnly: true,
+    permissionKey: 'shouldShowApprovals',
   },
   {
     title: 'ユーザー管理',
     href: '/admin/users',
     icon: Users,
-    adminOnly: true,
+    permissionKey: 'shouldShowUserManagement',
   },
   {
     title: 'マスター設定',
     href: '/admin/settings',
     icon: Settings,
-    adminOnly: true,
+    permissionKey: 'shouldShowMasterSettings',
+  },
+  {
+    title: 'マイページ',
+    href: '/profile',
+    icon: UserCircle,
+    permissionKey: 'shouldShowDashboard', // プロフィールは全ユーザーがアクセス可能
   },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { isAdmin } = useAuth();
+  const { user } = useAuth();
   
   // 権限に基づいてメニューアイテムをフィルタリング
-  const allMenuItems = [...userMenuItems, ...adminMenuItems];
-  const menuItems = allMenuItems.filter(item => 
-    !item.adminOnly || isAdmin
+  const visibleMenuItems = menuItems.filter(item =>
+    shouldShowNavItem(user, item.permissionKey)
   );
 
   return (
@@ -89,7 +91,7 @@ export function Sidebar() {
       </div>
       <div className="flex-1 overflow-auto py-4">
         <nav className="space-y-1 px-3">
-          {menuItems.map((item) => {
+          {visibleMenuItems.map((item) => {
             const Icon = item.icon;
             return (
               <Link key={item.href} href={item.href}>
