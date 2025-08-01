@@ -20,6 +20,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { expenseService, invoicePaymentService } from '@/lib/database';
 import { useMasterDataStore, useExpenseStore, useEventStore } from '@/lib/store';
+import { supabase } from '@/lib/auth';
 
 import { useAuth } from '@/contexts/AuthContext';
 export default function DashboardPage() {
@@ -83,17 +84,21 @@ export default function DashboardPage() {
     if (!user) return;
     
     try {
-      // 新しいAPIエンドポイントを使用してデータを取得
-      const response = await fetch(`/api/user-data?userId=${user.id}&t=${Date.now()}`);
-      const data = await response.json();
-      
-      if (!response.ok) {
-        console.error('APIエラー:', data.error);
+      // Supabaseから直接データを取得
+      let { data: userFilteredExpenses, error: expenseError } = await supabase
+        .from('expenses')
+        .select("*, events:events!left(*)")
+        .eq('user_id', user.id);
+
+      let { data: userFilteredInvoices, error: invoiceError } = await supabase
+        .from('invoice_payments')
+        .select("*, events:events!left(*)")
+        .eq('user_id', user.id);
+
+      if (expenseError || invoiceError) {
+        console.error('Supabaseエラー:', expenseError || invoiceError);
         return;
       }
-
-      const userFilteredExpenses = data.expenses || [];
-      const userFilteredInvoices = data.invoicePayments || [];
       
       console.log('User info:', { id: user.id, name: user.name });
       console.log('User filtered expenses:', userFilteredExpenses.length);
