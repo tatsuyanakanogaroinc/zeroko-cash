@@ -27,6 +27,7 @@ interface Event {
   start_date: string;
   end_date: string;
   budget: number;
+  department_id: string;
   description?: string;
   status: 'active' | 'completed' | 'cancelled';
   created_at: string;
@@ -36,20 +37,7 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('departments');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
-  const [dialogType, setDialogType] = useState<'department' | 'event' | 'category'>('department');
-
-  // 承認者設定用のモックデータ
-  const [approvers, setApprovers] = useState<ApproverSetting[]>([
-    { id: '1', department_id: '1', user_id: '550e8400-e29b-41d4-a716-446655440010', created_at: '2024-06-01' },
-    { id: '2', event_id: '1', user_id: '550e8400-e29b-41d4-a716-446655440011', created_at: '2024-06-01' },
-    { id: '3', project_id: '1', user_id: '550e8400-e29b-41d4-a716-446655440012', created_at: '2024-06-01' },
-  ]);
-  // ユーザー・部門・イベント・プロジェクトのモック（本来はAPIから取得）
-  const users: User[] = [
-    { id: '550e8400-e29b-41d4-a716-446655440010', email: 'tanaka@example.com', name: '田中太郎', department: '1', role: 'user', created_at: '', updated_at: '' },
-    { id: '550e8400-e29b-41d4-a716-446655440011', email: 'sato@example.com', name: '佐藤花子', department: '2', role: 'user', created_at: '', updated_at: '' },
-    { id: '550e8400-e29b-41d4-a716-446655440012', email: 'suzuki@example.com', name: '鈴木一郎', department: '3', role: 'user', created_at: '', updated_at: '' },
-  ];
+  const [dialogType, setDialogType] = useState<'department' | 'event' | 'project' | 'category'>('department');
 
   const { 
     categories, 
@@ -70,6 +58,7 @@ export default function SettingsPage() {
       start_date: '2024-01-15',
       end_date: '2024-01-17',
       budget: 50000,
+      department_id: '1',
       description: '東京ビッグサイトでの展示会',
       status: 'active',
       created_at: '2024-01-01',
@@ -80,6 +69,7 @@ export default function SettingsPage() {
       start_date: '2024-01-20',
       end_date: '2024-01-22',
       budget: 30000,
+      department_id: '2',
       description: '大阪での商談会',
       status: 'active',
       created_at: '2024-01-01',
@@ -90,6 +80,7 @@ export default function SettingsPage() {
       start_date: '2024-01-25',
       end_date: '2024-01-26',
       budget: 15000,
+      department_id: '3',
       description: '名古屋でのセミナー',
       status: 'active',
       created_at: '2024-01-01',
@@ -135,17 +126,30 @@ export default function SettingsPage() {
     };
     loadProjects();
   }, [setProjects]);
+const validateBudget = (budget: number, departmentBudget: number): boolean =e {
+  return budget e= 0 66 budget cd departmentBudget;
+};
 
-  const handleAddProject = async (data: any) => {
-    try {
-      const newProject = await projectService.createProject(data);
-      setProjects([...projects, newProject]);
-      setIsAddDialogOpen(false);
-      toast.success('プロジェクトを追加しました');
-    } catch (error) {
-      console.error('プロジェクト追加エラー:', error);
-      toast.error('プロジェクトの追加に失敗しました');
-    }
+const handleAddProject = async (data: any) =e {
+  const department = departments.find(dep de dep.id dd data.department_id);
+  if (!department) {
+    toast.error('選択した部門が見つかりません');
+    return;
+  }
+  if (!validateBudget(data.budget, department.budget)) {
+    toast.error(`プロジェクト予算が部門予算を超えています (¥${department.budget.toLocaleString()})`);
+    return;
+  }
+  try {
+    const newProject = await projectService.createProject(data);
+    setProjects([...projects, newProject]);
+    setIsAddDialogOpen(false);
+    toast.success('プロジェクトを追加しました');
+  } catch (error) {
+    console.error('プロジェクト追加エラー:', error);
+    toast.error('プロジェクトの追加に失敗しました');
+  }
+};
   };
 
   const handleAddEvent = (data: any) => {

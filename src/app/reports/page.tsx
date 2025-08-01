@@ -643,41 +643,60 @@ export default function ReportsPage() {
             {/* 部門別分析 */}
             <Card>
               <CardHeader>
-                <CardTitle>部門別支出</CardTitle>
+                <CardTitle>部門別予算と支出</CardTitle>
                 <CardDescription>
-                  部門ごとの支出金額と内訳
+                  部門ごとの予算、支出金額、残額
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
-                  {Object.entries(departmentBreakdown).map(([department, amount]) => {
-                    const departmentUsers = users.filter(user => user.department === department);
+                  {departments.map(dept => {
+                    const departmentUsers = users.filter(user => user.department === dept.name);
                     const departmentExpenses = expenseData.filter(expense => {
                       const user = users.find(u => u.id === expense.user_id);
-                      return user?.department === department;
+                      return user?.department === dept.name;
                     });
+                    const totalExpense = departmentExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+                    const budgetUsage = (totalExpense / dept.budget) * 100;
+                    const remaining = dept.budget - totalExpense;
                     
                     return (
-                      <div key={department} className="border rounded-lg p-4">
+                      <div key={dept.id} className="border rounded-lg p-4">
                         <div className="flex items-center justify-between mb-4">
                           <div>
-                            <h3 className="font-semibold text-lg">{department}</h3>
+                            <h3 className="font-semibold text-lg">{dept.name}</h3>
                             <p className="text-sm text-gray-500">
                               {departmentUsers.length}人のメンバー
                             </p>
                           </div>
-                          <div className="text-right">
-                            <div className="text-2xl font-bold">¥{amount.toLocaleString()}</div>
-                            <div className="text-sm text-gray-500">{departmentExpenses.length}件の申請</div>
+                          <Badge className={budgetUsage > 100 ? 'bg-red-100 text-red-800' : budgetUsage > 80 ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}>
+                            {budgetUsage.toFixed(1)}%使用
+                          </Badge>
+                        </div>
+                        <div className="grid grid-cols-3 gap-4 text-sm mb-4">
+                          <div>
+                            <span className="text-gray-500">予算:</span>
+                            <span className="font-medium ml-2">¥{dept.budget.toLocaleString()}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">支出:</span>
+                            <span className="font-medium ml-2">¥{totalExpense.toLocaleString()}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">残り:</span>
+                            <span className={`font-medium ml-2 ${remaining < 0 ? 'text-red-600' : 'text-green-600'}`}>¥{remaining.toLocaleString()}</span>
                           </div>
                         </div>
                         {departmentExpenses.length > 0 && (
                           <div>
-                            <h4 className="font-medium mb-2">最近の申請</h4>
+                            <h4 className="font-medium mb-2">最近の申請 ({departmentExpenses.length}件)</h4>
                             <div className="space-y-2">
                               {departmentExpenses.slice(0, 3).map(expense => (
                                 <div key={expense.id} className="flex items-center justify-between text-sm">
                                   <div className="flex items-center space-x-2">
+                                    <Avatar className="h-6 w-6">
+                                      <AvatarFallback>{expense.user_name.charAt(0)}</AvatarFallback>
+                                    </Avatar>
                                     <span>{expense.user_name}</span>
                                     <span className="text-gray-500">-</span>
                                     <span>{getCategoryName(expense.category_id)}</span>
