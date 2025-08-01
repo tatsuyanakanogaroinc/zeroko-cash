@@ -28,8 +28,8 @@ export default function ExpensesPage() {
 
   const { expenses } = useExpenseStore();
 
-  useEffect(() => {
-    const fetchData = async () => {
+  useEffect(() => {
+    const fetchData = async () => {
       try {
         // Zustandから経費データを取得
         const expenseData = expenses || [];
