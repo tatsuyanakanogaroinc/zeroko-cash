@@ -15,9 +15,10 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { expenseService } from '@/lib/database';
+import type { Database } from '@/lib/supabase';
 
 export default function DashboardPage() {
-  const [expenses, setExpenses] = useState<any[]>([]);
+  const [expenses, setExpenses] = useState<Database['public']['Tables']['expenses']['Row'][]>([]);
   const [loading, setLoading] = useState(true);
   
   // モックユーザーデータ
