@@ -76,13 +76,8 @@ export const userService = {
       throw new Error('ユーザーデータの取得に失敗しました');
     }
 
-// ユーザーにメール通知を送信
-typeof window === 'undefined' && await sendAccountCreationEmail(
-      data.email,
-      data.name,
-      initial_password,
-      'https://yourapp.com/login'
-    );
+    // TODO: サーバーサイドでのメール送信は後で実装
+    console.log(`ユーザー作成完了: ${data.email}, 初期パスワード: ${initial_password}`);
 
     return data as User;
   },

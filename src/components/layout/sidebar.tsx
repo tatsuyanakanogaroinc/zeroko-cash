@@ -19,7 +19,14 @@ import {
   FileCheck,
 } from 'lucide-react';
 
-const userMenuItems = [
+interface MenuItem {
+  title: string;
+  href: string;
+  icon: any;
+  adminOnly?: boolean;
+}
+
+const userMenuItems: MenuItem[] = [
   {
     title: 'ダッシュボード',
     href: '/dashboard',
@@ -47,7 +54,7 @@ const userMenuItems = [
   },
 ];
 
-const adminMenuItems = [
+const adminMenuItems: MenuItem[] = [
   {
     title: '申請管理',
     href: '/admin/approvals',

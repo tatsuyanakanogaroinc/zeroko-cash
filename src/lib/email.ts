@@ -34,7 +34,7 @@ const createTransporter = () => {
     return null;
   }
   
-  return nodemailer.createTransporter(config);
+  return nodemailer.createTransport(config);
 };
 
 // アカウント作成時のメール送信

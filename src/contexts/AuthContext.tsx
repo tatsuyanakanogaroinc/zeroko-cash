@@ -25,19 +25,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // ローカルストレージからユーザー情報を復元
     const initializeUser = async () => {
       try {
-        const storedUserId = localStorage.getItem('currentUserId');
-        if (storedUserId) {
-          const user = await userService.getUserById(storedUserId);
-          if (user) {
-            setUser(user);
-          } else {
-            // ストレージのユーザーIDが無効な場合はクリア
-            localStorage.removeItem('currentUserId');
+        // ブラウザ環境でのみlocalStorageにアクセス
+        if (typeof window !== 'undefined') {
+          const storedUserId = localStorage.getItem('currentUserId');
+          if (storedUserId) {
+            const user = await userService.getUserById(storedUserId);
+            if (user) {
+              setUser(user);
+            } else {
+              // ストレージのユーザーIDが無効な場合はクリア
+              localStorage.removeItem('currentUserId');
+            }
           }
         }
       } catch (error) {
         console.error('ユーザー初期化エラー:', error);
-        localStorage.removeItem('currentUserId');
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('currentUserId');
+        }
       } finally {
         setLoading(false);
       }
@@ -54,7 +59,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (foundUser) {
         setUser(foundUser);
         // ローカルストレージにユーザーIDを保存
-        localStorage.setItem('currentUserId', foundUser.id);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('currentUserId', foundUser.id);
+        }
       } else {
         throw new Error('ユーザーが見つかりません');
       }
@@ -69,7 +76,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = () => {
     setUser(null);
     // ローカルストレージからユーザー情報を削除
-    localStorage.removeItem('currentUserId');
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('currentUserId');
+    }
   };
 
   const isAdmin = user?.role === 'admin';
