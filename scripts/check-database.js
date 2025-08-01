@@ -25,9 +25,9 @@ async function checkDatabase() {
     if (usersError) {
       console.error('ユーザー取得エラー:', usersError)
     } else {
-      console.log(`ユーザー数: ${users.length}`)
+      console.log(`👥 ユーザー数: ${users.length}`)
       users.forEach(user => {
-        console.log(`  - ${user.name} (${user.email}) [${user.role}]`)
+        console.log(`  - ${user.name} (${user.email}) [${user.role}] ID: ${user.id}`)
       })
     }
   } catch (error) {

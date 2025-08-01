@@ -105,80 +105,7 @@ interface EventState {
 export const useExpenseStore = create<ExpenseState>()((
   persist(
     (set, get) => ({
-      expenses: [
-        {
-          id: '1',
-          date: '2024-07-20',
-          amount: 5000,
-          category_id: '1',
-          department_id: '1',
-          user_name: '田中太郎',
-          description: '営業先への交通費',
-          status: 'approved',
-          created_at: '2024-07-20',
-          updated_at: '2024-07-20'
-        },
-        {
-          id: '2',
-          date: '2024-07-21',
-          amount: 3000,
-          category_id: '2',
-          department_id: '1',
-          user_name: '佐藤花子',
-          description: 'クライアントとの会議費',
-          status: 'approved',
-          created_at: '2024-07-21',
-          updated_at: '2024-07-21'
-        },
-        {
-          id: '3',
-          date: '2024-07-22',
-          amount: 8000,
-          category_id: '1',
-          project_id: '1',
-          user_name: '鈴木一郎',
-          description: 'プロジェクトA関連の出張費',
-          status: 'approved',
-          created_at: '2024-07-22',
-          updated_at: '2024-07-22'
-        },
-        {
-          id: '4',
-          date: '2024-07-23',
-          amount: 12000,
-          category_id: '2',
-          event_id: '1',
-          user_name: '高橋美咲',
-          description: '東京展示会での会議費',
-          status: 'approved',
-          created_at: '2024-07-23',
-          updated_at: '2024-07-23'
-        },
-        {
-          id: '5',
-          date: '2024-07-24',
-          amount: 2500,
-          category_id: '4',
-          department_id: '2',
-          user_name: '山田次郎',
-          description: 'マーケティング用通信費',
-          status: 'pending',
-          created_at: '2024-07-24',
-          updated_at: '2024-07-24'
-        },
-        {
-          id: '6',
-          date: '2024-07-25',
-          amount: 15000,
-          category_id: '1',
-          event_id: '3',
-          user_name: '田中太郎',
-          description: '名古屋セミナー参加交通費',
-          status: 'approved',
-          created_at: '2024-07-25',
-          updated_at: '2024-07-25'
-        }
-      ],
+      expenses: [],
       addExpense: (expense) => set((state) => ({
         expenses: [...state.expenses, expense]
       })),
@@ -230,38 +157,7 @@ export const useExpenseStore = create<ExpenseState>()((
 export const useEventStore = create<EventState>()((
   persist(
     (set, get) => ({
-      events: [
-        {
-          id: '1',
-          name: '東京展示会2024',
-          budget: 50000,
-          description: '年次展示会への参加',
-          start_date: '2024-07-15',
-          end_date: '2024-07-17',
-          status: 'active',
-          created_at: '2024-06-01',
-        },
-        {
-          id: '2',
-          name: '大阪商談会',
-          budget: 30000,
-          description: '関西地区での商談会',
-          start_date: '2024-08-20',
-          end_date: '2024-08-22',
-          status: 'planned',
-          created_at: '2024-06-15',
-        },
-        {
-          id: '3',
-          name: '名古屋セミナー',
-          budget: 15000,
-          description: '技術セミナーの開催',
-          start_date: '2024-09-10',
-          end_date: '2024-09-10',
-          status: 'active',
-          created_at: '2024-07-01',
-        }
-      ],
+      events: [],
       addEvent: (event) => set((state) => ({
         events: [...state.events, event]
       })),
@@ -360,75 +256,12 @@ export const useMasterDataStore = create<MasterDataState>()(
           });
         } catch (error) {
           console.error('Failed to load master data from API:', error);
-          // フォールバック: デフォルトデータを使用
+          // データベースから読み込み失敗時は空の状態を維持
           set({ 
-            categories: [
-              {
-                id: '1',
-                name: '交通費',
-                description: '電車、バス、タクシーなどの交通費',
-                requires_receipt: true,
-                created_at: '2024-01-01',
-              },
-              {
-                id: '2',
-                name: '会議費',
-                description: '会議室代、飲食費など',
-                requires_receipt: true,
-                created_at: '2024-01-01',
-              },
-              {
-                id: '3',
-                name: '書籍代',
-                description: '業務関連の書籍購入費',
-                requires_receipt: false,
-                created_at: '2024-01-01',
-              },
-              {
-                id: '4',
-                name: '通信費',
-                description: '電話代、インターネット代など',
-                requires_receipt: true,
-                created_at: '2024-01-01',
-              },
-            ],
-            projects: [
-              {
-                id: '1',
-                name: 'プロジェクトA',
-                code: 'PRJ-A',
-                department_id: '1',
-                budget: 200000,
-                status: 'active',
-                created_at: '2024-01-01',
-              },
-              {
-                id: '2',
-                name: 'プロジェクトB',
-                code: 'PRJ-B',
-                department_id: '1',
-                budget: 300000,
-                status: 'active',
-                created_at: '2024-01-01',
-              },
-            ],
-            departments: [
-              {
-                id: '1',
-                name: 'セールス',
-                manager_id: '1',
-                budget: 1000000,
-                created_at: '2024-01-01',
-              },
-              {
-                id: '2',
-                name: 'マーケティング',
-                manager_id: '2',
-                budget: 800000,
-                created_at: '2024-01-01',
-              },
-            ],
-            isLoaded: true 
+            categories: [],
+            projects: [],
+            departments: [],
+            isLoaded: false
           });
         }
       },
