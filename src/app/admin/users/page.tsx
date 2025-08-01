@@ -108,7 +108,9 @@ export default function UsersPage() {
   // 部署の初期化
   const initializeDepartments = async () => {
     try {
-      const existingDepartments = await departmentService.getDepartments();
+      const response = await fetch('/api/departments');
+      if (!response.ok) throw new Error('部署取得失敗');
+      const existingDepartments = await response.json();
       
       // 既存の部署がない場合、初期部署を作成
       if (existingDepartments.length === 0) {
@@ -122,14 +124,23 @@ export default function UsersPage() {
         ];
         
         for (const dept of initialDepartments) {
-          await departmentService.createDepartment(dept);
+          const createResponse = await fetch('/api/departments', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(dept),
+          });
+          if (!createResponse.ok) throw new Error('部署作成失敗');
         }
         
         toast.success('部署マスターを初期化しました');
       }
       
       // 部署リストを更新
-      const updatedDepartments = await departmentService.getDepartments();
+      const updatedResponse = await fetch('/api/departments');
+      if (!updatedResponse.ok) throw new Error('部署取得失敗');
+      const updatedDepartments = await updatedResponse.json();
       setDepartments(updatedDepartments);
     } catch (error) {
       console.error('部署初期化エラー:', error);
@@ -140,7 +151,9 @@ export default function UsersPage() {
   // ユーザーデータをロード
   const loadUsers = async () => {
     try {
-      const usersData = await userService.getUsers();
+      const response = await fetch('/api/users');
+      if (!response.ok) throw new Error('ユーザー取得失敗');
+      const usersData = await response.json();
       console.log('Loaded users:', usersData);
       
       // データベースのユーザーをUIで表示する形式に変換
@@ -197,13 +210,26 @@ export default function UsersPage() {
       // 部署情報を取得
       const selectedDepartment = departments.find(dept => dept.id === userData.departmentId);
       
-      // 実際のデータベースにユーザーを作成
-      const newUser = await userService.createUser({
-        name: userData.name,
-        email: userData.email,
-        role: userData.role,
-        department_id: userData.departmentId || null
+      // APIを使ってユーザーを作成
+      const response = await fetch('/api/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: userData.name,
+          email: userData.email,
+          role: userData.role,
+          department_id: userData.departmentId || null
+        }),
       });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'ユーザー作成に失敗しました');
+      }
+      
+      const newUser = await response.json();
       
       // 初期パスワード情報を保存（実際の実装では、この情報は作成直後のみ表示される）
       setCreatedUserInfo({
@@ -234,7 +260,14 @@ export default function UsersPage() {
 
 const handleDeleteUser = async (userId: string) => {
     try {
-      await userService.deleteUser(userId);
+      const response = await fetch(`/api/users?id=${userId}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        throw new Error('ユーザー削除に失敗しました');
+      }
+      
       setUsers(users.filter(user => user.id !== userId));
       toast.success('ユーザーが成功的に削除されました');
     } catch (error) {
@@ -446,7 +479,9 @@ function AddUserForm({ onSubmit }: { onSubmit: (user: Omit<User, 'id'>) => void 
   useEffect(() => {
     const loadDepartments = async () => {
       try {
-        const depts = await departmentService.getDepartments();
+        const response = await fetch('/api/departments');
+        if (!response.ok) throw new Error('部署取得失敗');
+        const depts = await response.json();
         setDepartments(depts);
       } catch (error) {
         console.error('部署取得エラー:', error);
