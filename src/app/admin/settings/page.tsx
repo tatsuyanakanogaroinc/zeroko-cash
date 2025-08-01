@@ -126,30 +126,29 @@ export default function SettingsPage() {
     };
     loadProjects();
   }, [setProjects]);
-const validateBudget = (budget: number, departmentBudget: number): boolean =e {
-  return budget e= 0 66 budget cd departmentBudget;
-};
+  const validateBudget = (budget: number, departmentBudget: number): boolean => {
+    return budget >= 0 && budget <= departmentBudget;
+  };
 
-const handleAddProject = async (data: any) =e {
-  const department = departments.find(dep de dep.id dd data.department_id);
-  if (!department) {
-    toast.error('選択した部門が見つかりません');
-    return;
-  }
-  if (!validateBudget(data.budget, department.budget)) {
-    toast.error(`プロジェクト予算が部門予算を超えています (¥${department.budget.toLocaleString()})`);
-    return;
-  }
-  try {
-    const newProject = await projectService.createProject(data);
-    setProjects([...projects, newProject]);
-    setIsAddDialogOpen(false);
-    toast.success('プロジェクトを追加しました');
-  } catch (error) {
-    console.error('プロジェクト追加エラー:', error);
-    toast.error('プロジェクトの追加に失敗しました');
-  }
-};
+  const handleAddProject = async (data: any) => {
+    const department = departments.find(dep => dep.id === data.department_id);
+    if (!department) {
+      toast.error('選択した部門が見つかりません');
+      return;
+    }
+    if (!validateBudget(data.budget, department.budget)) {
+      toast.error(`プロジェクト予算が部門予算を超えています (¥${department.budget.toLocaleString()})`);
+      return;
+    }
+    try {
+      const newProject = await projectService.createProject(data);
+      setProjects([...projects, newProject]);
+      setIsAddDialogOpen(false);
+      toast.success('プロジェクトを追加しました');
+    } catch (error) {
+      console.error('プロジェクト追加エラー:', error);
+      toast.error('プロジェクトの追加に失敗しました');
+    }
   };
 
   const handleAddEvent = (data: any) => {
