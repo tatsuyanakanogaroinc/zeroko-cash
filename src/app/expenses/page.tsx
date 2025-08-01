@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Button } from '@/components/ui/button';
@@ -12,58 +12,38 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Plus, Search, Filter, Download } from 'lucide-react';
 import { useMasterDataStore } from '@/lib/store';
+import { expenseService, userService } from '@/lib/database';
+import type { Database } from '@/lib/supabase';
 
 export default function ExpensesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [expenses, setExpenses] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   // グローバルストアからカテゴリを取得
   const { categories } = useMasterDataStore();
 
-  // モックデータ
-  const expenses = [
-    {
-      id: '1',
-      description: '交通費',
-      amount: 2500,
-      status: 'pending' as const,
-      category_id: '1',
-      date: '2024-01-15',
-      payment_method: 'cash',
-      event_name: '東京展示会2024',
-    },
-    {
-      id: '2',
-      description: '会議費',
-      amount: 8000,
-      status: 'approved' as const,
-      category_id: '2',
-      date: '2024-01-14',
-      payment_method: 'credit_card',
-      event_name: '東京展示会2024',
-    },
-    {
-      id: '3',
-      description: '書籍代',
-      amount: 3500,
-      status: 'rejected' as const,
-      category_id: '3',
-      date: '2024-01-13',
-      payment_method: 'cash',
-      event_name: null,
-    },
-    {
-      id: '4',
-      description: '通信費',
-      amount: 12000,
-      status: 'pending' as const,
-      category_id: '4',
-      date: '2024-01-12',
-      payment_method: 'bank_transfer',
-      event_name: '大阪商談会',
-    },
-  ];
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [expenseData, userData] = await Promise.all([
+          expenseService.getExpenses(),
+          userService.getUsers()
+        ]);
+        setExpenses(expenseData);
+        setUsers(userData);
+      } catch (error) {
+        console.error('データの取得に失敗しました:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, []);
 
   const getStatusBadge = (status: string) => {
     switch (status) {

@@ -16,6 +16,8 @@ export interface Database {
           email: string
           department_id: string | null
           role: string
+          initial_password: string | null
+          password_changed: boolean
           created_at: string
         }
         Insert: {
@@ -24,6 +26,8 @@ export interface Database {
           email: string
           department_id?: string | null
           role?: string
+          initial_password?: string | null
+          password_changed?: boolean
           created_at?: string
         }
         Update: {
@@ -32,6 +36,8 @@ export interface Database {
           email?: string
           department_id?: string | null
           role?: string
+          initial_password?: string | null
+          password_changed?: boolean
           created_at?: string
         }
       }
@@ -104,6 +110,38 @@ export interface Database {
           name?: string
           description?: string | null
           requires_receipt?: boolean
+          created_at?: string
+        }
+      }
+      projects: {
+        Row: {
+          id: string
+          name: string
+          description: string | null
+          budget: number
+          start_date: string
+          end_date: string | null
+          status: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          description?: string | null
+          budget?: number
+          start_date: string
+          end_date?: string | null
+          status?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          description?: string | null
+          budget?: number
+          start_date?: string
+          end_date?: string | null
+          status?: string
           created_at?: string
         }
       }

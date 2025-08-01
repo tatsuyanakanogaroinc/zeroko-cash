@@ -10,7 +10,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Search, Edit, Trash2, UserPlus } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, UserPlus, Copy, Eye, EyeOff } from 'lucide-react';
+import { userService, departmentService } from '@/lib/database';
+import { toast } from 'sonner';
 
 interface User {
   id: string;
@@ -22,11 +24,21 @@ interface User {
   avatar?: string;
 }
 
+interface Department {
+  id: string;
+  name: string;
+  budget: number;
+  created_at: string;
+}
+
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [createdUserInfo, setCreatedUserInfo] = useState<{email: string, password: string} | null>(null);
+  const [isShowPasswordDialogOpen, setIsShowPasswordDialogOpen] = useState(false);
 
   // モックデータ
   const mockUsers: User[] = [
@@ -64,8 +76,41 @@ export default function UsersPage() {
     }
   ];
 
+  // 部署の初期化
+  const initializeDepartments = async () => {
+    try {
+      const existingDepartments = await departmentService.getDepartments();
+      
+      // 既存の部署がない場合、初期部署を作成
+      if (existingDepartments.length === 0) {
+        const initialDepartments = [
+          { name: '経営', budget: 1000000 },
+          { name: 'セールス', budget: 500000 },
+          { name: 'マーケ', budget: 300000 },
+          { name: 'コーチ', budget: 200000 },
+          { name: 'カリキュラム', budget: 150000 },
+          { name: 'バックオフィス', budget: 100000 }
+        ];
+        
+        for (const dept of initialDepartments) {
+          await departmentService.createDepartment(dept);
+        }
+        
+        toast.success('部署マスターを初期化しました');
+      }
+      
+      // 部署リストを更新
+      const updatedDepartments = await departmentService.getDepartments();
+      setDepartments(updatedDepartments);
+    } catch (error) {
+      console.error('部署初期化エラー:', error);
+      toast.error('部署の初期化に失敗しました');
+    }
+  };
+
   useEffect(() => {
     setUsers(mockUsers);
+    initializeDepartments();
   }, []);
 
   const filteredUsers = users.filter(user =>
@@ -91,13 +136,43 @@ export default function UsersPage() {
     return status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800';
   };
 
-  const handleAddUser = (userData: Omit<User, 'id'>) => {
-    const newUser: User = {
-      ...userData,
-      id: (users.length + 1).toString()
-    };
-    setUsers([...users, newUser]);
-    setIsAddDialogOpen(false);
+  const handleAddUser = async (userData: any) => {
+    try {
+      console.log('Creating user with data:', userData);
+      
+      // 部署情報を取得
+      const selectedDepartment = departments.find(dept => dept.id === userData.departmentId);
+      
+      // 実際のデータベースにユーザーを作成
+      const newUser = await userService.createUser({
+        name: userData.name,
+        email: userData.email,
+        role: userData.role,
+        department_id: userData.departmentId || null
+      });
+      
+      // 初期パスワード情報を保存（実際の実装では、この情報は作成直後のみ表示される）
+      setCreatedUserInfo({
+        email: newUser.email,
+        password: newUser.initial_password || 'パスワード取得エラー'
+      });
+      
+      // ユーザーリストを更新
+      const updatedUsers = await userService.getUsers();
+      setUsers(updatedUsers);
+      
+      setIsAddDialogOpen(false);
+      setIsShowPasswordDialogOpen(true);
+      
+      toast.success('ユーザーを追加し、初期パスワードを設定しました');
+    } catch (error) {
+      console.error('ユーザー作成エラー:', error);
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error('ユーザーの作成に失敗しました');
+      }
+    }
   };
 
   const handleEditUser = (user: User) => {
@@ -199,6 +274,81 @@ export default function UsersPage() {
           </CardContent>
         </Card>
 
+        {/* 初期パスワード表示ダイアログ */}
+        {createdUserInfo && (
+          <Dialog open={isShowPasswordDialogOpen} onOpenChange={setIsShowPasswordDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>ユーザー作成完了</DialogTitle>
+                <DialogDescription>
+                  新しいユーザーが作成されました。以下の情報をユーザーに共有してください。
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <Eye className="h-4 w-4 text-yellow-600" />
+                    <span className="text-sm font-medium text-yellow-800">重要な情報</span>
+                  </div>
+                  <p className="text-sm text-yellow-700">
+                    この画面を閉じると、初期パスワードは二度と表示されません。必ずユーザーに共有してください。
+                  </p>
+                </div>
+                
+                <div className="space-y-2">
+                  <div>
+                    <Label className="text-sm font-medium">メールアドレス</Label>
+                    <div className="flex items-center space-x-2 mt-1">
+                      <Input value={createdUserInfo.email} readOnly className="bg-gray-50" />
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          navigator.clipboard.writeText(createdUserInfo.email);
+                          toast.success('メールアドレスをコピーしました');
+                        }}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <Label className="text-sm font-medium">初期パスワード</Label>
+                    <div className="flex items-center space-x-2 mt-1">
+                      <Input value={createdUserInfo.password} readOnly className="bg-gray-50 font-mono" />
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          navigator.clipboard.writeText(createdUserInfo.password);
+                          toast.success('初期パスワードをコピーしました');
+                        }}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      ユーザーは初回ログイン時にパスワードの変更を求められます。
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex justify-end space-x-2">
+                  <Button
+                    onClick={() => {
+                      setIsShowPasswordDialogOpen(false);
+                      setCreatedUserInfo(null);
+                    }}
+                  >
+                    確認しました
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
+
         {/* 編集ダイアログ */}
         {editingUser && (
           <Dialog open={!!editingUser} onOpenChange={() => setEditingUser(null)}>
@@ -223,13 +373,28 @@ export default function UsersPage() {
 
 // ユーザー追加フォーム
 function AddUserForm({ onSubmit }: { onSubmit: (user: Omit<User, 'id'>) => void }) {
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     role: 'user' as 'admin' | 'manager' | 'user',
     department: '',
+    departmentId: '',
     status: 'active' as 'active' | 'inactive'
   });
+
+  useEffect(() => {
+    const loadDepartments = async () => {
+      try {
+        const depts = await departmentService.getDepartments();
+        setDepartments(depts);
+      } catch (error) {
+        console.error('部署取得エラー:', error);
+        toast.error('部署情報の取得に失敗しました');
+      }
+    };
+    loadDepartments();
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -258,7 +423,7 @@ function AddUserForm({ onSubmit }: { onSubmit: (user: Omit<User, 'id'>) => void 
         />
       </div>
       <div>
-        <Label htmlFor="role">権限</Label>
+<Label htmlFor="role">権限</Label>
         <Select value={formData.role} onValueChange={(value: 'admin' | 'manager' | 'user') => setFormData({ ...formData, role: value })}>
           <SelectTrigger>
             <SelectValue />
@@ -272,12 +437,16 @@ function AddUserForm({ onSubmit }: { onSubmit: (user: Omit<User, 'id'>) => void 
       </div>
       <div>
         <Label htmlFor="department">部署</Label>
-        <Input
-          id="department"
-          value={formData.department}
-          onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-          required
-        />
+        <Select value={formData.departmentId} onValueChange={(value) => setFormData({ ...formData, departmentId: value })}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {departments.map((dept) => (
+              <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       <div>
         <Label htmlFor="status">ステータス</Label>

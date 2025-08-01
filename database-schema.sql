@@ -19,10 +19,11 @@ CREATE TABLE IF NOT EXISTS users (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Events table
+-- Events table (部門に所属)
 CREATE TABLE IF NOT EXISTS events (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name VARCHAR(100) NOT NULL,
+  department_id UUID REFERENCES departments(id) NOT NULL,
   start_date DATE NOT NULL,
   end_date DATE NOT NULL,
   budget INTEGER DEFAULT 0,

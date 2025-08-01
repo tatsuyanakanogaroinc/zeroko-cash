@@ -14,6 +14,7 @@ import {
   Users,
   CheckCircle,
   List,
+  UserCircle,
 } from 'lucide-react';
 
 const userMenuItems = [
@@ -36,6 +37,11 @@ const userMenuItems = [
     title: 'レポート',
     href: '/reports',
     icon: BarChart3,
+  },
+  {
+    title: 'マイページ',
+    href: '/profile',
+    icon: UserCircle,
   },
 ];
 

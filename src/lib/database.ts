@@ -5,6 +5,7 @@ type User = Database['public']['Tables']['users']['Row']
 type Department = Database['public']['Tables']['departments']['Row']
 type Event = Database['public']['Tables']['events']['Row']
 type Category = Database['public']['Tables']['categories']['Row']
+type Project = Database['public']['Tables']['projects']['Row']
 type Expense = Database['public']['Tables']['expenses']['Row']
 
 // ユーザー関連
@@ -31,14 +32,53 @@ export const userService = {
   },
 
   async createUser(user: Database['public']['Tables']['users']['Insert']): Promise<User> {
+    const initial_password = Math.random().toString(36).slice(-8); // ランダムな8文字のパスワード生成
+    
+    // デフォルト値を設定
+    const userToInsert = {
+      ...user,
+      role: user.role || 'user',
+      password_changed: false,
+      initial_password
+    };
+
+    console.log('Inserting user data:', userToInsert);
+    
     const { data, error } = await supabase
       .from('users')
-      .insert(user)
+      .insert(userToInsert)
       .select()
       .single()
-    
-    if (error) throw error
-    return data
+
+    if (error) {
+      console.error('Supabase createUser error details:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
+      
+      // より詳細なエラーメッセージを作成
+      let errorMessage = 'ユーザーの作成に失敗しました';
+      if (error.code === '23505') {
+        errorMessage = 'このメールアドレスは既に使用されています';
+      } else if (error.code === '23502') {
+        errorMessage = '必須フィールドが不足しています';
+      } else if (error.message) {
+        errorMessage = `エラー: ${error.message}`;
+      }
+      
+      throw new Error(errorMessage);
+    }
+
+    if (!data) {
+      throw new Error('ユーザーデータの取得に失敗しました');
+    }
+
+    // ユーザーにメール通知を送信（例としてconsole.logで出力）
+    console.log(`ユーザー ${data.email} にメールを送信: 初期パスワードは ${initial_password} です。`);
+
+    return data as User;
   },
 
   async updateUser(id: string, user: Database['public']['Tables']['users']['Update']): Promise<User> {
@@ -224,6 +264,62 @@ export const categoryService = {
   async deleteCategory(id: string): Promise<void> {
     const { error } = await supabase
       .from('categories')
+      .delete()
+      .eq('id', id)
+    
+    if (error) throw error
+  }
+}
+
+// プロジェクト関連
+export const projectService = {
+  async getProjects(): Promise<Project[]> {
+    const { data, error } = await supabase
+      .from('projects')
+      .select('*')
+      .order('start_date', { ascending: false })
+    
+    if (error) throw error
+    return data || []
+  },
+
+  async getProjectById(id: string): Promise<Project | null> {
+    const { data, error } = await supabase
+      .from('projects')
+      .select('*')
+      .eq('id', id)
+      .single()
+    
+    if (error) throw error
+    return data
+  },
+
+  async createProject(project: Database['public']['Tables']['projects']['Insert']): Promise<Project> {
+    const { data, error } = await supabase
+      .from('projects')
+      .insert(project)
+      .select()
+      .single()
+    
+    if (error) throw error
+    return data
+  },
+
+  async updateProject(id: string, project: Database['public']['Tables']['projects']['Update']): Promise<Project> {
+    const { data, error } = await supabase
+      .from('projects')
+      .update(project)
+      .eq('id', id)
+      .select()
+      .single()
+    
+    if (error) throw error
+    return data
+  },
+
+  async deleteProject(id: string): Promise<void> {
+    const { error } = await supabase
+      .from('projects')
       .delete()
       .eq('id', id)
     

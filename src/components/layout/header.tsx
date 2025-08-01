@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -11,18 +12,27 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { LogOut, User, Settings } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 export function Header() {
-  // モックユーザーデータ
-  const user = {
-    name: 'テストユーザー',
-    email: 'test@example.com',
-  };
+  const { user, logout } = useAuth();
 
   const handleLogout = () => {
-    // ログアウト処理（現在は何もしない）
-    console.log('ログアウト');
+    logout();
   };
+
+  if (!user) {
+    return (
+      <header className="border-b bg-white">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <h1 className="text-2xl font-bold text-gray-900">経費精算システム</h1>
+          </div>
+          <div className="text-sm text-gray-500">読み込み中...</div>
+        </div>
+      </header>
+    );
+  }
 
   return (
     <header className="border-b bg-white">
@@ -51,9 +61,11 @@ export function Header() {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <User className="mr-2 h-4 w-4" />
-                <span>プロフィール</span>
+              <DropdownMenuItem asChild>
+                <Link href="/profile">
+                  <User className="mr-2 h-4 w-4" />
+                  <span>プロフィール</span>
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuItem>
                 <Settings className="mr-2 h-4 w-4" />

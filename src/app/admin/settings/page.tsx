@@ -14,6 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus, Edit, Trash2, Users, Calendar, FileText, Briefcase } from 'lucide-react';
 import { useMasterDataStore } from '@/lib/store';
 import { useEffect } from 'react';
+import { departmentService, projectService } from '@/lib/database';
+import { toast } from 'sonner';
 
 // ApproverSetting型をインポート
 import { ApproverSetting, User, Department, Project } from '@/lib/types';
@@ -56,7 +58,8 @@ export default function SettingsPage() {
     updateCategory, 
     deleteCategory,
     setDepartments,
-    projects // ← 追加
+    setProjects,
+    projects
   } = useMasterDataStore();
 
   // イベントデータ（モック）
@@ -93,14 +96,56 @@ export default function SettingsPage() {
     }
   ]);
 
-  const handleAddDepartment = (data: any) => {
-    const newDepartment = {
-      ...data,
-      id: (departments.length + 1).toString(),
-      created_at: new Date().toISOString().split('T')[0]
+  const handleAddDepartment = async (data: any) => {
+    try {
+      const newDepartment = await departmentService.createDepartment(data);
+      setDepartments([...departments, newDepartment]);
+      setIsAddDialogOpen(false);
+      toast.success('部門を追加しました');
+    } catch (error) {
+      console.error('部門追加エラー:', error);
+      toast.error('部門の追加に失敗しました');
+    }
+  };
+
+  // 部署データをロード
+  useEffect(() => {
+    const loadDepartments = async () => {
+      try {
+        const depts = await departmentService.getDepartments();
+        setDepartments(depts);
+      } catch (error) {
+        console.error('部署取得エラー:', error);
+        toast.error('部署データの取得に失敗しました');
+      }
     };
-    setDepartments([...departments, newDepartment]);
-    setIsAddDialogOpen(false);
+    loadDepartments();
+  }, [setDepartments]);
+
+  // プロジェクトデータをロード
+  useEffect(() => {
+    const loadProjects = async () => {
+      try {
+        const projs = await projectService.getProjects();
+        setProjects(projs);
+      } catch (error) {
+        console.error('プロジェクト取得エラー:', error);
+        toast.error('プロジェクトデータの取得に失敗しました');
+      }
+    };
+    loadProjects();
+  }, [setProjects]);
+
+  const handleAddProject = async (data: any) => {
+    try {
+      const newProject = await projectService.createProject(data);
+      setProjects([...projects, newProject]);
+      setIsAddDialogOpen(false);
+      toast.success('プロジェクトを追加しました');
+    } catch (error) {
+      console.error('プロジェクト追加エラー:', error);
+      toast.error('プロジェクトの追加に失敗しました');
+    }
   };
 
   const handleAddEvent = (data: any) => {
@@ -459,6 +504,80 @@ export default function SettingsPage() {
             </Card>
           </TabsContent>
 
+          <TabsContent value="projects" className="space-y-6">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>プロジェクト一覧</CardTitle>
+                  <CardDescription>
+                    {projects.length}個のプロジェクトが登録されています
+                  </CardDescription>
+                </div>
+                <Dialog open={isAddDialogOpen && dialogType === 'project'} onOpenChange={setIsAddDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button onClick={() => {
+                      setDialogType('project');
+                      setEditingItem(null);
+                      setIsAddDialogOpen(true);
+                    }}>
+                      <Plus className="mr-2 h-4 w-4" />
+                      プロジェクト追加
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>{editingItem ? 'プロジェクトを編集' : 'プロジェクトを追加'}</DialogTitle>
+                      <DialogDescription>
+                        新しいプロジェクトを追加します
+                      </DialogDescription>
+                    </DialogHeader>
+                    <ProjectForm 
+                      onSubmit={handleAddProject}
+                      editingItem={editingItem}
+                    />
+                  </DialogContent>
+                </Dialog>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {projects.map((project) => (
+                    <div key={project.id} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div>
+                        <h3 className="font-semibold">{project.name}</h3>
+                        <p className="text-sm text-gray-500">
+                          {project.start_date} - {project.end_date || '予定なし'}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          予算: ¥{project.budget.toLocaleString()}
+                        </p>
+                        {project.description && (
+                          <p className="text-sm text-gray-500">{project.description}</p>
+                        )}
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        {getStatusBadge(project.status)}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEditItem(project, 'project')}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDeleteItem(project.id, 'project')}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="approvers" className="space-y-6">
             <Card>
               <CardHeader>
@@ -787,6 +906,182 @@ function CategoryForm({ onSubmit, editingItem }: { onSubmit: (data: any) => void
          />
          <Label htmlFor="category-receipt">領収書必須</Label>
        </div>
+      <div className="flex justify-end space-x-2">
+        <Button type="submit">
+          {editingItem ? '更新' : '追加'}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+// プロジェクトフォーム
+function ProjectForm({ onSubmit, editingItem }: { onSubmit: (data: any) => void; editingItem: any }) {
+  const [formData, setFormData] = useState({
+    name: editingItem?.name || '',
+    description: editingItem?.description || '',
+    budget: editingItem?.budget || 0,
+    start_date: editingItem?.start_date || '',
+    end_date: editingItem?.end_date || '',
+    status: editingItem?.status || 'active'
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit(formData);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <Label htmlFor="project-name">プロジェクト名</Label>
+        <Input
+          id="project-name"
+          value={formData.name}
+          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          required
+        />
+      </div>
+      <div>
+        <Label htmlFor="project-description">説明</Label>
+        <Textarea
+          id="project-description"
+          value={formData.description}
+          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+        />
+      </div>
+      <div>
+        <Label htmlFor="project-budget">予算</Label>
+        <Input
+          id="project-budget"
+          type="number"
+          value={formData.budget}
+          onChange={(e) => setFormData({ ...formData, budget: parseInt(e.target.value) || 0 })}
+          required
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="project-start">開始日</Label>
+          <Input
+            id="project-start"
+            type="date"
+            value={formData.start_date}
+            onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+            required
+          />
+        </div>
+        <div>
+          <Label htmlFor="project-end">終了日（予定）</Label>
+          <Input
+            id="project-end"
+            type="date"
+            value={formData.end_date}
+            onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+          />
+        </div>
+      </div>
+      <div>
+        <Label htmlFor="project-status">ステータス</Label>
+        <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="active">アクティブ</SelectItem>
+            <SelectItem value="completed">完了</SelectItem>
+            <SelectItem value="cancelled">キャンセル</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="flex justify-end space-x-2">
+        <Button type="submit">
+          {editingItem ? '更新' : '追加'}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+// プロジェクトフォーム
+function ProjectForm({ onSubmit, editingItem }: { onSubmit: (data: any) => void; editingItem: any }) {
+  const [formData, setFormData] = useState({
+    name: editingItem?.name || '',
+    description: editingItem?.description || '',
+    budget: editingItem?.budget || 0,
+    start_date: editingItem?.start_date || '',
+    end_date: editingItem?.end_date || '',
+    status: editingItem?.status || 'active'
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit(formData);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <Label htmlFor="project-name">プロジェクト名</Label>
+        <Input
+          id="project-name"
+          value={formData.name}
+          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          required
+        />
+      </div>
+      <div>
+        <Label htmlFor="project-description">説明</Label>
+        <Textarea
+          id="project-description"
+          value={formData.description}
+          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+        />
+      </div>
+      <div>
+        <Label htmlFor="project-budget">予算</Label>
+        <Input
+          id="project-budget"
+          type="number"
+          value={formData.budget}
+          onChange={(e) => setFormData({ ...formData, budget: parseInt(e.target.value) || 0 })}
+          required
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="project-start">開始日</Label>
+          <Input
+            id="project-start"
+            type="date"
+            value={formData.start_date}
+            onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+            required
+          />
+        </div>
+        <div>
+          <Label htmlFor="project-end">終了日（予定）</Label>
+          <Input
+            id="project-end"
+            type="date"
+            value={formData.end_date}
+            onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+          />
+        </div>
+      </div>
+      <div>
+        <Label htmlFor="project-status">ステータス</Label>
+        <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="active">アクティブ</SelectItem>
+            <SelectItem value="completed">完了</SelectItem>
+            <SelectItem value="cancelled">キャンセル</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
       <div className="flex justify-end space-x-2">
         <Button type="submit">
           {editingItem ? '更新' : '追加'}
