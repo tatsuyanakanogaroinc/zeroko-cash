@@ -5,26 +5,11 @@ import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Download, BarChart3, PieChart, TrendingUp, Users, Calendar, Filter } from 'lucide-react';
+import { Download, TrendingUp, Users, Calendar, Filter } from 'lucide-react';
 import { useMasterDataStore } from '@/lib/store';
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  PieChart as RechartsPieChart,
-  Pie,
-  Cell,
-  LineChart,
-  Line
-} from 'recharts';
 
 interface ExpenseData {
   id: string;
@@ -310,13 +295,6 @@ export default function ReportsPage() {
   const departmentBreakdown = getDepartmentBreakdown();
   const monthlyTrend = getMonthlyTrend();
 
-  // グラフ用データの準備
-  const categoryChartData = Object.entries(categoryBreakdown).map(([name, value]) => ({ name, value }));
-  const departmentChartData = Object.entries(departmentBreakdown).map(([name, value]) => ({ name, value }));
-  const monthlyChartData = Object.entries(monthlyTrend).map(([month, amount]) => ({ month, amount }));
-  
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
-
   return (
     <MainLayout>
       <div className="space-y-6">
@@ -434,7 +412,7 @@ export default function ReportsPage() {
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">申請件数</CardTitle>
-                  <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                  <Users className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{getFilteredExpenses().length}</div>
@@ -447,7 +425,7 @@ export default function ReportsPage() {
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">平均金額</CardTitle>
-                  <PieChart className="h-4 w-4 text-muted-foreground" />
+                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
@@ -479,25 +457,14 @@ export default function ReportsPage() {
                 <CardTitle>カテゴリ別支出</CardTitle>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <RechartsPieChart>
-                    <Pie 
-                      data={categoryChartData} 
-                      dataKey="value" 
-                      nameKey="name" 
-                      cx="50%" 
-                      cy="50%" 
-                      outerRadius={80} 
-                      fill="#8884d8"
-                      label
-                    >
-                      {categoryChartData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </RechartsPieChart>
-                </ResponsiveContainer>
+                <div className="space-y-4">
+                  {Object.entries(categoryBreakdown).map(([category, amount]) => (
+                    <div key={category} className="flex items-center justify-between p-3 border rounded">
+                      <span className="font-medium">{category}</span>
+                      <span className="font-bold">¥{amount.toLocaleString()}</span>
+                    </div>
+                  ))}
+                </div>
               </CardContent>
             </Card>
 
@@ -507,25 +474,14 @@ export default function ReportsPage() {
                 <CardTitle>部門別支出</CardTitle>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <RechartsPieChart>
-                    <Pie 
-                      data={departmentChartData} 
-                      dataKey="value" 
-                      nameKey="name" 
-                      cx="50%" 
-                      cy="50%" 
-                      outerRadius={80} 
-                      fill="#8884d8"
-                      label
-                    >
-                      {departmentChartData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </RechartsPieChart>
-                </ResponsiveContainer>
+                <div className="space-y-4">
+                  {Object.entries(departmentBreakdown).map(([department, amount]) => (
+                    <div key={department} className="flex items-center justify-between p-3 border rounded">
+                      <span className="font-medium">{department}</span>
+                      <span className="font-bold">¥{amount.toLocaleString()}</span>
+                    </div>
+                  ))}
+                </div>
               </CardContent>
             </Card>
 
@@ -535,15 +491,14 @@ export default function ReportsPage() {
                 <CardTitle>月次支出推移</CardTitle>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={monthlyChartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis />
-                    <Tooltip />
-                    <Line type="monotone" dataKey="amount" stroke="#8884d8" />
-                  </LineChart>
-                </ResponsiveContainer>
+                <div className="space-y-4">
+                  {Object.entries(monthlyTrend).map(([month, amount]) => (
+                    <div key={month} className="flex items-center justify-between p-3 border rounded">
+                      <span className="font-medium">{month}</span>
+                      <span className="font-bold">¥{amount.toLocaleString()}</span>
+                    </div>
+                  ))}
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
