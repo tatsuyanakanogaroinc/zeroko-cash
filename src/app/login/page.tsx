@@ -25,12 +25,12 @@ export default function LoginPage() {
     setError("");
     
     try {
-      await login(email);
+      await login(email, password);
       toast.success("ログインしました");
       router.push("/dashboard");
     } catch (error) {
       console.error("ログインエラー:", error);
-      setError("ログインに失敗しました。メールアドレスを確認してください。");
+      setError("ログインに失敗しました。メールアドレスとパスワードを確認してください。");
     } finally {
       setLoading(false);
     }

@@ -82,9 +82,16 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // エラーが発生してもダッシュボードが表示されるようにエラーハンドリングを改善
         const [expenseData, invoiceData] = await Promise.all([
-          expenseService.getExpenses(),
-          invoicePaymentService.getInvoicePayments().catch(() => [])
+          expenseService.getExpenses().catch((error) => {
+            console.warn('経費データ取得エラー:', error);
+            return [];
+          }),
+          invoicePaymentService.getInvoicePayments().catch((error) => {
+            console.warn('請求書データ取得エラー:', error);
+            return [];
+          })
         ]);
 
         // 自分の申請のみをフィルタリング

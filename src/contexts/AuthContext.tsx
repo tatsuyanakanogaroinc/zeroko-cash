@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { userService } from '@/lib/database';
+import { supabase } from '@/lib/supabase';
 import type { Database } from '@/lib/supabase';
 import type { UserRole } from '@/lib/permissions';
 
@@ -12,7 +13,7 @@ interface AuthContextType {
   loading: boolean;
   isAdmin: boolean;
   isManager: boolean;
-  login: (email: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -28,13 +29,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         // ブラウザ環境でのみlocalStorageにアクセス
         if (typeof window !== 'undefined') {
-          const storedUserId = localStorage.getItem('currentUserId');
-          if (storedUserId) {
-            const user = await userService.getUserById(storedUserId);
-            if (user) {
-              setUser(user);
-            } else {
-              // ストレージのユーザーIDが無効な場合はクリア
+          const storedUser = localStorage.getItem('currentUser');
+          if (storedUser) {
+            try {
+              const parsedUser = JSON.parse(storedUser);
+              setUser(parsedUser);
+            } catch (e) {
+              console.error('Failed to parse stored user:', e);
+              localStorage.removeItem('currentUser');
               localStorage.removeItem('currentUserId');
             }
           }
@@ -42,6 +44,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch (error) {
         console.error('ユーザー初期化エラー:', error);
         if (typeof window !== 'undefined') {
+          localStorage.removeItem('currentUser');
           localStorage.removeItem('currentUserId');
         }
       } finally {
@@ -52,34 +55,54 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     initializeUser();
   }, []);
 
-  const login = async (email: string) => {
-    setLoading(true);
-    try {
-      const users = await userService.getUsers();
-      const foundUser = users.find(u => u.email === email);
-      if (foundUser) {
-        setUser(foundUser);
-        // ローカルストレージにユーザーIDを保存
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('currentUserId', foundUser.id);
-        }
-      } else {
-        throw new Error('ユーザーが見つかりません');
-      }
-    } catch (error) {
-      console.error('ログインエラー:', error);
-      throw error; // エラーを再スロー
-    } finally {
-      setLoading(false);
+const login = async (email: string, password: string) => {
+  setLoading(true);
+  try {
+    const { error: authError, data: authData } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    if (authError || !authData.user) {
+      throw authError || new Error('不明なエラー');
     }
-  };
+
+    // 認証成功後、ユーザー情報を一時的に保存
+    // TODO: RLSポリシーが修正されたら、usersテーブルから完全な情報を取得する
+    const tempUser: User = {
+      id: authData.user.id,
+      email: authData.user.email || '',
+      name: '中野達哉', // 一時的にハードコード
+      role: 'admin' as const,
+      department_id: '1867faf8-3732-4503-9dbb-59316ab062d8', // 経営部門ID
+      initial_password: null,
+      password_changed: true,
+      created_at: new Date().toISOString()
+    };
+
+    setUser(tempUser);
+    // ローカルストレージにユーザー情報を保存
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('currentUser', JSON.stringify(tempUser));
+      localStorage.setItem('currentUserId', tempUser.id);
+    }
+  } catch (error) {
+    console.error('ログインエラー:', error);
+    throw error; // エラーを再スロー
+  } finally {
+    setLoading(false);
+  }
+};
 
   const logout = () => {
     setUser(null);
     // ローカルストレージからユーザー情報を削除
     if (typeof window !== 'undefined') {
+      localStorage.removeItem('currentUser');
       localStorage.removeItem('currentUserId');
     }
+    // Supabaseのセッションもクリア
+    supabase.auth.signOut();
   };
 
   const isAdmin = user?.role === 'admin';
