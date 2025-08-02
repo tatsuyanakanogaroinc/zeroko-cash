@@ -320,9 +320,9 @@ export default function DashboardPage() {
                 <p className="text-sm mt-2">新しい申請を作成してください</p>
               </div>
             ) : (
-              <div className="space-y-2">
-                {displayApplications.map(application => (
-                  <div key={application.id} className="bg-white border border-gray-200 rounded-lg p-3 hover:shadow-md transition-all duration-200 hover:border-gray-300">
+              <div className="space-y-1">
+                {displayApplications.map((application, index) => (
+                  <div key={application.id} className={`py-3 px-2 hover:bg-gray-50 transition-colors ${index !== displayApplications.length - 1 ? 'border-b border-gray-100' : ''}`}>
                     {/* 完全に一行ですべての情報を表示 */}
                     <div className="flex items-center justify-between gap-4">
                       {/* 左側：すべての情報を一列に */}
@@ -330,18 +330,18 @@ export default function DashboardPage() {
                         {/* タイプアイコン */}
                         <div className="flex-shrink-0">
                           {application.type === 'expense' ? (
-                            <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
+                            <div className="w-5 h-5 bg-blue-100 rounded-full flex items-center justify-center">
                               <FileText className="w-3 h-3 text-blue-600" />
                             </div>
                           ) : (
-                            <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
+                            <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center">
                               <DollarSign className="w-3 h-3 text-green-600" />
                             </div>
                           )}
                         </div>
                         
                         {/* 説明 */}
-                        <div className="font-semibold text-gray-900 truncate min-w-0 max-w-xs">
+                        <div className="font-medium text-gray-900 truncate min-w-0 max-w-xs">
                           {application.description}
                         </div>
                         
