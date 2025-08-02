@@ -93,14 +93,25 @@ export default function ApprovalsPage() {
           setCurrentUserRole(currentUser?.role || 'user');
         }
 
-        // 統合データの取得
-        const [expenseData, invoiceData] = await Promise.all([
-          expenseService.getExpenses(),
-          invoicePaymentService.getInvoicePayments().catch(() => [])
-        ]);
+        // Supabaseから直接データを取得（全ユーザーの申請データ）
+        let { data: expenseData, error: expenseError } = await supabase
+          .from('expenses')
+          .select("*, events:events!left(*)");
+
+        let { data: invoiceData, error: invoiceError } = await supabase
+          .from('invoice_payments')
+          .select("*, events:events!left(*)");
+
+        if (expenseError || invoiceError) {
+          console.error('Supabaseエラー:', expenseError || invoiceError);
+          return;
+        }
+        
+        console.log('All expenses:', expenseData?.length || 0);
+        console.log('All invoices:', invoiceData?.length || 0);
 
         // 経費申請データの正規化
-        const normalizedExpenses = expenseData.map(expense => ({
+        const normalizedExpenses = (expenseData || []).map(expense => ({
           ...expense,
           type: 'expense' as const,
           date: expense.expense_date,
@@ -108,7 +119,7 @@ export default function ApprovalsPage() {
         }));
 
         // 請求書払い申請データの正規化
-        const normalizedInvoices = invoiceData.map(invoice => ({
+        const normalizedInvoices = (invoiceData || []).map(invoice => ({
           ...invoice,
           type: 'invoice' as const,
           date: invoice.invoice_date,
