@@ -320,54 +320,78 @@ export default function DashboardPage() {
                 <p className="text-sm mt-2">新しい申請を作成してください</p>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {displayApplications.map(application => (
-                  <div key={application.id} className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all duration-200 hover:border-gray-300">
-                    {/* 一行で全情報を表示 */}
+                  <div key={application.id} className="bg-white border border-gray-200 rounded-lg p-3 hover:shadow-md transition-all duration-200 hover:border-gray-300">
+                    {/* 完全に一行ですべての情報を表示 */}
                     <div className="flex items-center justify-between gap-4">
-                      {/* 左側：タイプアイコン + 説明 + 金額 */}
+                      {/* 左側：すべての情報を一列に */}
                       <div className="flex items-center gap-3 flex-1 min-w-0">
                         {/* タイプアイコン */}
                         <div className="flex-shrink-0">
                           {application.type === 'expense' ? (
-                            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                              <FileText className="w-4 h-4 text-blue-600" />
+                            <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
+                              <FileText className="w-3 h-3 text-blue-600" />
                             </div>
                           ) : (
-                            <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                              <DollarSign className="w-4 h-4 text-green-600" />
+                            <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
+                              <DollarSign className="w-3 h-3 text-green-600" />
                             </div>
                           )}
                         </div>
                         
-                        {/* 説明とメタ情報 */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-semibold text-gray-900 truncate">{application.description}</h3>
-                            <span className="text-lg font-bold text-gray-900">¥{application.amount.toLocaleString()}</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-sm text-gray-600 flex-wrap">
-                            <span>{application.date}</span>
-                            <span className="text-gray-400">•</span>
-                            <span>{getDepartmentName(application.department_id)}</span>
-                            {application.event_name && (
-                              <>
-                                <span className="text-gray-400">•</span>
-                                <span>イベント: {application.event_name}</span>
-                              </>
-                            )}
-                            <span className="text-gray-400">•</span>
-                            <span>{getProjectName(application.project_id)}</span>
-                            <span className="text-gray-400">•</span>
-                            <span>{getCategoryName(application.category_id)}</span>
-                            <span className="text-gray-400">•</span>
-                            <span>{getPaymentMethodLabel(application.payment_method)}</span>
-                          </div>
+                        {/* 説明 */}
+                        <div className="font-semibold text-gray-900 truncate min-w-0 max-w-xs">
+                          {application.description}
                         </div>
+                        
+                        {/* 金額 */}
+                        <div className="font-bold text-gray-900 flex-shrink-0">
+                          ¥{application.amount.toLocaleString()}
+                        </div>
+                        
+                        {/* 日付 */}
+                        <div className="text-sm text-gray-600 flex-shrink-0">
+                          {application.date}
+                        </div>
+                        
+                        {/* 部門 */}
+                        <div className="text-sm text-gray-600 flex-shrink-0">
+                          {getDepartmentName(application.department_id)}
+                        </div>
+                        
+                        {/* イベント */}
+                        {application.event_name && (
+                          <div className="text-sm text-gray-600 flex-shrink-0">
+                            {application.event_name}
+                          </div>
+                        )}
+                        
+                        {/* プロジェクト */}
+                        <div className="text-sm text-gray-600 flex-shrink-0">
+                          {getProjectName(application.project_id)}
+                        </div>
+                        
+                        {/* カテゴリ */}
+                        <div className="text-sm text-gray-600 flex-shrink-0">
+                          {getCategoryName(application.category_id)}
+                        </div>
+                        
+                        {/* 支払方法 */}
+                        <div className="text-sm text-gray-600 flex-shrink-0">
+                          {getPaymentMethodLabel(application.payment_method)}
+                        </div>
+                        
+                        {/* 却下理由（却下の場合のみ） */}
+                        {application.status === 'rejected' && application.comments && (
+                          <div className="text-sm text-red-600 flex-shrink-0 max-w-xs truncate" title={application.comments}>
+                            却下: {application.comments}
+                          </div>
+                        )}
                       </div>
                       
                       {/* 右側：ステータス + アクションボタン */}
-                      <div className="flex items-center gap-3 flex-shrink-0">
+                      <div className="flex items-center gap-2 flex-shrink-0">
                         {/* ステータス */}
                         <div>
                           {getStatusBadge(application.status)}
@@ -375,12 +399,12 @@ export default function DashboardPage() {
                         
                         {/* アクションボタン（承認待ちの場合のみ） */}
                         {application.status === 'pending' && (
-                          <div className="flex gap-2">
+                          <div className="flex gap-1">
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={() => handleEditApplication(application.id, application.type)}
-                              className="h-8 px-3 text-blue-600 hover:text-white hover:bg-blue-600 border-blue-200 flex items-center gap-1"
+                              className="h-7 px-2 text-blue-600 hover:text-white hover:bg-blue-600 border-blue-200 flex items-center gap-1"
                             >
                               <Edit className="w-3 h-3" />
                               編集
@@ -389,7 +413,7 @@ export default function DashboardPage() {
                               variant="outline"
                               size="sm"
                               onClick={() => handleDeleteApplication(application.id, application.type)}
-                              className="h-8 px-3 text-red-600 hover:text-white hover:bg-red-600 border-red-200 flex items-center gap-1"
+                              className="h-7 px-2 text-red-600 hover:text-white hover:bg-red-600 border-red-200 flex items-center gap-1"
                             >
                               <Trash2 className="w-3 h-3" />
                               削除
@@ -398,19 +422,6 @@ export default function DashboardPage() {
                         )}
                       </div>
                     </div>
-                    
-                    {/* 却下理由がある場合は下に表示 */}
-                    {application.status === 'rejected' && application.comments && (
-                      <div className="mt-3 pt-3 border-t border-gray-100">
-                        <div className="flex items-start gap-2">
-                          <XCircle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
-                          <div>
-                            <span className="text-sm font-medium text-red-700">却下理由:</span>
-                            <p className="text-sm text-red-600 mt-1">{application.comments}</p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 ))}
               </div>
