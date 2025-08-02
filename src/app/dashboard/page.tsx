@@ -1,4 +1,5 @@
-'use client';
+'use client'
+// Updated dashboard with clean list layout - deployment trigger
 
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
