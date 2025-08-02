@@ -320,83 +320,98 @@ export default function DashboardPage() {
                 <p className="text-sm mt-2">新しい申請を作成してください</p>
               </div>
             ) : (
-              <div className="grid gap-4">
+              <div className="space-y-3">
                 {displayApplications.map(application => (
-                  <Card key={application.id} className="hover:shadow-md transition-shadow">
-                    <CardContent className="p-4">
-                      {/* メインコンテンツ行 */}
-                      <div className="flex items-start justify-between mb-3">
-                        {/* 左側：基本情報 */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            {application.type === 'expense' ? (
+                  <div key={application.id} className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-all duration-200 hover:border-gray-300">
+                    {/* 一行で全情報を表示 */}
+                    <div className="flex items-center justify-between gap-4">
+                      {/* 左側：タイプアイコン + 説明 + 金額 */}
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        {/* タイプアイコン */}
+                        <div className="flex-shrink-0">
+                          {application.type === 'expense' ? (
+                            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
                               <FileText className="w-4 h-4 text-blue-600" />
-                            ) : (
+                            </div>
+                          ) : (
+                            <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
                               <DollarSign className="w-4 h-4 text-green-600" />
-                            )}
-                            <h3 className="font-medium text-base truncate">{application.description}</h3>
-                          </div>
-                          <p className="text-sm text-gray-600 mb-2">{application.date}</p>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xl font-bold text-gray-900">¥{application.amount.toLocaleString()}</span>
-                            {getStatusBadge(application.status)}
-                          </div>
+                            </div>
+                          )}
                         </div>
                         
-                        {/* 右側：アクションボタン */}
+                        {/* 説明とメタ情報 */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-semibold text-gray-900 truncate">{application.description}</h3>
+                            <span className="text-lg font-bold text-gray-900">¥{application.amount.toLocaleString()}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-gray-600 flex-wrap">
+                            <span>{application.date}</span>
+                            <span className="text-gray-400">•</span>
+                            <span>{getDepartmentName(application.department_id)}</span>
+                            {application.event_name && (
+                              <>
+                                <span className="text-gray-400">•</span>
+                                <span>イベント: {application.event_name}</span>
+                              </>
+                            )}
+                            <span className="text-gray-400">•</span>
+                            <span>{getProjectName(application.project_id)}</span>
+                            <span className="text-gray-400">•</span>
+                            <span>{getCategoryName(application.category_id)}</span>
+                            <span className="text-gray-400">•</span>
+                            <span>{getPaymentMethodLabel(application.payment_method)}</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* 右側：ステータス + アクションボタン */}
+                      <div className="flex items-center gap-3 flex-shrink-0">
+                        {/* ステータス */}
+                        <div>
+                          {getStatusBadge(application.status)}
+                        </div>
+                        
+                        {/* アクションボタン（承認待ちの場合のみ） */}
                         {application.status === 'pending' && (
-                          <div className="flex gap-2 ml-4">
+                          <div className="flex gap-2">
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={() => handleEditApplication(application.id, application.type)}
-                              className="h-9 px-3 text-blue-600 hover:text-white hover:bg-blue-600 border-blue-200 flex items-center gap-1"
+                              className="h-8 px-3 text-blue-600 hover:text-white hover:bg-blue-600 border-blue-200 flex items-center gap-1"
                             >
-                              <Edit className="w-4 h-4" />
+                              <Edit className="w-3 h-3" />
                               編集
                             </Button>
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={() => handleDeleteApplication(application.id, application.type)}
-                              className="h-9 px-3 text-red-600 hover:text-white hover:bg-red-600 border-red-200 flex items-center gap-1"
+                              className="h-8 px-3 text-red-600 hover:text-white hover:bg-red-600 border-red-200 flex items-center gap-1"
                             >
-                              <Trash2 className="w-4 h-4" />
+                              <Trash2 className="w-3 h-3" />
                               削除
                             </Button>
                           </div>
                         )}
                       </div>
-                      
-                      {/* 詳細情報タグ */}
-                      <div className="flex flex-wrap gap-2">
-                        <Badge variant="secondary" className="text-xs">
-                          {getDepartmentName(application.department_id)}
-                        </Badge>
-                        {application.event_name && (
-                          <Badge variant="secondary" className="text-xs">
-                            イベント: {application.event_name}
-                          </Badge>
-                        )}
-                        <Badge variant="secondary" className="text-xs">
-                          {getProjectName(application.project_id)}
-                        </Badge>
-                        <Badge variant="secondary" className="text-xs">
-                          {getCategoryName(application.category_id)}
-                        </Badge>
-                        <Badge variant="outline" className="text-xs">
-                          {getPaymentMethodLabel(application.payment_method)}
-                        </Badge>
-                        
-                        {/* 却下理由がある場合は表示 */}
-                        {application.status === 'rejected' && application.comments && (
-                          <Badge variant="destructive" className="text-xs max-w-xs" title={application.comments}>
-                            却下理由: {application.comments.length > 15 ? application.comments.substring(0, 15) + '...' : application.comments}
-                          </Badge>
-                        )}
+                    </div>
+                    
+                    {/* 却下理由がある場合は下に表示 */}
+                    {application.status === 'rejected' && application.comments && (
+                      <div className="mt-3 pt-3 border-t border-gray-100">
+                        <div className="flex items-start gap-2">
+                          <XCircle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <span className="text-sm font-medium text-red-700">却下理由:</span>
+                            <p className="text-sm text-red-600 mt-1">{application.comments}</p>
+                          </div>
+                        </div>
                       </div>
-                    </CardContent>
-                  </Card>
+                    )}
+                  </div>
                 ))}
               </div>
             )}
