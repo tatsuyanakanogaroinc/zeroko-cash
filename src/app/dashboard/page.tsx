@@ -1,5 +1,5 @@
 'use client'
-// Updated dashboard with clean list layout - deployment trigger
+// Updated dashboard with clean list layout - force redeploy 2025-01-02
 
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
