@@ -2,6 +2,8 @@
 
 社内の経費精算プロセスをデジタル化し、申請から承認、集計まで一元管理できるWebアプリケーションです。
 
+**最終更新: 2025-01-02 - ダッシュボードUIをクリーンなリストレイアウトに変更**
+
 ![Next.js](https://img.shields.io/badge/Next.js-15.4.5-black)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)
 ![Supabase](https://img.shields.io/badge/Supabase-Connected-green)
