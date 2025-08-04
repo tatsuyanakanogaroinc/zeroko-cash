@@ -24,7 +24,8 @@ import {
   CheckCircle,
   Clock,
   Target,
-  Tag
+  Tag,
+  X
 } from 'lucide-react';
 
 interface Summary {
@@ -99,6 +100,8 @@ export default function ReportsPage() {
   const [reportData, setReportData] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedItem, setSelectedItem] = useState<Summary | null>(null);
+  const [detailPanelOpen, setDetailPanelOpen] = useState(false);
 
   // Fetch all report data from API
   useEffect(() => {
@@ -299,6 +302,18 @@ export default function ReportsPage() {
     return 'bg-green-500';
   };
 
+  // Open detail panel function
+  const openDetailPanel = (item: Summary) => {
+    setSelectedItem(item);
+    setDetailPanelOpen(true);
+  };
+
+  // Close detail panel function
+  const closeDetailPanel = () => {
+    setDetailPanelOpen(false);
+    setSelectedItem(null);
+  };
+
   const CategoryCard = ({ item, icon: Icon, type }: { item: Summary; icon: any; type: string }) => (
     <Card className="hover:shadow-lg transition-shadow duration-200">
       <CardHeader className="pb-3">
@@ -337,201 +352,10 @@ export default function ReportsPage() {
         </div>
         
         <div className="flex justify-end">
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm" className="text-xs">
-                <Eye className="h-3 w-3 mr-1" />
-                詳細を見る
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-none w-[98vw] max-h-[95vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle className="flex items-center space-x-2">
-                  <Icon className="h-5 w-5 text-purple-600" />
-                  <span>{item.name} - 勘定科目詳細</span>
-                </DialogTitle>
-              </DialogHeader>
-              <div className="space-y-8 mt-6">
-                {/* Summary */}
-                <div className="grid grid-cols-4 gap-4">
-                  <div className="text-center p-4 bg-purple-50 rounded-lg">
-                    <div className="text-purple-600 font-semibold text-sm">予算</div>
-                    <div className="text-2xl font-bold text-purple-800">¥{item.budget.toLocaleString()}</div>
-                  </div>
-                  <div className="text-center p-4 bg-orange-50 rounded-lg">
-                    <div className="text-orange-600 font-semibold text-sm">使用額</div>
-                    <div className="text-2xl font-bold text-orange-800">¥{item.total_expenses.toLocaleString()}</div>
-                  </div>
-                  <div className="text-center p-4 bg-green-50 rounded-lg">
-                    <div className="text-green-600 font-semibold text-sm">残額</div>
-                    <div className="text-2xl font-bold text-green-800">¥{item.remaining.toLocaleString()}</div>
-                  </div>
-                  <div className="text-center p-4 bg-gray-50 rounded-lg">
-                    <div className="text-gray-600 font-semibold text-sm">使用率</div>
-                    <div className="text-2xl font-bold text-gray-800">{item.usage_percentage.toFixed(1)}%</div>
-                  </div>
-                </div>
-                
-                {/* Progress Bar */}
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm font-medium">
-                    <span>予算使用状況</span>
-                    <span>{item.usage_percentage.toFixed(1)}%</span>
-                  </div>
-                  <Progress value={item.usage_percentage} className="h-3" />
-                </div>
-                
-                {/* User Analysis for Categories */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center space-x-2">
-                      <Users className="h-5 w-5 text-green-600" />
-                      <span>ユーザー別支出</span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {(() => {
-                        const expenses = getExpensesForCategory(item.id);
-                        const userTotals = expenses.reduce((acc, expense) => {
-                          if (!acc[expense.user_name]) {
-                            acc[expense.user_name] = { total: 0, count: 0 };
-                          }
-                          acc[expense.user_name].total += expense.amount;
-                          acc[expense.user_name].count += 1;
-                          return acc;
-                        }, {} as Record<string, { total: number; count: number }>);
-                        
-                        if (Object.keys(userTotals).length === 0) {
-                          return <div className="text-center text-gray-500 py-4">経費データがありません</div>;
-                        }
-                        
-                        return Object.entries(userTotals)
-                          .sort(([,a], [,b]) => b.total - a.total)
-                          .map(([userName, data]) => {
-                            const percentage = item.total_expenses > 0 ? (data.total / item.total_expenses) * 100 : 0;
-                            return (
-                              <div key={userName} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                <div className="flex items-center space-x-3">
-                                  <Avatar className="h-8 w-8">
-                                    <AvatarFallback className="bg-purple-100 text-purple-600 text-xs">
-                                      {userName.charAt(0)}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                  <div>
-                                    <div className="font-medium text-sm">{userName}</div>
-                                    <div className="text-xs text-gray-500">{data.count}件の申請</div>
-                                  </div>
-                                </div>
-                                <div className="text-right">
-                                  <div className="font-semibold">¥{data.total.toLocaleString()}</div>
-                                  <div className="text-xs text-gray-500">{Math.round(percentage)}%</div>
-                                </div>
-                              </div>
-                            );
-                          });
-                      })()}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Monthly Trend for Categories */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center space-x-2">
-                      <TrendingUp className="h-5 w-5 text-purple-600" />
-                      <span>月別支出推移</span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-6 gap-4">
-                      {(() => {
-                        const currentDate = new Date();
-                        const months = [];
-                        const monthlyAmounts = getMonthlyExpenses(item.id, 'category');
-                        const maxAmount = Math.max(...monthlyAmounts, 1);
-                        
-                        // Generate month labels (last 6 months)
-                        for (let i = 5; i >= 0; i--) {
-                          const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
-                          months.push(`${date.getMonth() + 1}月`);
-                        }
-                        
-                        return months.map((month, index) => {
-                          const amount = monthlyAmounts[index];
-                          const percentage = maxAmount > 0 ? (amount / maxAmount) * 100 : 0;
-                          return (
-                            <div key={month} className="text-center">
-                              <div className="text-xs text-gray-600 mb-2">{month}</div>
-                              <div className="h-20 bg-gray-100 rounded relative flex items-end justify-center">
-                                <div 
-                                  className="bg-purple-500 rounded w-full transition-all duration-300" 
-                                  style={{ height: `${Math.max(percentage, 5)}%` }}
-                                ></div>
-                              </div>
-                              <div className="text-xs font-medium mt-2">¥{amount.toLocaleString()}</div>
-                            </div>
-                          );
-                        });
-                      })()}
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                {/* Detailed Expenses List for Categories */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center space-x-2">
-                      <FileText className="h-5 w-5 text-gray-600" />
-                      <span>申請詳細一覧</span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3 max-h-96 overflow-y-auto">
-                      {(() => {
-                        const expenses = getExpensesForCategory(item.id);
-                        
-                        if (expenses.length === 0) {
-                          return <div className="text-center text-gray-500 py-8">経費データがありません</div>;
-                        }
-                        
-                        return expenses.map(expense => (
-                          <div key={expense.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
-                            <div className="flex items-center space-x-4">
-                              <Avatar className="h-10 w-10">
-                                <AvatarFallback className="bg-purple-100 text-purple-600 text-sm">
-                                  {expense.user_name.charAt(0)}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div>
-                                <div className="font-medium">{expense.user_name}</div>
-                                <div className="text-sm text-gray-600">{expense.description}</div>
-                                <div className="text-xs text-gray-500">{expense.date}</div>
-                              </div>
-                            </div>
-                            <div className="flex items-center space-x-3">
-                              <div className="text-right">
-                                <div className="text-lg font-semibold">¥{expense.amount.toLocaleString()}</div>
-                              </div>
-                              <Badge className={
-                                expense.status === 'approved' 
-                                  ? 'bg-green-100 text-green-800' 
-                                  : expense.status === 'pending'
-                                  ? 'bg-yellow-100 text-yellow-800'
-                                  : 'bg-red-100 text-red-800'
-                              }>
-                                {expense.status === 'approved' ? '承認済み' : expense.status === 'pending' ? '承認待ち' : '却下'}
-                              </Badge>
-                            </div>
-                          </div>
-                        ));
-                      })()}
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </DialogContent>
-          </Dialog>
+                <Button variant="outline" size="sm" className="text-xs" onClick={() => openDetailPanel(item)}>
+                  <Eye className="h-3 w-3 mr-1" />
+                  詳細を見る
+                </Button>
         </div>
       </CardContent>
     </Card>
@@ -575,13 +399,10 @@ export default function ReportsPage() {
         </div>
         
         <div className="flex justify-end">
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm" className="text-xs">
+              <Button variant="outline" size="sm" className="text-xs" onClick={() => openDetailPanel(item)}>
                 <Eye className="h-3 w-3 mr-1" />
                 詳細を見る
               </Button>
-            </DialogTrigger>
             <DialogContent className="max-w-none w-[95vw] max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className="flex items-center space-x-2">
@@ -1129,6 +950,338 @@ export default function ReportsPage() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Sliding Detail Panel */}
+      {detailPanelOpen && selectedItem && (
+        <>
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 z-40" 
+            onClick={closeDetailPanel}
+          />
+          
+          {/* Sliding Panel */}
+          <div className="fixed inset-y-0 right-0 w-3/4 max-w-4xl bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out overflow-y-auto">
+            {/* Panel Header */}
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                {(() => {
+                  const Icon = categories.some(c => c.id === selectedItem.id) ? Tag :
+                              departments.some(d => d.id === selectedItem.id) ? Building :
+                              projects.some(p => p.id === selectedItem.id) ? FolderOpen : Calendar;
+                  return <Icon className="h-6 w-6 text-blue-600" />;
+                })()}
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900">{selectedItem.name}</h2>
+                  <p className="text-sm text-gray-500">詳細レポート</p>
+                </div>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={closeDetailPanel}
+                className="hover:bg-gray-100"
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+
+            {/* Panel Content */}
+            <div className="p-6 space-y-8">
+              {/* Summary */}
+              <div className="grid grid-cols-4 gap-4">
+                <div className="text-center p-4 bg-blue-50 rounded-lg">
+                  <div className="text-blue-600 font-semibold text-sm">予算</div>
+                  <div className="text-2xl font-bold text-blue-800">¥{selectedItem.budget.toLocaleString()}</div>
+                </div>
+                <div className="text-center p-4 bg-orange-50 rounded-lg">
+                  <div className="text-orange-600 font-semibold text-sm">使用額</div>
+                  <div className="text-2xl font-bold text-orange-800">¥{selectedItem.total_expenses.toLocaleString()}</div>
+                </div>
+                <div className="text-center p-4 bg-green-50 rounded-lg">
+                  <div className="text-green-600 font-semibold text-sm">残額</div>
+                  <div className="text-2xl font-bold text-green-800">¥{selectedItem.remaining.toLocaleString()}</div>
+                </div>
+                <div className="text-center p-4 bg-gray-50 rounded-lg">
+                  <div className="text-gray-600 font-semibold text-sm">使用率</div>
+                  <div className="text-2xl font-bold text-gray-800">{selectedItem.usage_percentage.toFixed(1)}%</div>
+                </div>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm font-medium">
+                  <span>予算使用状況</span>
+                  <span>{selectedItem.usage_percentage.toFixed(1)}%</span>
+                </div>
+                <Progress value={selectedItem.usage_percentage} className="h-3" />
+              </div>
+
+              {/* Analysis Section */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Category Analysis */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <BarChart3 className="h-5 w-5 text-blue-600" />
+                      <span>勘定科目別支出</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {(() => {
+                        const itemType = categories.some(c => c.id === selectedItem.id) ? 'category' :
+                                        departments.some(d => d.id === selectedItem.id) ? 'department' : 
+                                        projects.some(p => p.id === selectedItem.id) ? 'project' : 'event';
+                        
+                        if (itemType === 'category') {
+                          const expenses = getExpensesForCategory(selectedItem.id);
+                          const userTotals = expenses.reduce((acc, expense) => {
+                            if (!acc[expense.user_name]) {
+                              acc[expense.user_name] = { total: 0, count: 0 };
+                            }
+                            acc[expense.user_name].total += expense.amount;
+                            acc[expense.user_name].count += 1;
+                            return acc;
+                          }, {} as Record<string, { total: number; count: number }>);
+
+                          if (Object.keys(userTotals).length === 0) {
+                            return <div className="text-center text-gray-500 py-4">経費データがありません</div>;
+                          }
+
+                          return Object.entries(userTotals)
+                            .sort(([,a], [,b]) => b.total - a.total)
+                            .map(([userName, data]) => {
+                              const percentage = selectedItem.total_expenses > 0 ? (data.total / selectedItem.total_expenses) * 100 : 0;
+                              return (
+                                <div key={userName} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                  <div className="flex items-center space-x-3">
+                                    <Avatar className="h-8 w-8">
+                                      <AvatarFallback className="bg-blue-100 text-blue-600 text-xs">
+                                        {userName.charAt(0)}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <div>
+                                      <div className="font-medium text-sm">{userName}</div>
+                                      <div className="text-xs text-gray-500">{data.count}件の申請</div>
+                                    </div>
+                                  </div>
+                                  <div className="text-right">
+                                    <div className="font-semibold">¥{data.total.toLocaleString()}</div>
+                                    <div className="text-xs text-gray-500">{Math.round(percentage)}%</div>
+                                  </div>
+                                </div>
+                              );
+                            });
+                        } else {
+                          const expenses = getExpensesForItem(selectedItem.id, itemType);
+                          const categoryTotals = expenses.reduce((acc, expense) => {
+                            acc[expense.category] = (acc[expense.category] || 0) + expense.amount;
+                            return acc;
+                          }, {} as Record<string, number>);
+                          
+                          if (Object.keys(categoryTotals).length === 0) {
+                            return <div className="text-center text-gray-500 py-4">経費データがありません</div>;
+                          }
+                          
+                          return Object.entries(categoryTotals)
+                            .sort(([,a], [,b]) => b - a)
+                            .map(([category, amount]) => {
+                              const percentage = selectedItem.total_expenses > 0 ? (amount / selectedItem.total_expenses) * 100 : 0;
+                              return (
+                                <div key={category} className="space-y-2">
+                                  <div className="flex justify-between items-center">
+                                    <span className="font-medium text-sm">{category}</span>
+                                    <div className="text-right">
+                                      <div className="font-semibold">¥{amount.toLocaleString()}</div>
+                                      <div className="text-xs text-gray-500">{percentage.toFixed(1)}%</div>
+                                    </div>
+                                  </div>
+                                  <Progress value={percentage} className="h-2" />
+                                </div>
+                              );
+                            });
+                        }
+                      })()}
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                {/* User Analysis */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <Users className="h-5 w-5 text-green-600" />
+                      <span>ユーザー別支出</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {(() => {
+                        const itemType = categories.some(c => c.id === selectedItem.id) ? 'category' :
+                                        departments.some(d => d.id === selectedItem.id) ? 'department' : 
+                                        projects.some(p => p.id === selectedItem.id) ? 'project' : 'event';
+                        
+                        let expenses;
+                        if (itemType === 'category') {
+                          expenses = getExpensesForCategory(selectedItem.id);
+                        } else {
+                          expenses = getExpensesForItem(selectedItem.id, itemType);
+                        }
+                        
+                        const userTotals = expenses.reduce((acc, expense) => {
+                          if (!acc[expense.user_name]) {
+                            acc[expense.user_name] = { total: 0, count: 0 };
+                          }
+                          acc[expense.user_name].total += expense.amount;
+                          acc[expense.user_name].count += 1;
+                          return acc;
+                        }, {} as Record<string, { total: number; count: number }>);
+                        
+                        if (Object.keys(userTotals).length === 0) {
+                          return <div className="text-center text-gray-500 py-4">経費データがありません</div>;
+                        }
+                        
+                        return Object.entries(userTotals)
+                          .sort(([,a], [,b]) => b.total - a.total)
+                          .map(([userName, data]) => {
+                            const percentage = selectedItem.total_expenses > 0 ? (data.total / selectedItem.total_expenses) * 100 : 0;
+                            return (
+                              <div key={userName} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                <div className="flex items-center space-x-3">
+                                  <Avatar className="h-8 w-8">
+                                    <AvatarFallback className="bg-green-100 text-green-600 text-xs">
+                                      {userName.charAt(0)}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <div>
+                                    <div className="font-medium text-sm">{userName}</div>
+                                    <div className="text-xs text-gray-500">{data.count}件の申請</div>
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <div className="font-semibold">¥{data.total.toLocaleString()}</div>
+                                  <div className="text-xs text-gray-500">{Math.round(percentage)}%</div>
+                                </div>
+                              </div>
+                            );
+                          });
+                      })()}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Monthly Trend */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <TrendingUp className="h-5 w-5 text-purple-600" />
+                    <span>月別支出推移</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-6 gap-4">
+                    {(() => {
+                      const currentDate = new Date();
+                      const months = [];
+                      const itemType = categories.some(c => c.id === selectedItem.id) ? 'category' :
+                                      departments.some(d => d.id === selectedItem.id) ? 'department' : 
+                                      projects.some(p => p.id === selectedItem.id) ? 'project' : 'event';
+                      const monthlyAmounts = getMonthlyExpenses(selectedItem.id, itemType);
+                      const maxAmount = Math.max(...monthlyAmounts, 1);
+                      
+                      // Generate month labels (last 6 months)
+                      for (let i = 5; i >= 0; i--) {
+                        const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+                        months.push(`${date.getMonth() + 1}月`);
+                      }
+                      
+                      return months.map((month, index) => {
+                        const amount = monthlyAmounts[index];
+                        const percentage = maxAmount > 0 ? (amount / maxAmount) * 100 : 0;
+                        return (
+                          <div key={month} className="text-center">
+                            <div className="text-xs text-gray-600 mb-2">{month}</div>
+                            <div className="h-20 bg-gray-100 rounded relative flex items-end justify-center">
+                              <div 
+                                className="bg-purple-500 rounded w-full transition-all duration-300" 
+                                style={{ height: `${Math.max(percentage, 5)}%` }}
+                              ></div>
+                            </div>
+                            <div className="text-xs font-medium mt-2">¥{amount.toLocaleString()}</div>
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Detailed Expenses List */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <FileText className="h-5 w-5 text-gray-600" />
+                    <span>申請詳細一覧</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {(() => {
+                      const itemType = categories.some(c => c.id === selectedItem.id) ? 'category' :
+                                      departments.some(d => d.id === selectedItem.id) ? 'department' : 
+                                      projects.some(p => p.id === selectedItem.id) ? 'project' : 'event';
+                      
+                      let expenses;
+                      if (itemType === 'category') {
+                        expenses = getExpensesForCategory(selectedItem.id);
+                      } else {
+                        expenses = getExpensesForItem(selectedItem.id, itemType);
+                      }
+                      
+                      if (expenses.length === 0) {
+                        return <div className="text-center text-gray-500 py-8">経費データがありません</div>;
+                      }
+                      
+                      return expenses.map(expense => (
+                        <div key={expense.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
+                          <div className="flex items-center space-x-4">
+                            <Avatar className="h-10 w-10">
+                              <AvatarFallback className="bg-blue-100 text-blue-600 text-sm">
+                                {expense.user_name.charAt(0)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <div className="font-medium">{expense.user_name}</div>
+                              <div className="text-sm text-gray-600">{expense.category} - {expense.description}</div>
+                              <div className="text-xs text-gray-500">{expense.date}</div>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-3">
+                            <div className="text-right">
+                              <div className="text-lg font-semibold">¥{expense.amount.toLocaleString()}</div>
+                            </div>
+                            <Badge className={
+                              expense.status === 'approved' 
+                                ? 'bg-green-100 text-green-800' 
+                                : expense.status === 'pending'
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : 'bg-red-100 text-red-800'
+                            }>
+                              {expense.status === 'approved' ? '承認済み' : expense.status === 'pending' ? '承認待ち' : '却下'}
+                            </Badge>
+                          </div>
+                        </div>
+                      ));
+                    })()}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </>
+      )}
     </MainLayout>
   );
 }
