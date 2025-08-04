@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import * as React from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -21,7 +21,7 @@ import { supabase } from '@/lib/supabase';
 import { userService } from '@/lib/database';
 import { useAuth } from '@/contexts/AuthContext';
 
-export default function NewExpensePage() {
+function NewExpenseForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [sortedCategories, setSortedCategories] = useState<any[]>([]);
@@ -436,4 +436,30 @@ export default function NewExpensePage() {
       </div>
     </MainLayout>
   );
-} 
+}
+
+// Loading component for Suspense fallback
+function ExpenseFormSkeleton() {
+  return (
+    <MainLayout>
+      <div className="max-w-4xl mx-auto space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold">経費申請</h1>
+          <p className="text-gray-600">新しい経費申請を作成します</p>
+        </div>
+        <div className="animate-pulse">
+          <div className="bg-gray-200 h-96 rounded-lg mb-6"></div>
+          <div className="bg-gray-200 h-64 rounded-lg"></div>
+        </div>
+      </div>
+    </MainLayout>
+  );
+}
+
+export default function NewExpensePage() {
+  return (
+    <Suspense fallback={<ExpenseFormSkeleton />}>
+      <NewExpenseForm />
+    </Suspense>
+  );
+}
