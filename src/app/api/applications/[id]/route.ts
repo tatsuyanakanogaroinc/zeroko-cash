@@ -33,9 +33,26 @@ export async function DELETE(
         );
       }
 
-      if (expense.user_id !== userId) {
+      // 申請者本人または管理者のみが削除可能
+      const { data: currentUser, error: userError } = await supabaseAdmin
+        .from('users')
+        .select('role')
+        .eq('id', userId)
+        .single();
+
+      if (userError || !currentUser) {
         return NextResponse.json(
-          { error: '他のユーザーの申請は削除できません' },
+          { error: 'ユーザー情報の取得に失敗しました' },
+          { status: 400 }
+        );
+      }
+
+      const isOwner = expense.user_id === userId;
+      const isAdmin = currentUser.role === 'admin';
+      
+      if (!isOwner && !isAdmin) {
+        return NextResponse.json(
+          { error: '申請の削除権限がありません' },
           { status: 403 }
         );
       }
@@ -79,9 +96,26 @@ export async function DELETE(
         );
       }
 
-      if (invoice.user_id !== userId) {
+      // 申請者本人または管理者のみが削除可能
+      const { data: currentUser, error: userError } = await supabaseAdmin
+        .from('users')
+        .select('role')
+        .eq('id', userId)
+        .single();
+
+      if (userError || !currentUser) {
         return NextResponse.json(
-          { error: '他のユーザーの申請は削除できません' },
+          { error: 'ユーザー情報の取得に失敗しました' },
+          { status: 400 }
+        );
+      }
+
+      const isOwner = invoice.user_id === userId;
+      const isAdmin = currentUser.role === 'admin';
+      
+      if (!isOwner && !isAdmin) {
+        return NextResponse.json(
+          { error: '申請の削除権限がありません' },
           { status: 403 }
         );
       }

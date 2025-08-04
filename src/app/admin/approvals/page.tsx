@@ -333,8 +333,22 @@ export default function ApprovalsPage() {
       const data = await response.json();
 
       if (response.ok) {
-        // 申請一覧から削除
-        setApplications(prev => prev.filter(app => app.id !== application.id));
+        // 全データを再取得して同期を確保
+        const refreshResponse = await fetch('/api/applications');
+        if (refreshResponse.ok) {
+          const refreshData = await refreshResponse.json();
+          if (refreshData.success && refreshData.data) {
+            const normalizedData = refreshData.data.map((item: any) => ({
+              ...item,
+              date: item.date || item.expense_date || item.invoice_date,
+              department_id: item.department_id || item.departments?.id,
+              category_id: item.category_id || item.categories?.id,
+              project_id: item.project_id || item.projects?.id,
+              event_id: item.event_id || item.events?.id,
+            }));
+            setApplications(normalizedData);
+          }
+        }
         alert(`${typeLabel}を削除しました`);
       } else {
         alert(data.error || '削除に失敗しました');

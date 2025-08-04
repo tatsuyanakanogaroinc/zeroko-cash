@@ -269,8 +269,8 @@ export default function DashboardPage() {
         return;
       }
 
-      // 成功時にローカルの状態を更新
-      setAllApplications(prev => prev.filter(app => app.id !== applicationId));
+      // 成功時に全データを再取得して同期を確保
+      await fetchData();
       alert(data.message);
 
     } catch (error) {
