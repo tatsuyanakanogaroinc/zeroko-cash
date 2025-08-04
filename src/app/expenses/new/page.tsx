@@ -41,8 +41,36 @@ function NewExpenseForm() {
       setIsEditMode(true);
       setEditingExpenseId(editId);
       console.log('編集モード:', editId);
+      loadExpenseForEdit(editId);
     }
   }, [searchParams]);
+
+  // 編集用に既存の経費データを読み込み
+  const loadExpenseForEdit = async (expenseId: string) => {
+    try {
+      const response = await fetch(`/api/expenses/${expenseId}`);
+      if (response.ok) {
+        const expense = await response.json();
+        console.log('編集用データ読み込み:', expense);
+        
+        // フォームに既存データを設定
+        setValue('expense_date', new Date(expense.expense_date));
+        setValue('amount', expense.amount);
+        setValue('category_id', expense.category_id);
+        setValue('department_id', expense.department_id || '');
+        setValue('project_id', expense.project_id || '');
+        setValue('event_id', expense.event_id || 'none');
+        setValue('payment_method', expense.payment_method || 'personal_cash');
+        setValue('description', expense.description);
+      } else {
+        console.error('経費データの読み込みに失敗しました');
+        alert('編集対象の経費データが見つかりません。');
+      }
+    } catch (error) {
+      console.error('編集用データの読み込みエラー:', error);
+      alert('編集用データの読み込みに失敗しました。');
+    }
+  };
 
   const {
     register,
@@ -145,7 +173,7 @@ function NewExpenseForm() {
         fullUser: user 
       });
       
-      // Supabaseに経費データを保存
+      // Supabaseに経費データを保存または更新
       // 注意: expensesテーブルにはdepartment_idやproject_idカラムがないため除外
       const expenseData = {
         user_id: user.id,
@@ -158,8 +186,13 @@ function NewExpenseForm() {
         event_id: data.event_id === 'none' ? null : data.event_id,
       };
 
-      const response = await fetch('/api/expenses', {
-        method: 'POST',
+      const url = isEditMode && editingExpenseId 
+        ? `/api/expenses/${editingExpenseId}` 
+        : '/api/expenses';
+      const method = isEditMode ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
         },
@@ -194,8 +227,12 @@ function NewExpenseForm() {
     <MainLayout>
       <div className="max-w-4xl mx-auto space-y-6">
         <div>
-          <h1 className="text-3xl font-bold">経費申請</h1>
-          <p className="text-gray-600">新しい経費申請を作成します</p>
+          <h1 className="text-3xl font-bold">
+            {isEditMode ? '経費申請の編集' : '経費申請'}
+          </h1>
+          <p className="text-gray-600">
+            {isEditMode ? '経費申請の内容を編集します' : '新しい経費申請を作成します'}
+          </p>
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -245,7 +282,7 @@ function NewExpenseForm() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="category_id">勘定科目 *</Label>
-                  <Select onValueChange={(value) => setValue('category_id', value)}>
+                  <Select onValueChange={(value) => setValue('category_id', value)} value={watch('category_id')}>
                     <SelectTrigger>
                       <SelectValue placeholder="勘定科目を選択" />
                     </SelectTrigger>
@@ -264,7 +301,7 @@ function NewExpenseForm() {
 
                 <div className="space-y-2">
                   <Label htmlFor="department_id">部門 *</Label>
-                  <Select onValueChange={(value) => setValue('department_id', value)}>
+                  <Select onValueChange={(value) => setValue('department_id', value)} value={watch('department_id')}>
                     <SelectTrigger>
                       <SelectValue placeholder="部門を選択" />
                     </SelectTrigger>
@@ -285,7 +322,7 @@ function NewExpenseForm() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="event_id">イベント</Label>
-                  <Select onValueChange={(value) => setValue('event_id', value)}>
+                  <Select onValueChange={(value) => setValue('event_id', value)} value={watch('event_id')}>
                     <SelectTrigger>
                       <SelectValue placeholder="イベントを選択（任意）" />
                     </SelectTrigger>
@@ -302,7 +339,7 @@ function NewExpenseForm() {
 
                 <div className="space-y-2">
                   <Label htmlFor="project_id">プロジェクト</Label>
-                  <Select onValueChange={(value) => setValue('project_id', value)}>
+                  <Select onValueChange={(value) => setValue('project_id', value)} value={watch('project_id')}>
                     <SelectTrigger>
                       <SelectValue placeholder="プロジェクトを選択（任意）" />
                     </SelectTrigger>
@@ -319,7 +356,7 @@ function NewExpenseForm() {
 
               <div className="space-y-2">
                 <Label htmlFor="payment_method">支払方法 *</Label>
-                <Select onValueChange={(value) => setValue('payment_method', value as any)}>
+                <Select onValueChange={(value) => setValue('payment_method', value as any)} value={watch('payment_method')}>
                   <SelectTrigger>
                     <SelectValue placeholder="支払方法を選択" />
                   </SelectTrigger>
