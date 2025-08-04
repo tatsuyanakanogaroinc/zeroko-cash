@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '../../../../lib/supabase-admin';
+import { supabaseAdmin } from '../../../../lib/supabase-admin';
 
 export async function GET(
   request: NextRequest,
@@ -16,7 +16,7 @@ export async function GET(
     }
 
     // 経費データを取得
-    const { data: expense, error } = await supabase
+    const { data: expense, error } = await supabaseAdmin
       .from('expenses')
       .select('*')
       .eq('id', expenseId)
@@ -74,7 +74,7 @@ export async function PUT(
     }
 
     // 経費データを更新
-    const { data: updatedExpense, error } = await supabase
+    const { data: updatedExpense, error } = await supabaseAdmin
       .from('expenses')
       .update({
         expense_date: body.expense_date,
