@@ -114,50 +114,64 @@ export default function ApprovalsPage() {
     total: applications.length
   };
 
-  // ヘルパー関数
-  const getCategoryName = (categoryId: string) => {
-    if (!categoryId) return '-';
-    console.log('カテゴリーIDを検索:', categoryId, 'Available categories:', categories);
-    const category = categories.find(c => c.id === categoryId);
-    const result = category?.name || '不明';
-    console.log('カテゴリー名:', result);
-    return result;
+  // ヘルパー関数 - ダッシュボードと同じパターンでデータアクセス
+  const getDepartmentName = (application: any) => {
+    // 経費申請の場合
+    if (application.type === 'expense' && application.users?.departments) {
+      return application.users.departments.name || '不明';
+    }
+    // 請求書払いの場合
+    if (application.type === 'invoice' && application.departments) {
+      return application.departments.name || '不明';
+    }
+    // フォールバック: ストアから検索
+    if (application.department_id) {
+      const dept = departments.find(d => d.id === application.department_id);
+      return dept?.name || '不明';
+    }
+    return '未定';
+  };
+  
+  const getProjectName = (application: any) => {
+    if (application.projects) {
+      return application.projects.name || '不明';
+    }
+    if (application.project_id) {
+      const project = projects.find(p => p.id === application.project_id);
+      return project?.name || '不明';
+    }
+    return '未定';
+  };
+  
+  const getEventName = (application: any) => {
+    if (application.events) {
+      return application.events.name || '不明';
+    }
+    if (application.event_name) {
+      return application.event_name;
+    }
+    if (application.event_id) {
+      const event = events.find(e => e.id === application.event_id);
+      return event?.name || '不明';
+    }
+    return '未定';
   };
 
-  const getDepartmentName = (departmentId?: string) => {
-    if (!departmentId) return '-';
-    console.log('部門IDを検索:', departmentId, 'Available departments:', departments);
-    const department = departments.find(d => d.id === departmentId);
-    const result = department?.name || '不明';
-    console.log('部門名:', result);
-    return result;
-  };
-
-  const getProjectName = (projectId?: string) => {
-    if (!projectId) return '-';
-    console.log('プロジェクトIDを検索:', projectId, 'Available projects:', projects);
-    const project = projects.find(p => p.id === projectId);
-    const result = project?.name || '-';
-    console.log('プロジェクト名:', result);
-    return result;
-  };
-
-  const getEventName = (eventId?: string) => {
-    if (!eventId) return '-';
-    console.log('イベントIDを検索:', eventId, 'Available events:', events);
-    const event = events.find(e => e.id === eventId);
-    const result = event?.name || '-';
-    console.log('イベント名:', result);
-    return result;
+  const getCategoryName = (application: any) => {
+    if (application.categories) {
+      return application.categories.name || '不明';
+    }
+    if (application.category_id) {
+      const category = categories.find(c => c.id === application.category_id);
+      return category?.name || '不明';
+    }
+    return '未定';
   };
 
   const getUserName = (userId: string) => {
     if (!userId) return '不明';
-    console.log('ユーザーIDを検索:', userId, 'Available users:', users);
     const user = users.find(u => u.id === userId);
-    const result = user?.name || user?.email || '不明';
-    console.log('ユーザー名:', result);
-    return result;
+    return user?.name || user?.email || '不明';
   };
 
   const getStatusBadge = (status: string) => {
@@ -258,11 +272,11 @@ export default function ApprovalsPage() {
                     {filteredApplications.map((application) => (
                       <TableRow key={application.id}>
                         <TableCell className="font-medium">{getUserName(application.user_id)}</TableCell>
-                        <TableCell>{getDepartmentName(application.department_id)}</TableCell>
+                        <TableCell>{getDepartmentName(application)}</TableCell>
                         <TableCell>{application.description}</TableCell>
-                        <TableCell>{getEventName(application.event_id)}</TableCell>
-                        <TableCell>{getProjectName(application.project_id)}</TableCell>
-                        <TableCell>{getCategoryName(application.category_id)}</TableCell>
+                        <TableCell>{getEventName(application)}</TableCell>
+                        <TableCell>{getProjectName(application)}</TableCell>
+                        <TableCell>{getCategoryName(application)}</TableCell>
                         <TableCell>¥{application.amount.toLocaleString()}</TableCell>
                         <TableCell>{application.date}</TableCell>
                         <TableCell>{getStatusBadge(application.status)}</TableCell>
