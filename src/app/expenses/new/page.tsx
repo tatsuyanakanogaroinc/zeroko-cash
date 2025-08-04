@@ -100,6 +100,8 @@ function NewExpenseForm() {
 
   const watchedAmount = watch('amount');
   const watchedCategoryId = watch('category_id');
+  const watchedEventId = watch('event_id');
+  const watchedDepartmentId = watch('department_id');
 
   // グローバルストアからデータを取得
   const { categories, getActiveProjects, departments, getCategoriesByUsage } = useMasterDataStore();
@@ -148,6 +150,19 @@ function NewExpenseForm() {
     };
     loadEvents();
   }, []);
+
+  // イベントと部門の紐づきチェック
+  React.useEffect(() => {
+    if (watchedEventId && watchedEventId !== 'none' && watchedDepartmentId) {
+      const selectedEvent = availableEvents.find(event => event.id === watchedEventId);
+      if (selectedEvent && selectedEvent.department_id && selectedEvent.department_id !== watchedDepartmentId) {
+        const selectedDepartment = departments.find(dept => dept.id === watchedDepartmentId);
+        const eventDepartment = departments.find(dept => dept.id === selectedEvent.department_id);
+        
+        alert(`⚠️ 警告: 選択されたイベント「${selectedEvent.name}」は「${eventDepartment?.name || '不明'}」部門に紐づいていますが、選択された部門は「${selectedDepartment?.name || '不明'}」です。\n\n正しい部門を選択してください。`);
+      }
+    }
+  }, [watchedEventId, watchedDepartmentId, availableEvents, departments]);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);

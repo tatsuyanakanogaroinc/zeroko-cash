@@ -101,14 +101,26 @@ export async function GET(request: Request) {
 
     // 経費データを集計
     (expenses || []).forEach(expense => {
+      // ユーザーの部門に計上
       if (expense.users?.department_id) {
         departmentExpenses[expense.users.department_id] = 
           (departmentExpenses[expense.users.department_id] || 0) + expense.amount;
       }
+      
+      // イベントに計上
       if (expense.event_id) {
         eventExpenses[expense.event_id] = 
           (eventExpenses[expense.event_id] || 0) + expense.amount;
+        
+        // イベントに紐づく部門にも計上
+        const eventData = (events || []).find(event => event.id === expense.event_id);
+        if (eventData?.department_id) {
+          departmentExpenses[eventData.department_id] = 
+            (departmentExpenses[eventData.department_id] || 0) + expense.amount;
+        }
       }
+      
+      // カテゴリに計上
       if (expense.category_id) {
         categoryExpenses[expense.category_id] = 
           (categoryExpenses[expense.category_id] || 0) + expense.amount;

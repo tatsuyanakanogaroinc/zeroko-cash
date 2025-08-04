@@ -344,7 +344,7 @@ export default function ReportsPage() {
                 詳細を見る
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-none w-[95vw] max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-none w-[98vw] max-h-[95vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className="flex items-center space-x-2">
                   <Icon className="h-5 w-5 text-purple-600" />
