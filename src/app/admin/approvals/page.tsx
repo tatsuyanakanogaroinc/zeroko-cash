@@ -72,12 +72,24 @@ export default function ApprovalsPage() {
   });
 
   const { user } = useAuth();
-  const { categories, departments, projects } = useMasterDataStore();
-  const { events } = useEventStore();
+  const { categories, departments, projects, loadDataFromAPI: loadMasterData, isLoaded: masterDataLoaded } = useMasterDataStore();
+  const { events, loadEventsFromAPI: loadEvents, isLoaded: eventsLoaded } = useEventStore();
 
   useEffect(() => {
     const initializeData = async () => {
       try {
+        // マスターデータを読み込み
+        if (!masterDataLoaded) {
+          console.log('マスターデータを読み込み中...');
+          await loadMasterData();
+        }
+        
+        // イベントデータを読み込み
+        if (!eventsLoaded) {
+          console.log('イベントデータを読み込み中...');
+          await loadEvents();
+        }
+        
         const [approversData, usersData] = await Promise.all([
           getApprovers(),
           userService.getUsers()
@@ -85,6 +97,13 @@ export default function ApprovalsPage() {
         
         setApprovers(approversData);
         setUsers(usersData);
+        
+        console.log('マスターデータ読み込み完了:');
+        console.log('- カテゴリー:', categories.length, '件');
+        console.log('- 部門:', departments.length, '件');
+        console.log('- プロジェクト:', projects.length, '件');
+        console.log('- イベント:', events.length, '件');
+        console.log('- ユーザー:', usersData.length, '件');
         
         // 現在のユーザー情報を取得
         let currentUser = null;
