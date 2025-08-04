@@ -7,6 +7,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { CheckCircle, XCircle, Clock, Eye, Edit, Trash2, Filter, FileImage } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMasterDataStore, useEventStore } from '@/lib/store';
@@ -33,6 +36,13 @@ export default function ApprovalsPage() {
   const [users, setUsers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('pending');
+  const [isProcessing, setIsProcessing] = useState(false);
+  
+  // 非承認ダイアログの状態
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [rejectingApplication, setRejectingApplication] = useState<Application | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
+  
   const { user } = useAuth();
   const { categories, departments, projects, loadDataFromAPI: loadMasterData, isLoaded: masterDataLoaded } = useMasterDataStore();
   const { events, loadEventsFromAPI: loadEvents, isLoaded: eventsLoaded } = useEventStore();
@@ -187,6 +197,107 @@ export default function ApprovalsPage() {
     }
   };
 
+  // 承認処理
+  const handleApprove = async (application: Application) => {
+    if (!user?.id) {
+      alert('ユーザー情報が取得できません');
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const response = await fetch(`/api/applications/${application.id}/approve`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'approve',
+          type: application.type,
+          userId: user.id,
+          comments: ''
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (response.ok) {
+        // アプリケーション一覧を更新
+        setApplications(prev => prev.map(app => 
+          app.id === application.id 
+            ? { ...app, status: 'approved' as const }
+            : app
+        ));
+        alert('申請を承認しました');
+      } else {
+        alert(data.error || '承認処理に失敗しました');
+      }
+    } catch (error) {
+      console.error('承認処理エラー:', error);
+      alert('承認処理中にエラーが発生しました');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // 非承認ダイアログを開く
+  const handleRejectStart = (application: Application) => {
+    setRejectingApplication(application);
+    setRejectReason('');
+    setRejectDialogOpen(true);
+  };
+
+  // 非承認処理
+  const handleReject = async () => {
+    if (!rejectingApplication || !user?.id) {
+      alert('申請またはユーザー情報が取得できません');
+      return;
+    }
+
+    if (!rejectReason.trim()) {
+      alert('却下理由を入力してください');
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const response = await fetch(`/api/applications/${rejectingApplication.id}/approve`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'reject',
+          type: rejectingApplication.type,
+          userId: user.id,
+          comments: rejectReason.trim()
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (response.ok) {
+        // アプリケーション一覧を更新
+        setApplications(prev => prev.map(app => 
+          app.id === rejectingApplication.id 
+            ? { ...app, status: 'rejected' as const, comments: rejectReason.trim() }
+            : app
+        ));
+        alert('申請を却下しました');
+        setRejectDialogOpen(false);
+        setRejectingApplication(null);
+        setRejectReason('');
+      } else {
+        alert(data.error || '却下処理に失敗しました');
+      }
+    } catch (error) {
+      console.error('却下処理エラー:', error);
+      alert('却下処理中にエラーが発生しました');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   return (
     <MainLayout>
       <div className="space-y-6">
@@ -301,10 +412,8 @@ export default function ApprovalsPage() {
                               <>
                                 <Button
                                   size="sm"
-                                  onClick={() => {
-                                    // 承認処理を後で追加
-                                    console.log('承認:', application.id);
-                                  }}
+                                  disabled={isProcessing}
+                                  onClick={() => handleApprove(application)}
                                 >
                                   <CheckCircle className="h-4 w-4 mr-1" />
                                   承認
@@ -312,10 +421,8 @@ export default function ApprovalsPage() {
                                 <Button
                                   variant="destructive"
                                   size="sm"
-                                  onClick={() => {
-                                    // 却下処理を後で追加
-                                    console.log('却下:', application.id);
-                                  }}
+                                  disabled={isProcessing}
+                                  onClick={() => handleRejectStart(application)}
                                 >
                                   <XCircle className="h-4 w-4 mr-1" />
                                   却下
@@ -344,6 +451,51 @@ export default function ApprovalsPage() {
             </Tabs>
           </CardContent>
         </Card>
+
+        {/* 非承認理由入力ダイアログ */}
+        <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>申請を却下しますか？</DialogTitle>
+              <DialogDescription>
+                {rejectingApplication && `${getUserName(rejectingApplication.user_id)}の申請「${rejectingApplication.description}」を却下します。却下理由を入力してください。`}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="rejectReason">却下理由 *</Label>
+                <Textarea
+                  id="rejectReason"
+                  placeholder="却下理由を入力してください..."
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  rows={4}
+                  className="resize-none"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setRejectDialogOpen(false);
+                  setRejectingApplication(null);
+                  setRejectReason('');
+                }}
+                disabled={isProcessing}
+              >
+                キャンセル
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleReject}
+                disabled={isProcessing || !rejectReason.trim()}
+              >
+                {isProcessing ? '処理中...' : '却下する'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </MainLayout>
   );
