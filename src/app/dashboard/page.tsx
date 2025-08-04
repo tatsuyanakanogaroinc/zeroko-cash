@@ -1,5 +1,6 @@
 'use client'
 // Updated dashboard with clean list layout - force redeploy 2025-01-02
+// Service key updated - security fix deployment
 
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
