@@ -351,11 +351,11 @@ export default function DashboardPage() {
                         {/* 種類アイコン */}
                         <div className="col-span-1 flex justify-center">
                           {application.type === 'expense' ? (
-                            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center" title=\"経費申請\">
+                            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center" title="経費申請">
                               <FileText className="w-4 h-4 text-blue-600" />
                             </div>
                           ) : (
-                            <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center" title=\"請求書払い\">
+                            <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center" title="請求書払い">
                               <DollarSign className="w-4 h-4 text-green-600" />
                             </div>
                           )}
@@ -427,7 +427,7 @@ export default function DashboardPage() {
                                 size="sm"
                                 onClick={() => handleEditApplication(application.id, application.type)}
                                 className="h-7 px-2 text-blue-600 hover:text-white hover:bg-blue-600 border-blue-200"
-                                title=\"編集\"
+                                title="編集"
                               >
                                 <Edit className="w-3 h-3" />
                               </Button>
@@ -436,7 +436,7 @@ export default function DashboardPage() {
                                 size="sm"
                                 onClick={() => handleDeleteApplication(application.id, application.type)}
                                 className="h-7 px-2 text-red-600 hover:text-white hover:bg-red-600 border-red-200"
-                                title=\"削除\"
+                                title="削除"
                               >
                                 <Trash2 className="w-3 h-3" />
                               </Button>
