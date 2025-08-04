@@ -1039,5 +1039,6 @@ export default function ReportsPage() {
           </div>
         </>
       )}
+    </MainLayout>
   );
 }
