@@ -280,7 +280,7 @@ export const EditApplicationModal: React.FC<EditApplicationModalProps> = ({
                 <SelectValue placeholder="部門を選択してください" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">選択なし</SelectItem>
+                <SelectItem value="none">選択なし</SelectItem>
                 {departments.map((department) => (
                   <SelectItem key={department.id} value={department.id}>
                     {department.name}
@@ -301,7 +301,7 @@ export const EditApplicationModal: React.FC<EditApplicationModalProps> = ({
                 <SelectValue placeholder="プロジェクトを選択してください" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">選択なし</SelectItem>
+                <SelectItem value="none">選択なし</SelectItem>
                 {activeProjects.map((project) => (
                   <SelectItem key={project.id} value={project.id}>
                     {project.name}
