@@ -298,6 +298,44 @@ export default function ApprovalsPage() {
     }
   };
 
+  // 申請編集機能
+  const handleEditApplication = (application: Application) => {
+    const editUrl = application.type === 'expense' 
+      ? `/expenses/new?edit=${application.id}` 
+      : `/invoice-payments/new?edit=${application.id}`;
+    window.location.href = editUrl;
+  };
+
+  // 申請削除機能
+  const handleDeleteApplication = async (application: Application) => {
+    const typeLabel = application.type === 'expense' ? '経費申請' : '請求書払い申請';
+    if (!confirm(`この${typeLabel}を削除しますか？この操作は取り消せません。`)) {
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const response = await fetch(`/api/applications/${application.id}?type=${application.type}&userId=${user?.id}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // 申請一覧から削除
+        setApplications(prev => prev.filter(app => app.id !== application.id));
+        alert(`${typeLabel}を削除しました`);
+      } else {
+        alert(data.error || '削除に失敗しました');
+      }
+    } catch (error) {
+      console.error('削除エラー:', error);
+      alert('削除中にエラーが発生しました');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   return (
     <MainLayout>
       <div className="space-y-6">
@@ -428,19 +466,29 @@ export default function ApprovalsPage() {
                                   却下
                                 </Button>
                               </>
-                            ) : (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  // 詳細表示の処理を後で追加
-                                  console.log('詳細表示:', application.id);
-                                }}
-                              >
-                                <Eye className="h-4 w-4 mr-1" />
-                                詳細
-                              </Button>
-                            )}
+                            ) : null}
+                            
+                            {/* すべての申請に編集・削除ボタンを表示 */}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={isProcessing}
+                              onClick={() => handleEditApplication(application)}
+                              className="text-blue-600 hover:text-white hover:bg-blue-600 border-blue-200"
+                              title="編集"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={isProcessing}
+                              onClick={() => handleDeleteApplication(application)}
+                              className="text-red-600 hover:text-white hover:bg-red-600 border-red-200"
+                              title="削除"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           </div>
                         </TableCell>
                       </TableRow>
