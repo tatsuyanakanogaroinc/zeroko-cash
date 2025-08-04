@@ -116,35 +116,20 @@ export default function ApprovalsPage() {
 
   // ヘルパー関数 - ダッシュボードと同じパターンでデータアクセス
   const getDepartmentName = (application: any) => {
-    console.log('部門名取得:', {
-      type: application.type,
-      department_id: application.department_id,
-      users: application.users,
-      departments: application.departments,
-      application: application
-    });
-    
     // 経費申請の場合
     if (application.type === 'expense' && application.users?.departments) {
-      const name = application.users.departments.name || '不明';
-      console.log('経費申請部門名:', name);
-      return name;
+      return application.users.departments.name || '不明';
     }
     // 請求書払いの場合
     if (application.type === 'invoice' && application.departments) {
-      const name = application.departments.name || '不明';
-      console.log('請求書部門名:', name);
-      return name;
+      return application.departments.name || '不明';
     }
     // フォールバック: ストアから検索
     if (application.department_id) {
       const dept = departments.find(d => d.id === application.department_id);
-      const name = dept?.name || '不明';
-      console.log('フォールバック部門名:', name, 'dept:', dept);
-      return name;
+      return dept?.name || '不明';
     }
-    console.log('部門名が見つからない');
-    return '未定';
+    return '-';
   };
   
   const getProjectName = (application: any) => {
@@ -155,7 +140,7 @@ export default function ApprovalsPage() {
       const project = projects.find(p => p.id === application.project_id);
       return project?.name || '不明';
     }
-    return '未定';
+    return '-';
   };
   
   const getEventName = (application: any) => {
@@ -169,7 +154,7 @@ export default function ApprovalsPage() {
       const event = events.find(e => e.id === application.event_id);
       return event?.name || '不明';
     }
-    return '未定';
+    return '-';
   };
 
   const getCategoryName = (application: any) => {
@@ -180,7 +165,7 @@ export default function ApprovalsPage() {
       const category = categories.find(c => c.id === application.category_id);
       return category?.name || '不明';
     }
-    return '未定';
+    return '-';
   };
 
   const getUserName = (userId: string) => {
@@ -270,30 +255,30 @@ export default function ApprovalsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead>申請日</TableHead>
                       <TableHead>申請者</TableHead>
-                      <TableHead>部門</TableHead>
                       <TableHead>説明</TableHead>
+                      <TableHead>金額</TableHead>
+                      <TableHead>勘定科目</TableHead>
+                      <TableHead>部門</TableHead>
                       <TableHead>イベント</TableHead>
                       <TableHead>プロジェクト</TableHead>
-                      <TableHead>勘定科目</TableHead>
-                      <TableHead>金額</TableHead>
-                      <TableHead>申請日</TableHead>
                       <TableHead>ステータス</TableHead>
                       <TableHead>領収書</TableHead>
-                      <TableHead>操作</TableHead>
+                      <TableHead>可否</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredApplications.map((application) => (
                       <TableRow key={application.id}>
+                        <TableCell>{application.date}</TableCell>
                         <TableCell className="font-medium">{getUserName(application.user_id)}</TableCell>
-                        <TableCell>{getDepartmentName(application)}</TableCell>
                         <TableCell>{application.description}</TableCell>
+                        <TableCell>¥{application.amount.toLocaleString()}</TableCell>
+                        <TableCell>{getCategoryName(application)}</TableCell>
+                        <TableCell>{getDepartmentName(application)}</TableCell>
                         <TableCell>{getEventName(application)}</TableCell>
                         <TableCell>{getProjectName(application)}</TableCell>
-                        <TableCell>{getCategoryName(application)}</TableCell>
-                        <TableCell>¥{application.amount.toLocaleString()}</TableCell>
-                        <TableCell>{application.date}</TableCell>
                         <TableCell>{getStatusBadge(application.status)}</TableCell>
                         <TableCell>
                           {(application as any).receipt_image ? (
@@ -311,19 +296,8 @@ export default function ApprovalsPage() {
                           )}
                         </TableCell>
                         <TableCell>
-                          <div className="flex space-x-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                // 詳細表示の処理を後で追加
-                                console.log('詳細表示:', application.id);
-                              }}
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            
-                            {application.status === 'pending' && (
+                          <div className="flex space-x-1">
+                            {application.status === 'pending' ? (
                               <>
                                 <Button
                                   size="sm"
@@ -332,7 +306,7 @@ export default function ApprovalsPage() {
                                     console.log('承認:', application.id);
                                   }}
                                 >
-                                  <CheckCircle className="h-4 w-4" />
+                                  <CheckCircle className="h-4 w-4 mr-1" />
                                   承認
                                 </Button>
                                 <Button
@@ -343,10 +317,22 @@ export default function ApprovalsPage() {
                                     console.log('却下:', application.id);
                                   }}
                                 >
-                                  <XCircle className="h-4 w-4" />
+                                  <XCircle className="h-4 w-4 mr-1" />
                                   却下
                                 </Button>
                               </>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  // 詳細表示の処理を後で追加
+                                  console.log('詳細表示:', application.id);
+                                }}
+                              >
+                                <Eye className="h-4 w-4 mr-1" />
+                                詳細
+                              </Button>
                             )}
                           </div>
                         </TableCell>
