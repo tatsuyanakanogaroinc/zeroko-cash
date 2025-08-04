@@ -127,6 +127,7 @@ export default function NewExpensePage() {
       console.log('経費申請を送信中:', { userId: user.id, userName: user.name });
       
       // Supabaseに経費データを保存
+      // 注意: expensesテーブルにはdepartment_idやproject_idカラムがないため除外
       const expenseData = {
         user_id: user.id,
         expense_date: data.expense_date.toISOString().split('T')[0],
@@ -136,8 +137,6 @@ export default function NewExpensePage() {
         payment_method: data.payment_method || 'personal_cash',
         status: 'pending',
         event_id: data.event_id === 'none' ? null : data.event_id,
-        department_id: data.department_id || null,
-        project_id: data.project_id || null,
       };
 
       const response = await fetch('/api/expenses', {

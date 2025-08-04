@@ -6,10 +6,7 @@ export const expenseFormSchema = z.object({
   category_id: z.string().min(1, 'カテゴリを選択してください'),
   department_id: z.string().optional(),
   project_id: z.string().optional(),
-  event_id: z.string().optional().refine((val) => val !== 'none', {
-    message: 'イベントを選択してください',
-    params: { invalid_type_error: 'イベントを選択してください' }
-  }),
+  event_id: z.string().optional(),
   description: z.string().min(1, '詳細説明は必須です'),
   payment_method: z.enum(['personal_cash', 'personal_credit', 'company_cash', 'company_credit']),
 });
