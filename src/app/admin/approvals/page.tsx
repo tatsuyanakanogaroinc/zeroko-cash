@@ -2,8 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { MainLayout } from '@/components/layout/main-layout';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { CheckCircle, XCircle, Clock, Eye, Edit, Trash2, Filter, FileImage } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useMasterDataStore, useEventStore } from '@/lib/store';
 
 interface Application {
   id: string;
@@ -24,33 +30,60 @@ interface Application {
 
 export default function ApprovalsPage() {
   const [applications, setApplications] = useState<Application[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('pending');
   const { user } = useAuth();
+  const { categories, departments, projects, loadDataFromAPI: loadMasterData, isLoaded: masterDataLoaded } = useMasterDataStore();
+  const { events, loadEventsFromAPI: loadEvents, isLoaded: eventsLoaded } = useEventStore();
 
   useEffect(() => {
-    const fetchApplications = async () => {
+    const fetchData = async () => {
       if (!user) {
         setIsLoading(false);
         return;
       }
 
       try {
+        // マスターデータの読み込み
+        if (!masterDataLoaded) {
+          await loadMasterData();
+        }
+        if (!eventsLoaded) {
+          await loadEvents();
+        }
+
+        // ユーザーデータの取得
+        const usersResponse = await fetch('/api/users');
+        if (usersResponse.ok) {
+          const usersData = await usersResponse.json();
+          if (usersData.success) {
+            setUsers(usersData.data);
+          }
+        }
+
+        // 申請データの取得
         const response = await fetch('/api/applications');
         if (response.ok) {
           const data = await response.json();
           if (data.success && data.data) {
-            setApplications(data.data);
+            // データの正規化
+            const normalizedData = data.data.map((item: any) => ({
+              ...item,
+              date: item.date || item.expense_date || item.invoice_date,
+            }));
+            setApplications(normalizedData);
           }
         }
       } catch (error) {
-        console.error('申請データの取得に失敗:', error);
+        console.error('データの取得に失敗:', error);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchApplications();
-  }, [user]);
+    fetchData();
+  }, [user, masterDataLoaded, eventsLoaded]);
 
   if (isLoading) {
     return (
@@ -60,11 +93,58 @@ export default function ApprovalsPage() {
     );
   }
 
+  // フィルタリングされた申請
+  const filteredApplications = activeTab === 'all' 
+    ? applications 
+    : applications.filter(app => app.status === activeTab);
+
   const stats = {
     pending: applications.filter(app => app.status === 'pending').length,
     approved: applications.filter(app => app.status === 'approved').length,
     rejected: applications.filter(app => app.status === 'rejected').length,
     total: applications.length
+  };
+
+  // ヘルパー関数
+  const getCategoryName = (categoryId: string) => {
+    const category = categories.find(c => c.id === categoryId);
+    return category?.name || '不明';
+  };
+
+  const getDepartmentName = (departmentId?: string) => {
+    if (!departmentId) return '-';
+    const department = departments.find(d => d.id === departmentId);
+    return department?.name || '不明';
+  };
+
+  const getProjectName = (projectId?: string) => {
+    if (!projectId) return '-';
+    const project = projects.find(p => p.id === projectId);
+    return project?.name || '-';
+  };
+
+  const getEventName = (eventId?: string) => {
+    if (!eventId) return '-';
+    const event = events.find(e => e.id === eventId);
+    return event?.name || '-';
+  };
+
+  const getUserName = (userId: string) => {
+    const user = users.find(u => u.id === userId);
+    return user?.name || user?.email || '不明';
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return <Badge variant="secondary"><Clock className="w-3 h-3 mr-1" />承認待ち</Badge>;
+      case 'approved':
+        return <Badge variant="default"><CheckCircle className="w-3 h-3 mr-1" />承認済み</Badge>;
+      case 'rejected':
+        return <Badge variant="destructive"><XCircle className="w-3 h-3 mr-1" />却下</Badge>;
+      default:
+        return <Badge variant="outline">不明</Badge>;
+    }
   };
 
   return (
@@ -114,40 +194,113 @@ export default function ApprovalsPage() {
           </Card>
         </div>
 
-        {/* 申請一覧 */}
+        {/* タブ付き申請一覧 */}
         <Card>
           <CardHeader>
             <CardTitle>申請一覧</CardTitle>
             <CardDescription>
-              {applications.length}件の申請があります
+              {filteredApplications.length}件の申請が表示されています
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {applications.length === 0 ? (
-              <p className="text-gray-500">申請はありません</p>
-            ) : (
-              <div className="space-y-4">
-                {applications.map((app) => (
-                  <div key={app.id} className="border rounded-lg p-4">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="font-medium">{app.description}</h3>
-                        <p className="text-sm text-gray-500">¥{app.amount.toLocaleString()}</p>
-                        <p className="text-sm text-gray-500">{app.date}</p>
-                      </div>
-                      <span className={`px-2 py-1 text-xs rounded ${
-                        app.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                        app.status === 'approved' ? 'bg-green-100 text-green-800' :
-                        'bg-red-100 text-red-800'
-                      }`}>
-                        {app.status === 'pending' ? '承認待ち' : 
-                         app.status === 'approved' ? '承認済み' : '却下'}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="pending">承認待ち ({stats.pending})</TabsTrigger>
+                <TabsTrigger value="approved">承認済み ({stats.approved})</TabsTrigger>
+                <TabsTrigger value="rejected">却下 ({stats.rejected})</TabsTrigger>
+                <TabsTrigger value="all">全て ({stats.total})</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value={activeTab} className="mt-6">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>申請者</TableHead>
+                      <TableHead>部門</TableHead>
+                      <TableHead>説明</TableHead>
+                      <TableHead>イベント</TableHead>
+                      <TableHead>プロジェクト</TableHead>
+                      <TableHead>勘定科目</TableHead>
+                      <TableHead>金額</TableHead>
+                      <TableHead>申請日</TableHead>
+                      <TableHead>ステータス</TableHead>
+                      <TableHead>領収書</TableHead>
+                      <TableHead>操作</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredApplications.map((application) => (
+                      <TableRow key={application.id}>
+                        <TableCell className="font-medium">{getUserName(application.user_id)}</TableCell>
+                        <TableCell>{getDepartmentName(application.department_id)}</TableCell>
+                        <TableCell>{application.description}</TableCell>
+                        <TableCell>{getEventName(application.event_id)}</TableCell>
+                        <TableCell>{getProjectName(application.project_id)}</TableCell>
+                        <TableCell>{getCategoryName(application.category_id)}</TableCell>
+                        <TableCell>¥{application.amount.toLocaleString()}</TableCell>
+                        <TableCell>{application.date}</TableCell>
+                        <TableCell>{getStatusBadge(application.status)}</TableCell>
+                        <TableCell>
+                          {(application as any).receipt_image ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                window.open((application as any).receipt_image, '_blank');
+                              }}
+                            >
+                              <FileImage className="h-4 w-4" />
+                            </Button>
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex space-x-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                // 詳細表示の処理を後で追加
+                                console.log('詳細表示:', application.id);
+                              }}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            
+                            {application.status === 'pending' && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  onClick={() => {
+                                    // 承認処理を後で追加
+                                    console.log('承認:', application.id);
+                                  }}
+                                >
+                                  <CheckCircle className="h-4 w-4" />
+                                  承認
+                                </Button>
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={() => {
+                                    // 却下処理を後で追加
+                                    console.log('却下:', application.id);
+                                  }}
+                                >
+                                  <XCircle className="h-4 w-4" />
+                                  却下
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
       </div>
