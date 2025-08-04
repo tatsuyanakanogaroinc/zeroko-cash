@@ -644,9 +644,7 @@ export default function ReportsPage() {
                   </CardContent>
                 </Card>
               </div>
-            </DialogContent>
-          </Dialog>
-        </div>
+            </div>
       </CardContent>
     </Card>
   );
