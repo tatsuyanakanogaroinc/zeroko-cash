@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import * as React from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -36,15 +36,57 @@ const invoicePaymentSchema = z.object({
 
 type InvoicePaymentFormData = z.infer<typeof invoicePaymentSchema>;
 
-export default function NewInvoicePaymentPage() {
+function NewInvoicePaymentForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [sortedCategories, setSortedCategories] = useState<any[]>([]);
   const [availableEvents, setAvailableEvents] = useState<any[]>([]);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingInvoicePaymentId, setEditingInvoicePaymentId] = useState<string | null>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
   
   // AuthContextからユーザー情報を取得
   const { user } = useAuth();
+
+  // 編集モードかどうかチェック
+  useEffect(() => {
+    const editId = searchParams.get('edit');
+    if (editId) {
+      setIsEditMode(true);
+      setEditingInvoicePaymentId(editId);
+      console.log('請求書編集モード:', editId);
+      loadInvoicePaymentForEdit(editId);
+    }
+  }, [searchParams]);
+
+  // 編集用に既存の請求書データを読み込み
+  const loadInvoicePaymentForEdit = async (invoicePaymentId: string) => {
+    try {
+      const response = await fetch(`/api/invoice-payments/${invoicePaymentId}`);
+      if (response.ok) {
+        const invoicePayment = await response.json();
+        console.log('請求書編集用データ読み込み:', invoicePayment);
+        
+        // フォームに既存データを設定
+        setValue('invoice_date', new Date(invoicePayment.invoice_date));
+        setValue('due_date', new Date(invoicePayment.due_date));
+        setValue('amount', invoicePayment.amount);
+        setValue('vendor_name', invoicePayment.vendor_name);
+        setValue('category_id', invoicePayment.category_id);
+        setValue('department_id', invoicePayment.department_id || '');
+        setValue('project_id', invoicePayment.project_id || '');
+        setValue('event_id', invoicePayment.event_id || 'none');
+        setValue('description', invoicePayment.description);
+      } else {
+        console.error('請求書データの読み込みに失敗しました');
+        alert('編集対象の請求書データが見つかりません。');
+      }
+    } catch (error) {
+      console.error('請求書編集用データの読み込みエラー:', error);
+      alert('請求書編集用データの読み込みに失敗しました。');
+    }
+  };
 
   const {
     register,
@@ -144,8 +186,13 @@ export default function NewInvoicePaymentPage() {
       console.log('請求書払い申請データ:', invoicePaymentData);
       console.log('アップロードファイル:', uploadedFiles);
       
-      const response = await fetch('/api/invoice-payments', {
-        method: 'POST',
+      const url = isEditMode && editingInvoicePaymentId 
+        ? `/api/invoice-payments/${editingInvoicePaymentId}` 
+        : '/api/invoice-payments';
+      const method = isEditMode ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
         },
@@ -178,8 +225,12 @@ export default function NewInvoicePaymentPage() {
     <MainLayout>
       <div className="max-w-4xl mx-auto space-y-6">
         <div>
-          <h1 className="text-3xl font-bold">請求書払い申請</h1>
-          <p className="text-gray-600">新しい請求書払い申請を作成します</p>
+          <h1 className="text-3xl font-bold">
+            {isEditMode ? '請求書払い申請の編集' : '請求書払い申請'}
+          </h1>
+          <p className="text-gray-600">
+            {isEditMode ? '請求書払い申請の内容を編集します' : '新しい請求書払い申請を作成します'}
+          </p>
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -257,7 +308,7 @@ export default function NewInvoicePaymentPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="category_id">勘定科目 *</Label>
-                  <Select onValueChange={(value) => setValue('category_id', value)}>
+                  <Select onValueChange={(value) => setValue('category_id', value)} value={watch('category_id')}>
                     <SelectTrigger>
                       <SelectValue placeholder="勘定科目を選択" />
                     </SelectTrigger>
@@ -276,7 +327,7 @@ export default function NewInvoicePaymentPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="department_id">部門 *</Label>
-                  <Select onValueChange={(value) => setValue('department_id', value)}>
+                  <Select onValueChange={(value) => setValue('department_id', value)} value={watch('department_id')}>
                     <SelectTrigger>
                       <SelectValue placeholder="部門を選択" />
                     </SelectTrigger>
@@ -297,7 +348,7 @@ export default function NewInvoicePaymentPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="project_id">プロジェクト</Label>
-                  <Select onValueChange={(value) => setValue('project_id', value)}>
+                  <Select onValueChange={(value) => setValue('project_id', value)} value={watch('project_id')}>
                     <SelectTrigger>
                       <SelectValue placeholder="プロジェクトを選択（任意）" />
                     </SelectTrigger>
@@ -313,7 +364,7 @@ export default function NewInvoicePaymentPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="event_id">イベント</Label>
-                  <Select onValueChange={(value) => setValue('event_id', value)}>
+                  <Select onValueChange={(value) => setValue('event_id', value)} value={watch('event_id')}>
                     <SelectTrigger>
                       <SelectValue placeholder="イベントを選択（任意）" />
                     </SelectTrigger>
@@ -428,5 +479,31 @@ export default function NewInvoicePaymentPage() {
         </form>
       </div>
     </MainLayout>
+  );
+}
+
+// Loading component for Suspense fallback
+function InvoicePaymentFormSkeleton() {
+  return (
+    <MainLayout>
+      <div className="max-w-4xl mx-auto space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold">請求書払い申請</h1>
+          <p className="text-gray-600">新しい請求書払い申請を作成します</p>
+        </div>
+        <div className="animate-pulse">
+          <div className="bg-gray-200 h-96 rounded-lg mb-6"></div>
+          <div className="bg-gray-200 h-64 rounded-lg"></div>
+        </div>
+      </div>
+    </MainLayout>
+  );
+}
+
+export default function NewInvoicePaymentPage() {
+  return (
+    <Suspense fallback={<InvoicePaymentFormSkeleton />}>
+      <NewInvoicePaymentForm />
+    </Suspense>
   );
 }
