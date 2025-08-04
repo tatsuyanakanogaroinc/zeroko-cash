@@ -66,12 +66,21 @@ export default function ApprovalsPage() {
         const response = await fetch('/api/applications');
         if (response.ok) {
           const data = await response.json();
+          console.log('申請データ:', data);
           if (data.success && data.data) {
             // データの正規化
-            const normalizedData = data.data.map((item: any) => ({
-              ...item,
-              date: item.date || item.expense_date || item.invoice_date,
-            }));
+            const normalizedData = data.data.map((item: any) => {
+              console.log('申請アイテム:', item);
+              return {
+                ...item,
+                date: item.date || item.expense_date || item.invoice_date,
+                department_id: item.department_id || item.departments?.id,
+                category_id: item.category_id || item.categories?.id,
+                project_id: item.project_id || item.projects?.id,
+                event_id: item.event_id || item.events?.id,
+              };
+            });
+            console.log('正規化後のデータ:', normalizedData);
             setApplications(normalizedData);
           }
         }
@@ -107,31 +116,48 @@ export default function ApprovalsPage() {
 
   // ヘルパー関数
   const getCategoryName = (categoryId: string) => {
+    if (!categoryId) return '-';
+    console.log('カテゴリーIDを検索:', categoryId, 'Available categories:', categories);
     const category = categories.find(c => c.id === categoryId);
-    return category?.name || '不明';
+    const result = category?.name || '不明';
+    console.log('カテゴリー名:', result);
+    return result;
   };
 
   const getDepartmentName = (departmentId?: string) => {
     if (!departmentId) return '-';
+    console.log('部門IDを検索:', departmentId, 'Available departments:', departments);
     const department = departments.find(d => d.id === departmentId);
-    return department?.name || '不明';
+    const result = department?.name || '不明';
+    console.log('部門名:', result);
+    return result;
   };
 
   const getProjectName = (projectId?: string) => {
     if (!projectId) return '-';
+    console.log('プロジェクトIDを検索:', projectId, 'Available projects:', projects);
     const project = projects.find(p => p.id === projectId);
-    return project?.name || '-';
+    const result = project?.name || '-';
+    console.log('プロジェクト名:', result);
+    return result;
   };
 
   const getEventName = (eventId?: string) => {
     if (!eventId) return '-';
+    console.log('イベントIDを検索:', eventId, 'Available events:', events);
     const event = events.find(e => e.id === eventId);
-    return event?.name || '-';
+    const result = event?.name || '-';
+    console.log('イベント名:', result);
+    return result;
   };
 
   const getUserName = (userId: string) => {
+    if (!userId) return '不明';
+    console.log('ユーザーIDを検索:', userId, 'Available users:', users);
     const user = users.find(u => u.id === userId);
-    return user?.name || user?.email || '不明';
+    const result = user?.name || user?.email || '不明';
+    console.log('ユーザー名:', result);
+    return result;
   };
 
   const getStatusBadge = (status: string) => {
