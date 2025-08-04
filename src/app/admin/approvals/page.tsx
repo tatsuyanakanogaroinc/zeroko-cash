@@ -77,8 +77,16 @@ export default function ApprovalsPage() {
   const { events, loadEventsFromAPI: loadEvents, isLoaded: eventsLoaded } = useEventStore();
 
   useEffect(() => {
+    // ユーザーが認証されていない場合は何もしない
+    if (!user) {
+      console.log('ユーザーが認証されていません');
+      return;
+    }
+
     const initializeData = async () => {
       try {
+        console.log('データ初期化開始 - ユーザーID:', user.id);
+        
         // マスターデータを読み込み
         if (!masterDataLoaded) {
           console.log('マスターデータを読み込み中...');
@@ -91,10 +99,36 @@ export default function ApprovalsPage() {
           await loadEvents();
         }
         
-        const [approversData, usersData] = await Promise.all([
-          getApprovers(),
-          userService.getUsers()
-        ]);
+        console.log('ユーザーとアプルーバーデータを取得中...');
+        
+        // APIエンドポイントからユーザーデータを取得
+        let usersData: any[] = [];
+        try {
+          const usersResponse = await fetch('/api/users');
+          if (usersResponse.ok) {
+            const usersApiData = await usersResponse.json();
+            if (usersApiData.success) {
+              usersData = usersApiData.data;
+              console.log('APIからユーザーデータを取得:', usersData.length, '件');
+            }
+          } else {
+            console.error('ユーザーAPIレスポンスエラー:', usersResponse.status);
+          }
+        } catch (usersApiError) {
+          console.error('ユーザーAPIエラー:', usersApiError);
+          // フォールバックとして直接取得を試行
+          try {
+            usersData = await userService.getUsers();
+            console.log('フォールバックでユーザーデータを取得:', usersData.length, '件');
+          } catch (fallbackError) {
+            console.error('フォールバックでのユーザーデータ取得も失敗:', fallbackError);
+          }
+        }
+        
+        const approversData = await getApprovers();
+        
+        console.log('取得したユーザーデータ:', usersData);
+        console.log('取得したアプルーバーデータ:', approversData);
         
         setApprovers(approversData);
         setUsers(usersData);
@@ -108,10 +142,15 @@ export default function ApprovalsPage() {
         
         // 現在のユーザー情報を取得
         let currentUser = null;
-        if (user) {
+        if (user && usersData.length > 0) {
           setCurrentUserId(user.id);
           currentUser = usersData.find(u => u.id === user.id);
-          setCurrentUserRole(currentUser?.role || 'user');
+          const userRole = currentUser?.role || 'user';
+          setCurrentUserRole(userRole);
+          console.log('現在のユーザー:', currentUser);
+          console.log('現在のユーザーロール:', userRole);
+        } else {
+          console.warn('現在のユーザー情報が見つかりません');
         }
 
         // APIエンドポイントから申請データを取得
