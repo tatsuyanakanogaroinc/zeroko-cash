@@ -87,87 +87,42 @@ export default function ApprovalsPage() {
         setUsers(usersData);
         
         // 現在のユーザー情報を取得
+        let currentUser = null;
         if (user) {
           setCurrentUserId(user.id);
-          const currentUser = usersData.find(u => u.id === user.id);
+          currentUser = usersData.find(u => u.id === user.id);
           setCurrentUserRole(currentUser?.role || 'user');
         }
 
-        // Supabaseから直接データを取得（全ユーザーの申請データ）
-        // 関連データも含めて取得
+        // APIエンドポイントから申請データを取得
         console.log('申請データを取得中...');
-        
-        let { data: expenseData, error: expenseError } = await supabase
-          .from('expenses')
-          .select('*')
-          .order('created_at', { ascending: false });
-
-        let { data: invoiceData, error: invoiceError } = await supabase
-          .from('invoice_payments')
-          .select('*')
-          .order('created_at', { ascending: false });
-
-        console.log('Expenses query result:', { data: expenseData, error: expenseError });
-        console.log('Invoice payments query result:', { data: invoiceData, error: invoiceError });
-
-        if (expenseError) {
-          console.error('Expenses Supabaseエラー:', expenseError);
-        }
-        if (invoiceError) {
-          console.error('Invoice payments Supabaseエラー:', invoiceError);
-        }
-        
-        // エラーがあっても継続してデータを処理する
-        
-        console.log('All expenses:', expenseData?.length || 0);
-        console.log('All invoices:', invoiceData?.length || 0);
-        console.log('Sample expense data:', expenseData?.[0]);
-        console.log('Sample invoice data:', invoiceData?.[0]);
         console.log('Current user role:', currentUser?.role);
         console.log('Current user ID:', user?.id);
         
-        // データが取得できない場合はAPIエンドポイントを使用
-        if ((!expenseData || expenseData.length === 0) && (!invoiceData || invoiceData.length === 0)) {
-          console.log('Supabaseから直接データを取得できませんでした。APIエンドポイントを使用します。');
-          try {
-            const apiResponse = await fetch('/api/applications');
-            if (apiResponse.ok) {
-              const apiData = await apiResponse.json();
-              console.log('APIからのデータ:', apiData);
-              if (apiData.success && apiData.data) {
-                setAllApplications(apiData.data);
-                setFilteredApplications(apiData.data);
-                return;
-              }
+        try {
+          const apiResponse = await fetch('/api/applications');
+          if (apiResponse.ok) {
+            const apiData = await apiResponse.json();
+            console.log('APIからのデータ:', apiData);
+            if (apiData.success && apiData.data) {
+              console.log('データ取得成功:', apiData.data.length, '件');
+              setAllApplications(apiData.data);
+              setFilteredApplications(apiData.data);
+            } else {
+              console.warn('APIからデータを取得できませんでした:', apiData);
+              setAllApplications([]);
+              setFilteredApplications([]);
             }
-          } catch (apiError) {
-            console.error('APIエンドポイントからのデータ取得も失敗:', apiError);
+          } else {
+            console.error('API response not ok:', apiResponse.status, apiResponse.statusText);
+            setAllApplications([]);
+            setFilteredApplications([]);
           }
+        } catch (apiError) {
+          console.error('APIエンドポイントからのデータ取得に失敗:', apiError);
+          setAllApplications([]);
+          setFilteredApplications([]);
         }
-
-        // 経費申請データの正規化
-        const normalizedExpenses = (expenseData || []).map(expense => ({
-          ...expense,
-          type: 'expense' as const,
-          date: expense.expense_date,
-          payment_method: expense.payment_method || 'personal_cash'
-        }));
-
-        // 請求書払い申請データの正規化
-        const normalizedInvoices = (invoiceData || []).map(invoice => ({
-          ...invoice,
-          type: 'invoice' as const,
-          date: invoice.invoice_date,
-          payment_method: '請求書払い',
-          event_name: invoice.events?.name || null
-        }));
-
-        // 統合してソート（作成日時の降順）
-        const combinedData = [...normalizedExpenses, ...normalizedInvoices]
-          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-
-        setAllApplications(combinedData);
-        setFilteredApplications(combinedData);
       } catch (error) {
         console.error('データの取得に失敗しました:', error);
       }
