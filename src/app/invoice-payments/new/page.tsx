@@ -287,10 +287,11 @@ function NewInvoicePaymentForm() {
                     id="amount"
                     type="text"
                     placeholder="1,000"
-                    {...register('amount', {
-                      setValueAs: (value) => parseInt(value.replace(/[^\d]/g, '')),
-                    })}
+                    value={watch('amount') ? watch('amount').toLocaleString() : ''}
                     onChange={(e) => {
+                      const value = e.target.value.replace(/[^\d]/g, '');
+                      const numValue = value ? parseInt(value) : 0;
+                      setValue('amount', numValue);
                       const formatted = formatAmount(e.target.value);
                       e.target.value = formatted;
                     }}
