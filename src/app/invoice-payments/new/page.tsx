@@ -68,9 +68,13 @@ function NewInvoicePaymentForm() {
         const invoicePayment = await response.json();
         console.log('請求書編集用データ読み込み:', invoicePayment);
         
+        // 日付を適切にフォーマット
+        const invoiceDate = new Date(invoicePayment.invoice_date);
+        const dueDate = new Date(invoicePayment.due_date);
+        
         // フォームに既存データを設定
-        setValue('invoice_date', new Date(invoicePayment.invoice_date));
-        setValue('due_date', new Date(invoicePayment.due_date));
+        setValue('invoice_date', invoiceDate);
+        setValue('due_date', dueDate);
         setValue('amount', invoicePayment.amount);
         setValue('vendor_name', invoicePayment.vendor_name);
         setValue('category_id', invoicePayment.category_id);
@@ -248,9 +252,11 @@ function NewInvoicePaymentForm() {
                   <Input
                     id="invoice_date"
                     type="date"
-                    {...register('invoice_date', {
-                      setValueAs: (value) => new Date(value),
-                    })}
+                    value={watch('invoice_date') ? 
+                      new Date(watch('invoice_date')).toISOString().split('T')[0] : 
+                      ''
+                    }
+                    onChange={(e) => setValue('invoice_date', new Date(e.target.value))}
                   />
                   {errors.invoice_date && (
                     <p className="text-sm text-red-500">{errors.invoice_date.message}</p>
@@ -262,9 +268,11 @@ function NewInvoicePaymentForm() {
                   <Input
                     id="due_date"
                     type="date"
-                    {...register('due_date', {
-                      setValueAs: (value) => new Date(value),
-                    })}
+                    value={watch('due_date') ? 
+                      new Date(watch('due_date')).toISOString().split('T')[0] : 
+                      ''
+                    }
+                    onChange={(e) => setValue('due_date', new Date(e.target.value))}
                   />
                   {errors.due_date && (
                     <p className="text-sm text-red-500">{errors.due_date.message}</p>

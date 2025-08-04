@@ -53,8 +53,11 @@ function NewExpenseForm() {
         const expense = await response.json();
         console.log('編集用データ読み込み:', expense);
         
+        // 日付を適切にフォーマット
+        const expenseDate = new Date(expense.expense_date);
+        
         // フォームに既存データを設定
-        setValue('expense_date', new Date(expense.expense_date));
+        setValue('expense_date', expenseDate);
         setValue('amount', expense.amount);
         setValue('category_id', expense.category_id);
         setValue('department_id', expense.department_id || '');
@@ -250,9 +253,11 @@ function NewExpenseForm() {
                   <Input
                     id="expense_date"
                     type="date"
-                    {...register('expense_date', {
-                      setValueAs: (value) => new Date(value),
-                    })}
+                    value={watch('expense_date') ? 
+                      new Date(watch('expense_date')).toISOString().split('T')[0] : 
+                      ''
+                    }
+                    onChange={(e) => setValue('expense_date', new Date(e.target.value))}
                   />
                   {errors.expense_date && (
                     <p className="text-sm text-red-500">{errors.expense_date.message}</p>
