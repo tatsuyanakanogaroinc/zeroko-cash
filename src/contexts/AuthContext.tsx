@@ -25,36 +25,119 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // ローカルストレージからユーザー情報を復元
-    const initializeUser = async () => {
+    // Supabaseセッションの状態を監視
+    const initializeAuth = async () => {
       try {
-        // ブラウザ環境でのみlocalStorageにアクセス
-        if (typeof window !== 'undefined') {
-          const storedUser = localStorage.getItem('currentUser');
-          if (storedUser) {
-            try {
-              const parsedUser = JSON.parse(storedUser);
-              setUser(parsedUser);
-            } catch (e) {
-              console.error('Failed to parse stored user:', e);
-              localStorage.removeItem('currentUser');
-              localStorage.removeItem('currentUserId');
+        // 現在のセッションを確認
+        const { data: { session }, error } = await supabase.auth.getSession()
+        
+        if (error) {
+          console.error('セッション取得エラー:', error)
+          // エラーの場合はローカルストレージもクリア
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('currentUser')
+            localStorage.removeItem('currentUserId')
+          }
+        } else if (session?.user) {
+          // セッションが有効な場合はユーザー情報を取得
+          console.log('有効なセッションが見つかりました:', session.user.id)
+          await loadUserData(session.user.id)
+        } else {
+          // セッションがない場合は、ローカルストレージから復元を試行
+          if (typeof window !== 'undefined') {
+            const storedUser = localStorage.getItem('currentUser')
+            if (storedUser) {
+              try {
+                const parsedUser = JSON.parse(storedUser)
+                setUser(parsedUser)
+                console.log('ローカルストレージからユーザー情報を復元しました')
+              } catch (e) {
+                console.error('ローカルストレージのユーザー情報が破損しています:', e)
+                localStorage.removeItem('currentUser')
+                localStorage.removeItem('currentUserId')
+              }
             }
           }
         }
       } catch (error) {
-        console.error('ユーザー初期化エラー:', error);
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('currentUser');
-          localStorage.removeItem('currentUserId');
-        }
+        console.error('認証初期化エラー:', error)
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
-    };
+    }
 
-    initializeUser();
-  }, []);
+    // セッションの変更を監視
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('認証状態変更:', event, session?.user?.id)
+        
+        if (event === 'SIGNED_IN' && session?.user) {
+          await loadUserData(session.user.id)
+        } else if (event === 'SIGNED_OUT') {
+          setUser(null)
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('currentUser')
+            localStorage.removeItem('currentUserId')
+          }
+        } else if (event === 'TOKEN_REFRESHED' && session?.user) {
+          console.log('トークンが更新されました')
+          // トークン更新時は現在のユーザー情報を保持
+        }
+      }
+    )
+
+    initializeAuth()
+
+    // クリーンアップ
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [])
+
+  // ユーザーデータを読み込む共通関数
+  const loadUserData = async (userId: string) => {
+    try {
+      const response = await fetch('/api/user-data', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId }),
+      })
+
+      if (response.ok) {
+        const userData = await response.json()
+        console.log('ユーザーデータ取得成功:', userData)
+        
+        setUser(userData)
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('currentUser', JSON.stringify(userData))
+          localStorage.setItem('currentUserId', userData.id)
+        }
+      } else {
+        console.warn('ユーザーデータ取得失敗、ダミーユーザーを作成中...')
+        // ダミーユーザーを作成
+        const tempUser: User = {
+          id: userId,
+          email: 'unknown@example.com',
+          name: 'ユーザー',
+          role: 'user' as const,
+          department_id: null,
+          initial_password: null,
+          password_changed: true,
+          created_at: new Date().toISOString()
+        }
+
+        setUser(tempUser)
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('currentUser', JSON.stringify(tempUser))
+          localStorage.setItem('currentUserId', tempUser.id)
+        }
+      }
+    } catch (error) {
+      console.error('ユーザーデータ読み込みエラー:', error)
+    }
+  }
 
 const login = async (email: string, password: string) => {
   setLoading(true);

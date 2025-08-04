@@ -23,7 +23,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { expenseService, invoicePaymentService } from '@/lib/database';
 import { useMasterDataStore, useExpenseStore, useEventStore } from '@/lib/store';
-import { supabase } from '@/lib/auth';
+import { supabase } from '@/lib/supabase';
 
 import { useAuth } from '@/contexts/AuthContext';
 export default function DashboardPage() {
