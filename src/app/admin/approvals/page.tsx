@@ -95,18 +95,29 @@ export default function ApprovalsPage() {
 
         // Supabaseから直接データを取得（全ユーザーの申請データ）
         // 関連データも含めて取得
+        console.log('申請データを取得中...');
+        
         let { data: expenseData, error: expenseError } = await supabase
           .from('expenses')
-          .select('*');
+          .select('*')
+          .order('created_at', { ascending: false });
 
         let { data: invoiceData, error: invoiceError } = await supabase
           .from('invoice_payments')
-          .select('*');
+          .select('*')
+          .order('created_at', { ascending: false });
 
-        if (expenseError || invoiceError) {
-          console.error('Supabaseエラー:', expenseError || invoiceError);
-          return;
+        console.log('Expenses query result:', { data: expenseData, error: expenseError });
+        console.log('Invoice payments query result:', { data: invoiceData, error: invoiceError });
+
+        if (expenseError) {
+          console.error('Expenses Supabaseエラー:', expenseError);
         }
+        if (invoiceError) {
+          console.error('Invoice payments Supabaseエラー:', invoiceError);
+        }
+        
+        // エラーがあっても継続してデータを処理する
         
         console.log('All expenses:', expenseData?.length || 0);
         console.log('All invoices:', invoiceData?.length || 0);
@@ -114,6 +125,25 @@ export default function ApprovalsPage() {
         console.log('Sample invoice data:', invoiceData?.[0]);
         console.log('Current user role:', currentUser?.role);
         console.log('Current user ID:', user?.id);
+        
+        // データが取得できない場合はAPIエンドポイントを使用
+        if ((!expenseData || expenseData.length === 0) && (!invoiceData || invoiceData.length === 0)) {
+          console.log('Supabaseから直接データを取得できませんでした。APIエンドポイントを使用します。');
+          try {
+            const apiResponse = await fetch('/api/applications');
+            if (apiResponse.ok) {
+              const apiData = await apiResponse.json();
+              console.log('APIからのデータ:', apiData);
+              if (apiData.success && apiData.data) {
+                setAllApplications(apiData.data);
+                setFilteredApplications(apiData.data);
+                return;
+              }
+            }
+          } catch (apiError) {
+            console.error('APIエンドポイントからのデータ取得も失敗:', apiError);
+          }
+        }
 
         // 経費申請データの正規化
         const normalizedExpenses = (expenseData || []).map(expense => ({
