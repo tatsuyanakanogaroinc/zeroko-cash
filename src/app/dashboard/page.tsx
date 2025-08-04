@@ -103,9 +103,12 @@ export default function DashboardPage() {
         return;
       }
       
+      console.log('=== ダッシュボード デバッグ情報 ===');
       console.log('User info:', { id: user.id, name: user.name });
-      console.log('User filtered expenses:', userFilteredExpenses.length);
-      console.log('User filtered invoices:', userFilteredInvoices.length);
+      console.log('User filtered expenses:', userFilteredExpenses?.length || 0);
+      console.log('User filtered invoices:', userFilteredInvoices?.length || 0);
+      console.log('Expenses raw data:', userFilteredExpenses);
+      console.log('Invoices raw data:', userFilteredInvoices);
 
       // 経費申請データの正規化
       const normalizedExpenses = userFilteredExpenses.map(expense => ({
