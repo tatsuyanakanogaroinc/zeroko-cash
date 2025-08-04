@@ -22,12 +22,14 @@ export async function POST(request: NextRequest) {
 
     console.log('ダッシュボードデータ取得開始:', { userId });
 
-    // 経費申請データを取得
+    // 経費申請データを取得（関連データも含める）
     const { data: expenses, error: expenseError } = await supabaseAdmin
       .from('expenses')
       .select(`
         *,
-        events:events!left(*)
+        events:events!left(*),
+        categories:categories!left(*),
+        users:users!left(department_id, departments:departments!left(*))
       `)
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
@@ -37,12 +39,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '経費申請データの取得に失敗しました' }, { status: 500 });
     }
 
-    // 請求書払い申請データを取得
+    // 請求書払い申請データを取得（関連データも含める）
     const { data: invoices, error: invoiceError } = await supabaseAdmin
       .from('invoice_payments')
       .select(`
         *,
-        events:events!left(*)
+        events:events!left(*),
+        categories:categories!left(*),
+        departments:departments!left(*),
+        projects:projects!left(*)
       `)
       .eq('user_id', userId)
       .order('created_at', { ascending: false });

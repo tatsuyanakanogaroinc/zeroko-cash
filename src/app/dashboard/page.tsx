@@ -37,29 +37,58 @@ export default function DashboardPage() {
   
   const { user } = useAuth();
   
-  // マスターデータから名前を取得する関数
-  const getDepartmentName = (departmentId: string | null) => {
-    if (!departmentId) return '未定';
-    const dept = departments.find(d => d.id === departmentId);
-    return dept?.name || '不明';
+  // アプリケーションデータから直接関連情報を取得する関数
+  const getDepartmentName = (application: any) => {
+    // 経費申請の場合
+    if (application.type === 'expense' && application.users?.departments) {
+      return application.users.departments.name || '不明';
+    }
+    // 請求書払いの場合
+    if (application.type === 'invoice' && application.departments) {
+      return application.departments.name || '不明';
+    }
+    // フォールバック: ストアから検索
+    if (application.department_id) {
+      const dept = departments.find(d => d.id === application.department_id);
+      return dept?.name || '不明';
+    }
+    return '未定';
   };
   
-  const getProjectName = (projectId: string | null) => {
-    if (!projectId) return '未定';
-    const project = projects.find(p => p.id === projectId);
-    return project?.name || '不明';
+  const getProjectName = (application: any) => {
+    if (application.projects) {
+      return application.projects.name || '不明';
+    }
+    if (application.project_id) {
+      const project = projects.find(p => p.id === application.project_id);
+      return project?.name || '不明';
+    }
+    return '未定';
   };
   
-  const getEventName = (eventId: string | null) => {
-    if (!eventId) return '未定';
-    const event = events.find(e => e.id === eventId);
-    return event?.name || '不明';
+  const getEventName = (application: any) => {
+    if (application.events) {
+      return application.events.name || '不明';
+    }
+    if (application.event_name) {
+      return application.event_name;
+    }
+    if (application.event_id) {
+      const event = events.find(e => e.id === application.event_id);
+      return event?.name || '不明';
+    }
+    return '未定';
   };
 
-  const getCategoryName = (categoryId: string | null) => {
-    if (!categoryId) return '未定';
-    const category = categories.find(c => c.id === categoryId);
-    return category?.name || '不明';
+  const getCategoryName = (application: any) => {
+    if (application.categories) {
+      return application.categories.name || '不明';
+    }
+    if (application.category_id) {
+      const category = categories.find(c => c.id === application.category_id);
+      return category?.name || '不明';
+    }
+    return '未定';
   };
 
   const getPaymentMethodLabel = (method: string) => {
@@ -297,110 +326,134 @@ export default function DashboardPage() {
                 <p className="text-sm mt-2">新しい申請を作成してください</p>
               </div>
             ) : (
-              <div className="space-y-1">
-                {displayApplications.map((application, index) => (
-                  <div key={application.id} className={`py-3 px-2 hover:bg-gray-50 transition-colors ${index !== displayApplications.length - 1 ? 'border-b border-gray-100' : ''}`}>
-                    {/* 完全に一行ですべての情報を表示 */}
-                    <div className="flex items-center justify-between gap-4">
-                      {/* 左側：すべての情報を一列に */}
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        {/* タイプアイコン */}
-                        <div className="flex-shrink-0">
+              <div className="overflow-x-auto">
+                {/* テーブルヘッダー */}
+                <div className="grid grid-cols-12 gap-2 py-3 px-4 bg-gray-50 border-b border-gray-200 text-sm font-medium text-gray-700 min-w-[1200px]">
+                  <div className="col-span-1 text-center">種類</div>
+                  <div className="col-span-2">説明</div>
+                  <div className="col-span-1 text-right">金額</div>
+                  <div className="col-span-1 text-center">日付</div>
+                  <div className="col-span-1 text-center">部門</div>
+                  <div className="col-span-1 text-center">カテゴリ</div>
+                  <div className="col-span-1 text-center">プロジェクト</div>
+                  <div className="col-span-1 text-center">イベント</div>
+                  <div className="col-span-1 text-center">支払方法</div>
+                  <div className="col-span-1 text-center">ステータス</div>
+                  <div className="col-span-1 text-center">アクション</div>
+                </div>
+                
+                {/* データ行 */}
+                <div className="divide-y divide-gray-100">
+                  {displayApplications.map((application, index) => {
+                    const fullApplication = allApplications.find(app => app.id === application.id) || application;
+                    return (
+                      <div key={application.id} className="grid grid-cols-12 gap-2 py-4 px-4 hover:bg-gray-50 transition-colors text-sm min-w-[1200px]">
+                        {/* 種類アイコン */}
+                        <div className="col-span-1 flex justify-center">
                           {application.type === 'expense' ? (
-                            <div className="w-5 h-5 bg-blue-100 rounded-full flex items-center justify-center">
-                              <FileText className="w-3 h-3 text-blue-600" />
+                            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center" title=\"経費申請\">
+                              <FileText className="w-4 h-4 text-blue-600" />
                             </div>
                           ) : (
-                            <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center">
-                              <DollarSign className="w-3 h-3 text-green-600" />
+                            <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center" title=\"請求書払い\">
+                              <DollarSign className="w-4 h-4 text-green-600" />
                             </div>
                           )}
                         </div>
                         
                         {/* 説明 */}
-                        <div className="font-medium text-gray-900 truncate min-w-0 max-w-xs">
-                          {application.description}
+                        <div className="col-span-2 font-medium text-gray-900">
+                          <div className="truncate" title={application.description}>
+                            {application.description}
+                          </div>
                         </div>
                         
                         {/* 金額 */}
-                        <div className="font-bold text-gray-900 flex-shrink-0">
+                        <div className="col-span-1 text-right font-bold text-gray-900">
                           ¥{application.amount.toLocaleString()}
                         </div>
                         
                         {/* 日付 */}
-                        <div className="text-sm text-gray-600 flex-shrink-0">
+                        <div className="col-span-1 text-center text-gray-600">
                           {application.date}
                         </div>
                         
                         {/* 部門 */}
-                        <div className="text-sm text-gray-600 flex-shrink-0">
-                          {getDepartmentName(application.department_id)}
-                        </div>
-                        
-                        {/* イベント */}
-                        {application.event_name && (
-                          <div className="text-sm text-gray-600 flex-shrink-0">
-                            {application.event_name}
+                        <div className="col-span-1 text-center text-gray-600">
+                          <div className="truncate" title={getDepartmentName(fullApplication)}>
+                            {getDepartmentName(fullApplication)}
                           </div>
-                        )}
-                        
-                        {/* プロジェクト */}
-                        <div className="text-sm text-gray-600 flex-shrink-0">
-                          {getProjectName(application.project_id)}
                         </div>
                         
                         {/* カテゴリ */}
-                        <div className="text-sm text-gray-600 flex-shrink-0">
-                          {getCategoryName(application.category_id)}
+                        <div className="col-span-1 text-center text-gray-600">
+                          <div className="truncate" title={getCategoryName(fullApplication)}>
+                            {getCategoryName(fullApplication)}
+                          </div>
+                        </div>
+                        
+                        {/* プロジェクト */}
+                        <div className="col-span-1 text-center text-gray-600">
+                          <div className="truncate" title={getProjectName(fullApplication)}>
+                            {getProjectName(fullApplication)}
+                          </div>
+                        </div>
+                        
+                        {/* イベント */}
+                        <div className="col-span-1 text-center text-gray-600">
+                          <div className="truncate" title={getEventName(fullApplication)}>
+                            {getEventName(fullApplication)}
+                          </div>
                         </div>
                         
                         {/* 支払方法 */}
-                        <div className="text-sm text-gray-600 flex-shrink-0">
-                          {getPaymentMethodLabel(application.payment_method)}
+                        <div className="col-span-1 text-center text-gray-600">
+                          <div className="truncate" title={getPaymentMethodLabel(application.payment_method)}>
+                            {getPaymentMethodLabel(application.payment_method)}
+                          </div>
                         </div>
                         
-                        {/* 却下理由（却下の場合のみ） */}
-                        {application.status === 'rejected' && application.comments && (
-                          <div className="text-sm text-red-600 flex-shrink-0 max-w-xs truncate" title={application.comments}>
-                            却下: {application.comments}
-                          </div>
-                        )}
-                      </div>
-                      
-                      {/* 右側：ステータス + アクションボタン */}
-                      <div className="flex items-center gap-2 flex-shrink-0">
                         {/* ステータス */}
-                        <div>
+                        <div className="col-span-1 flex justify-center">
                           {getStatusBadge(application.status)}
                         </div>
                         
-                        {/* アクションボタン（承認待ちの場合のみ） */}
-                        {application.status === 'pending' && (
-                          <div className="flex gap-1">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleEditApplication(application.id, application.type)}
-                              className="h-7 px-2 text-blue-600 hover:text-white hover:bg-blue-600 border-blue-200 flex items-center gap-1"
-                            >
-                              <Edit className="w-3 h-3" />
-                              編集
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleDeleteApplication(application.id, application.type)}
-                              className="h-7 px-2 text-red-600 hover:text-white hover:bg-red-600 border-red-200 flex items-center gap-1"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                              削除
-                            </Button>
+                        {/* アクション */}
+                        <div className="col-span-1 flex justify-center">
+                          {application.status === 'pending' && (
+                            <div className="flex gap-1">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEditApplication(application.id, application.type)}
+                                className="h-7 px-2 text-blue-600 hover:text-white hover:bg-blue-600 border-blue-200"
+                                title=\"編集\"
+                              >
+                                <Edit className="w-3 h-3" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDeleteApplication(application.id, application.type)}
+                                className="h-7 px-2 text-red-600 hover:text-white hover:bg-red-600 border-red-200"
+                                title=\"削除\"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* 却下理由（全幅表示） */}
+                        {application.status === 'rejected' && application.comments && (
+                          <div className="col-span-12 mt-2 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+                            <strong>却下理由:</strong> {application.comments}
                           </div>
                         )}
                       </div>
-                    </div>
-                  </div>
-                ))}
+                    );
+                  })}
+                </div>
               </div>
             )}
           </CardContent>
