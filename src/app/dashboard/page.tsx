@@ -112,6 +112,28 @@ export default function DashboardPage() {
     }
   };
 
+  const getTypeLabel = (type: 'expense' | 'invoice') => {
+    switch (type) {
+      case 'expense':
+        return '経費申請';
+      case 'invoice':
+        return '請求書払い';
+      default:
+        return type;
+    }
+  };
+
+  const getTypeBadge = (type: 'expense' | 'invoice') => {
+    switch (type) {
+      case 'expense':
+        return <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">経費申請</span>;
+      case 'invoice':
+        return <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">請求書払い</span>;
+      default:
+        return <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">{type}</span>;
+    }
+  };
+
   const fetchData = async () => {
     if (!user) return;
     
@@ -328,17 +350,18 @@ export default function DashboardPage() {
             ) : (
               <div className="overflow-x-auto">
                 {/* テーブルヘッダー */}
-                <div className="grid grid-cols-12 gap-2 py-3 px-4 bg-gray-50 border-b border-gray-200 text-sm font-medium text-gray-700 min-w-[1200px]">
-                  <div className="col-span-1 text-center">申請日</div>
+                <div className="grid grid-cols-12 gap-2 py-3 px-4 bg-gray-50 border-b border-gray-200 text-sm font-medium text-gray-700 min-w-[1400px]">
                   <div className="col-span-2">説明</div>
-                  <div className="col-span-1 text-right">金額</div>
                   <div className="col-span-1 text-center">勘定科目</div>
+                  <div className="col-span-1 text-right">金額</div>
+                  <div className="col-span-1 text-center">申請日</div>
                   <div className="col-span-1 text-center">部門</div>
                   <div className="col-span-1 text-center">イベント</div>
                   <div className="col-span-1 text-center">プロジェクト</div>
                   <div className="col-span-1 text-center">支払方法</div>
+                  <div className="col-span-1 text-center">種類</div>
                   <div className="col-span-1 text-center">ステータス</div>
-                  <div className="col-span-2 text-center">アクション</div>
+                  <div className="col-span-1 text-center">アクション</div>
                 </div>
                 
                 {/* データ行 */}
@@ -346,16 +369,18 @@ export default function DashboardPage() {
                   {displayApplications.map((application, index) => {
                     const fullApplication = allApplications.find(app => app.id === application.id) || application;
                     return (
-                      <div key={application.id} className="grid grid-cols-12 gap-2 py-4 px-4 hover:bg-gray-50 transition-colors text-sm min-w-[1200px]">
-                        {/* 申請日 */}
-                        <div className="col-span-1 text-center text-gray-600">
-                          {application.date}
-                        </div>
-                        
+                      <div key={application.id} className="grid grid-cols-12 gap-2 py-4 px-4 hover:bg-gray-50 transition-colors text-sm min-w-[1400px]">
                         {/* 説明 */}
                         <div className="col-span-2 font-medium text-gray-900">
                           <div className="truncate" title={application.description}>
                             {application.description}
+                          </div>
+                        </div>
+                        
+                        {/* 勘定科目（カテゴリ） */}
+                        <div className="col-span-1 text-center text-gray-600">
+                          <div className="truncate" title={getCategoryName(fullApplication)}>
+                            {getCategoryName(fullApplication)}
                           </div>
                         </div>
                         
@@ -364,11 +389,9 @@ export default function DashboardPage() {
                           ¥{application.amount.toLocaleString()}
                         </div>
                         
-                        {/* 勘定科目（カテゴリ） */}
+                        {/* 申請日 */}
                         <div className="col-span-1 text-center text-gray-600">
-                          <div className="truncate" title={getCategoryName(fullApplication)}>
-                            {getCategoryName(fullApplication)}
-                          </div>
+                          {application.date}
                         </div>
                         
                         {/* 部門（カラー付き） */}
@@ -411,13 +434,18 @@ export default function DashboardPage() {
                           </div>
                         </div>
                         
+                        {/* 種類 */}
+                        <div className="col-span-1 text-center">
+                          {getTypeBadge(application.type)}
+                        </div>
+                        
                         {/* ステータス */}
                         <div className="col-span-1 flex justify-center">
                           {getStatusBadge(application.status)}
                         </div>
                         
                         {/* アクション */}
-                        <div className="col-span-2 flex justify-center">
+                        <div className="col-span-1 flex justify-center">
                           {application.status === 'pending' && (
                             <div className="flex gap-1">
                               <Button
