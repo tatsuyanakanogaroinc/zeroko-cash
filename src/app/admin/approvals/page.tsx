@@ -94,13 +94,14 @@ export default function ApprovalsPage() {
         }
 
         // Supabaseから直接データを取得（全ユーザーの申請データ）
+        // 関連データも含めて取得
         let { data: expenseData, error: expenseError } = await supabase
           .from('expenses')
-          .select("*, events:events!left(*)");
+          .select('*');
 
         let { data: invoiceData, error: invoiceError } = await supabase
           .from('invoice_payments')
-          .select("*, events:events!left(*)");
+          .select('*');
 
         if (expenseError || invoiceError) {
           console.error('Supabaseエラー:', expenseError || invoiceError);
@@ -109,6 +110,10 @@ export default function ApprovalsPage() {
         
         console.log('All expenses:', expenseData?.length || 0);
         console.log('All invoices:', invoiceData?.length || 0);
+        console.log('Sample expense data:', expenseData?.[0]);
+        console.log('Sample invoice data:', invoiceData?.[0]);
+        console.log('Current user role:', currentUser?.role);
+        console.log('Current user ID:', user?.id);
 
         // 経費申請データの正規化
         const normalizedExpenses = (expenseData || []).map(expense => ({
