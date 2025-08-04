@@ -1,4 +1,4 @@
-import { supabase } from './auth';
+import { supabase } from './supabase';
 import { ApproverSetting } from './types';
 
 export async function getApprovers(): Promise<ApproverSetting[]> {
