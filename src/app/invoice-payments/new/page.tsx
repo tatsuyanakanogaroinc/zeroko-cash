@@ -19,6 +19,7 @@ import { useMasterDataStore } from '@/lib/store';
 import { invoicePaymentService } from '@/lib/database';
 import { supabase } from '@/lib/supabase';
 import { userService } from '@/lib/database';
+import { useAuth } from '@/contexts/AuthContext';
 
 // バリデーションスキーマ
 const invoicePaymentSchema = z.object({
@@ -41,6 +42,9 @@ export default function NewInvoicePaymentPage() {
   const [sortedCategories, setSortedCategories] = useState<any[]>([]);
   const [availableEvents, setAvailableEvents] = useState<any[]>([]);
   const router = useRouter();
+  
+  // AuthContextからユーザー情報を取得
+  const { user } = useAuth();
 
   const {
     register,
@@ -115,17 +119,16 @@ export default function NewInvoicePaymentPage() {
   const onSubmit = async (data: InvoicePaymentFormData) => {
     setIsLoading(true);
     try {
-      // ログインユーザー情報取得
-      const userRes = await supabase.auth.getUser();
-      const userId = userRes.data.user?.id;
-      
-      if (!userId) {
-        throw new Error('ユーザーが認証されていません');
+      // ユーザー情報の確認
+      if (!user?.id) {
+        throw new Error('ユーザー情報が取得できません。ログインし直してください。');
       }
+      
+      console.log('請求書払い申請を送信中:', { userId: user.id, userName: user.name });
 
       // 請求書払い申請データを作成
       const invoicePaymentData = {
-        user_id: userId,
+        user_id: user.id,
         description: data.description,
         amount: data.amount,
         invoice_date: data.invoice_date.toISOString().split('T')[0],

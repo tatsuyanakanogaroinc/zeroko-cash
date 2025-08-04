@@ -19,14 +19,17 @@ import { useMasterDataStore, useExpenseStore } from '@/lib/store';
 import { getApprovers } from '@/lib/approvers';
 import { supabase } from '@/lib/supabase';
 import { userService } from '@/lib/database';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function NewExpensePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [sortedCategories, setSortedCategories] = useState<any[]>([]);
   const [availableEvents, setAvailableEvents] = useState<any[]>([]);
-  const [currentUser, setCurrentUser] = useState<any>(null);
   const router = useRouter();
+  
+  // AuthContextからユーザー情報を取得
+  const { user } = useAuth();
 
   const {
     register,
@@ -116,15 +119,16 @@ export default function NewExpensePage() {
         return;
       }
       
-      // ログインユーザー情報取得
-      const userRes = await supabase.auth.getUser();
-      if (!userRes.data.user) {
-        throw new Error('ユーザー情報が取得できません');
+      // ユーザー情報の確認
+      if (!user?.id) {
+        throw new Error('ユーザー情報が取得できません。ログインし直してください。');
       }
+      
+      console.log('経費申請を送信中:', { userId: user.id, userName: user.name });
       
       // Supabaseに経費データを保存
       const expenseData = {
-        user_id: userRes.data.user.id,
+        user_id: user.id,
         expense_date: data.expense_date.toISOString().split('T')[0],
         amount: data.amount,
         category_id: data.category_id,
