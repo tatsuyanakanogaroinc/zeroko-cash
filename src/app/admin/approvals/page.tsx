@@ -60,6 +60,7 @@ export default function ApprovalsPage() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [currentUserRole, setCurrentUserRole] = useState<string>('user');
   const [activeTab, setActiveTab] = useState('pending');
+  const [isLoading, setIsLoading] = useState(true);
   
   // フィルター状態
   const [filters, setFilters] = useState({
@@ -118,30 +119,40 @@ export default function ApprovalsPage() {
         console.log('Current user role:', currentUser?.role);
         console.log('Current user ID:', user?.id);
         
-        try {
-          const apiResponse = await fetch('/api/applications');
-          if (apiResponse.ok) {
-            const apiData = await apiResponse.json();
-            console.log('APIからのデータ:', apiData);
-            if (apiData.success && apiData.data) {
-              console.log('データ取得成功:', apiData.data.length, '件');
-              setAllApplications(apiData.data);
-              setFilteredApplications(apiData.data);
+          try {
+            const apiResponse = await fetch('/api/applications');
+            if (apiResponse.ok) {
+              const apiData = await apiResponse.json();
+              console.log('APIからのデータ:', apiData);
+              if (apiData.success && apiData.data) {
+                console.log('データ取得成功:', apiData.data.length, '件');
+                console.log('取得したデータのサンプル:', apiData.data[0]);
+                
+                // データ構造を正規化
+                const normalizedData = apiData.data.map((item: any) => ({
+                  ...item,
+                  date: item.date || item.expense_date || item.invoice_date,
+                  // その他の必要なフィールドがあれば追加
+                }));
+                
+                console.log('正規化後のデータのサンプル:', normalizedData[0]);
+                setAllApplications(normalizedData);
+                setFilteredApplications(normalizedData);
+              } else {
+                console.warn('APIからデータを取得できませんでした:', apiData);
+                setAllApplications([]);
+                setFilteredApplications([]);
+              }
             } else {
-              console.warn('APIからデータを取得できませんでした:', apiData);
+              console.error('API response not ok:', apiResponse.status, apiResponse.statusText);
               setAllApplications([]);
               setFilteredApplications([]);
             }
-          } else {
-            console.error('API response not ok:', apiResponse.status, apiResponse.statusText);
+          } catch (apiError) {
+            console.error('APIエンドポイントからのデータ取得に失敗:', apiError);
             setAllApplications([]);
             setFilteredApplications([]);
           }
-        } catch (apiError) {
-          console.error('APIエンドポイントからのデータ取得に失敗:', apiError);
-          setAllApplications([]);
-          setFilteredApplications([]);
-        }
       } catch (error) {
         console.error('データの取得に失敗しました:', error);
       }
