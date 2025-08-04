@@ -1,29 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { MainLayout } from '@/components/layout/main-layout';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CheckCircle, XCircle, Clock, Eye, Edit, Trash2, Filter, FileImage } from 'lucide-react';
-import { useMasterDataStore, useEventStore } from '@/lib/store';
-import { getApprovers } from '@/lib/approvers';
-import { ApproverSetting } from '@/lib/types';
-import { userService, expenseService, invoicePaymentService } from '@/lib/database';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-
-// フロントエンド用のSupabaseクライアント
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
 import { useAuth } from '@/contexts/AuthContext';
 
 interface Application {
