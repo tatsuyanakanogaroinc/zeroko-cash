@@ -254,8 +254,14 @@ export default function ApprovalsPage() {
       return;
     }
 
-    if (!rejectReason.trim()) {
-      alert('却下理由を入力してください');
+    // 一時的にコメント不要に変更（テーブルにcommentsフィールドがないため）
+    // if (!rejectReason.trim()) {
+    //   alert('却下理由を入力してください');
+    //   return;
+    // }
+    
+    // ユーザーに却下理由が保存されないことを通知
+    if (!confirm('現在のシステムでは却下理由を保存できません。\nそれでも却下しますか？')) {
       return;
     }
 

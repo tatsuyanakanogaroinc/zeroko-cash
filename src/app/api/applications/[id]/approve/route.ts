@@ -38,13 +38,13 @@ export async function POST(
       );
     }
 
-    // 却下の場合はコメント必須
-    if (action === 'reject' && !comments?.trim()) {
-      return NextResponse.json(
-        { error: '却下の場合はコメントが必要です' },
-        { status: 400 }
-      );
-    }
+    // 却下の場合はコメント必須（一時的に無効化 - テーブルにcommentsフィールドがないため）
+    // if (action === 'reject' && !comments?.trim()) {
+    //   return NextResponse.json(
+    //     { error: '却下の場合はコメントが必要です' },
+    //     { status: 400 }
+    //   );
+    // }
 
     const tableName = type === 'expense' ? 'expenses' : 'invoice_payments';
     const status = action === 'approve' ? 'approved' : 'rejected';
@@ -76,16 +76,16 @@ export async function POST(
       );
     }
 
-    // 申請のステータスを更新
+    // 申請のステータスを更新（statusフィールドのみ）
     const updateData: any = {
-      status,
-      updated_at: new Date().toISOString()
+      status
     };
 
-    // コメントがある場合は追加（承認時は任意、却下時は必須）
-    if (comments?.trim()) {
-      updateData.comments = comments.trim();
-    }
+    // 注意: expensesテーブルにはcommentsフィールドが存在しないため、commentsは更新しない
+    // 将来的にcommentsフィールドを追加する場合は、テーブル構造を更新してから有効にする
+    // if (comments?.trim()) {
+    //   updateData.comments = comments.trim();
+    // }
     
     console.log('更新データ:', updateData);
 
