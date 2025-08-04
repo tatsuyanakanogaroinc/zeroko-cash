@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { CheckCircle, XCircle, Clock, Eye, Edit, Trash2, Filter, FileImage } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMasterDataStore, useEventStore } from '@/lib/store';
+import { EditApplicationModal } from '@/components/modals/EditApplicationModal';
 
 interface Application {
   id: string;
@@ -42,6 +43,10 @@ export default function ApprovalsPage() {
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectingApplication, setRejectingApplication] = useState<Application | null>(null);
   const [rejectReason, setRejectReason] = useState('');
+  
+  // 編集モーダルの状態
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
   
   const { user } = useAuth();
   const { categories, departments, projects, loadDataFromAPI: loadMasterData, isLoaded: masterDataLoaded } = useMasterDataStore();
@@ -298,12 +303,18 @@ export default function ApprovalsPage() {
     }
   };
 
-  // 申請編集機能
+  // 申請編集機能（モーダル版）
   const handleEditApplication = (application: Application) => {
-    const editUrl = application.type === 'expense' 
-      ? `/expenses/new?edit=${application.id}` 
-      : `/invoice-payments/new?edit=${application.id}`;
-    window.location.href = editUrl;
+    console.log('Opening edit modal for:', application);
+    setSelectedApplication(application);
+    setEditModalOpen(true);
+  };
+
+  // モーダル編集成功時のコールバック
+  const handleEditSuccess = () => {
+    setEditModalOpen(false);
+    setSelectedApplication(null);
+    window.location.reload(); // データを再取得
   };
 
   // 申請削除機能
@@ -544,6 +555,17 @@ export default function ApprovalsPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* 編集モーダル */}
+        <EditApplicationModal
+          isOpen={editModalOpen}
+          onClose={() => {
+            setEditModalOpen(false);
+            setSelectedApplication(null);
+          }}
+          application={selectedApplication}
+          onSuccess={handleEditSuccess}
+        />
       </div>
     </MainLayout>
   );

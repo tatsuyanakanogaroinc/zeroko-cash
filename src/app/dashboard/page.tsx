@@ -24,11 +24,14 @@ import Link from 'next/link';
 import { expenseService, invoicePaymentService } from '@/lib/database';
 import { useMasterDataStore, useExpenseStore, useEventStore } from '@/lib/store';
 import { supabase } from '@/lib/supabase';
+import { EditApplicationModal } from '@/components/modals/EditApplicationModal';
 
 import { useAuth } from '@/contexts/AuthContext';
 export default function DashboardPage() {
   const [allApplications, setAllApplications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [selectedApplication, setSelectedApplication] = useState<any>(null);
   
   // マスターデータストアから取得
   const { departments, projects, categories } = useMasterDataStore();
@@ -234,10 +237,18 @@ export default function DashboardPage() {
     }
   };
 
-  // 申請編集機能
-  const handleEditApplication = async (applicationId: string, type: 'expense' | 'invoice') => {
-    const editUrl = type === 'expense' ? `/expenses/new?edit=${applicationId}` : `/invoice-payments/new?edit=${applicationId}`;
-    window.location.href = editUrl;
+  // 申請編集機能（モーダル版）
+  const handleEditApplication = (application: any) => {
+    console.log('Opening edit modal for:', application);
+    setSelectedApplication(application);
+    setEditModalOpen(true);
+  };
+
+  // モーダル編集成功時のコールバック
+  const handleEditSuccess = () => {
+    fetchData(); // データを再取得
+    setEditModalOpen(false);
+    setSelectedApplication(null);
   };
 
   // 申請削除機能
@@ -459,8 +470,8 @@ export default function DashboardPage() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => {
-                                  console.log('Edit clicked:', application.id, application.type);
-                                  handleEditApplication(application.id, application.type);
+                                  console.log('Edit clicked:', fullApplication);
+                                  handleEditApplication(fullApplication);
                                 }}
                                 className="h-7 px-2 text-blue-600 hover:text-white hover:bg-blue-600 border-blue-200"
                                 title="編集"
@@ -495,6 +506,17 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+      
+      {/* 編集モーダル */}
+      <EditApplicationModal
+        isOpen={editModalOpen}
+        onClose={() => {
+          setEditModalOpen(false);
+          setSelectedApplication(null);
+        }}
+        application={selectedApplication}
+        onSuccess={handleEditSuccess}
+      />
     </MainLayout>
   );
-} 
+}
