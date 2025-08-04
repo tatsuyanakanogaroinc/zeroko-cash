@@ -329,15 +329,15 @@ export default function DashboardPage() {
               <div className="overflow-x-auto">
                 {/* テーブルヘッダー */}
                 <div className="grid grid-cols-12 gap-2 py-3 px-4 bg-gray-50 border-b border-gray-200 text-sm font-medium text-gray-700 min-w-[1200px]">
-                  <div className="col-span-1 text-center">種類</div>
                   <div className="col-span-2">説明</div>
+                  <div className="col-span-1 text-center">勘定科目</div>
                   <div className="col-span-1 text-right">金額</div>
-                  <div className="col-span-1 text-center">日付</div>
+                  <div className="col-span-1 text-center">申請日</div>
                   <div className="col-span-1 text-center">部門</div>
-                  <div className="col-span-1 text-center">カテゴリ</div>
-                  <div className="col-span-1 text-center">プロジェクト</div>
                   <div className="col-span-1 text-center">イベント</div>
+                  <div className="col-span-1 text-center">プロジェクト</div>
                   <div className="col-span-1 text-center">支払方法</div>
+                  <div className="col-span-1 text-center">種類</div>
                   <div className="col-span-1 text-center">ステータス</div>
                   <div className="col-span-1 text-center">アクション</div>
                 </div>
@@ -348,23 +348,17 @@ export default function DashboardPage() {
                     const fullApplication = allApplications.find(app => app.id === application.id) || application;
                     return (
                       <div key={application.id} className="grid grid-cols-12 gap-2 py-4 px-4 hover:bg-gray-50 transition-colors text-sm min-w-[1200px]">
-                        {/* 種類アイコン */}
-                        <div className="col-span-1 flex justify-center">
-                          {application.type === 'expense' ? (
-                            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center" title="経費申請">
-                              <FileText className="w-4 h-4 text-blue-600" />
-                            </div>
-                          ) : (
-                            <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center" title="請求書払い">
-                              <DollarSign className="w-4 h-4 text-green-600" />
-                            </div>
-                          )}
-                        </div>
-                        
                         {/* 説明 */}
                         <div className="col-span-2 font-medium text-gray-900">
                           <div className="truncate" title={application.description}>
                             {application.description}
+                          </div>
+                        </div>
+                        
+                        {/* 勘定科目（カテゴリ） */}
+                        <div className="col-span-1 text-center text-gray-600">
+                          <div className="truncate" title={getCategoryName(fullApplication)}>
+                            {getCategoryName(fullApplication)}
                           </div>
                         </div>
                         
@@ -373,7 +367,7 @@ export default function DashboardPage() {
                           ¥{application.amount.toLocaleString()}
                         </div>
                         
-                        {/* 日付 */}
+                        {/* 申請日（日付） */}
                         <div className="col-span-1 text-center text-gray-600">
                           {application.date}
                         </div>
@@ -385,10 +379,10 @@ export default function DashboardPage() {
                           </div>
                         </div>
                         
-                        {/* カテゴリ */}
+                        {/* イベント */}
                         <div className="col-span-1 text-center text-gray-600">
-                          <div className="truncate" title={getCategoryName(fullApplication)}>
-                            {getCategoryName(fullApplication)}
+                          <div className="truncate" title={getEventName(fullApplication)}>
+                            {getEventName(fullApplication)}
                           </div>
                         </div>
                         
@@ -399,18 +393,22 @@ export default function DashboardPage() {
                           </div>
                         </div>
                         
-                        {/* イベント */}
-                        <div className="col-span-1 text-center text-gray-600">
-                          <div className="truncate" title={getEventName(fullApplication)}>
-                            {getEventName(fullApplication)}
-                          </div>
-                        </div>
-                        
                         {/* 支払方法 */}
                         <div className="col-span-1 text-center text-gray-600">
                           <div className="truncate" title={getPaymentMethodLabel(application.payment_method)}>
                             {getPaymentMethodLabel(application.payment_method)}
                           </div>
+                        </div>
+                        
+                        {/* 種類（テキスト表示） */}
+                        <div className="col-span-1 text-center text-gray-600">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            application.type === 'expense' 
+                              ? 'bg-blue-100 text-blue-700' 
+                              : 'bg-green-100 text-green-700'
+                          }`}>
+                            {application.type === 'expense' ? '経費申請' : '請求書払い'}
+                          </span>
                         </div>
                         
                         {/* ステータス */}
