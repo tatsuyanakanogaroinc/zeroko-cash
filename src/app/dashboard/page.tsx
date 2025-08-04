@@ -329,17 +329,16 @@ export default function DashboardPage() {
               <div className="overflow-x-auto">
                 {/* テーブルヘッダー */}
                 <div className="grid grid-cols-12 gap-2 py-3 px-4 bg-gray-50 border-b border-gray-200 text-sm font-medium text-gray-700 min-w-[1200px]">
-                  <div className="col-span-2">説明</div>
-                  <div className="col-span-1 text-center">勘定科目</div>
-                  <div className="col-span-1 text-right">金額</div>
                   <div className="col-span-1 text-center">申請日</div>
+                  <div className="col-span-2">説明</div>
+                  <div className="col-span-1 text-right">金額</div>
+                  <div className="col-span-1 text-center">勘定科目</div>
                   <div className="col-span-1 text-center">部門</div>
                   <div className="col-span-1 text-center">イベント</div>
                   <div className="col-span-1 text-center">プロジェクト</div>
                   <div className="col-span-1 text-center">支払方法</div>
-                  <div className="col-span-1 text-center">種類</div>
                   <div className="col-span-1 text-center">ステータス</div>
-                  <div className="col-span-1 text-center">アクション</div>
+                  <div className="col-span-2 text-center">アクション</div>
                 </div>
                 
                 {/* データ行 */}
@@ -348,11 +347,21 @@ export default function DashboardPage() {
                     const fullApplication = allApplications.find(app => app.id === application.id) || application;
                     return (
                       <div key={application.id} className="grid grid-cols-12 gap-2 py-4 px-4 hover:bg-gray-50 transition-colors text-sm min-w-[1200px]">
+                        {/* 申請日 */}
+                        <div className="col-span-1 text-center text-gray-600">
+                          {application.date}
+                        </div>
+                        
                         {/* 説明 */}
                         <div className="col-span-2 font-medium text-gray-900">
                           <div className="truncate" title={application.description}>
                             {application.description}
                           </div>
+                        </div>
+                        
+                        {/* 金額 */}
+                        <div className="col-span-1 text-right font-bold text-gray-900">
+                          ¥{application.amount.toLocaleString()}
                         </div>
                         
                         {/* 勘定科目（カテゴリ） */}
@@ -362,21 +371,23 @@ export default function DashboardPage() {
                           </div>
                         </div>
                         
-                        {/* 金額 */}
-                        <div className="col-span-1 text-right font-bold text-gray-900">
-                          ¥{application.amount.toLocaleString()}
-                        </div>
-                        
-                        {/* 申請日（日付） */}
-                        <div className="col-span-1 text-center text-gray-600">
-                          {application.date}
-                        </div>
-                        
-                        {/* 部門 */}
-                        <div className="col-span-1 text-center text-gray-600">
-                          <div className="truncate" title={getDepartmentName(fullApplication)}>
+                        {/* 部門（カラー付き） */}
+                        <div className="col-span-1 text-center">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            getDepartmentName(fullApplication) === '経営' 
+                              ? 'bg-purple-100 text-purple-700' 
+                              : getDepartmentName(fullApplication) === '開発'
+                              ? 'bg-blue-100 text-blue-700'
+                              : getDepartmentName(fullApplication) === '営業'
+                              ? 'bg-green-100 text-green-700'
+                              : getDepartmentName(fullApplication) === '人事'
+                              ? 'bg-yellow-100 text-yellow-700'
+                              : getDepartmentName(fullApplication) === '総務'
+                              ? 'bg-red-100 text-red-700'
+                              : 'bg-gray-100 text-gray-700'
+                          }`} title={getDepartmentName(fullApplication)}>
                             {getDepartmentName(fullApplication)}
-                          </div>
+                          </span>
                         </div>
                         
                         {/* イベント */}
@@ -400,24 +411,13 @@ export default function DashboardPage() {
                           </div>
                         </div>
                         
-                        {/* 種類（テキスト表示） */}
-                        <div className="col-span-1 text-center text-gray-600">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            application.type === 'expense' 
-                              ? 'bg-blue-100 text-blue-700' 
-                              : 'bg-green-100 text-green-700'
-                          }`}>
-                            {application.type === 'expense' ? '経費申請' : '請求書払い'}
-                          </span>
-                        </div>
-                        
                         {/* ステータス */}
                         <div className="col-span-1 flex justify-center">
                           {getStatusBadge(application.status)}
                         </div>
                         
                         {/* アクション */}
-                        <div className="col-span-1 flex justify-center">
+                        <div className="col-span-2 flex justify-center">
                           {application.status === 'pending' && (
                             <div className="flex gap-1">
                               <Button
