@@ -87,57 +87,29 @@ export default function DashboardPage() {
     if (!user) return;
     
     try {
-      // Supabaseから直接データを取得
-      let { data: userFilteredExpenses, error: expenseError } = await supabase
-        .from('expenses')
-        .select("*, events:events!left(*)")
-        .eq('user_id', user.id);
-
-      let { data: userFilteredInvoices, error: invoiceError } = await supabase
-        .from('invoice_payments')
-        .select("*, events:events!left(*)")
-        .eq('user_id', user.id);
-
-      if (expenseError || invoiceError) {
-        console.error('Supabaseエラー:', expenseError || invoiceError);
-        return;
-      }
-      
-      console.log('=== ダッシュボード デバッグ情報 ===');
+      console.log('=== ダッシュボード データ取得開始 ===');
       console.log('User info:', { id: user.id, name: user.name });
-      console.log('User filtered expenses:', userFilteredExpenses?.length || 0);
-      console.log('User filtered invoices:', userFilteredInvoices?.length || 0);
-      console.log('Expenses raw data:', userFilteredExpenses);
-      console.log('Invoices raw data:', userFilteredInvoices);
-
-      // 経費申請データの正規化
-      const normalizedExpenses = userFilteredExpenses.map(expense => ({
-        ...expense,
-        type: 'expense',
-        date: expense.expense_date,
-        payment_method: expense.payment_method || 'personal_cash',
-        vendor_name: null,
-        invoice_date: null,
-        due_date: null
-      }));
       
-      // 請求書払い申請データの正規化
-      const normalizedInvoices = userFilteredInvoices.map(invoice => ({
-        ...invoice,
-        type: 'invoice',
-        date: invoice.invoice_date,
-        payment_method: '請求書払い',
-        expense_date: invoice.invoice_date,
-        event_name: invoice.events?.name || null
-      }));
-      
-      // 統合してソート（作成日時の降順）
-      const combinedData = [...normalizedExpenses, ...normalizedInvoices]
-        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      // APIエンドポイント経由でデータを取得
+      const response = await fetch('/api/dashboard-data', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId: user.id }),
+      });
 
-      console.log('統合データ:', combinedData.length, '件');
-      console.log('統合データサンプル:', combinedData.slice(0, 2));
-      setAllApplications(combinedData);
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('API エラー:', errorData);
+        throw new Error(errorData.error || 'データの取得に失敗しました');
+      }
+
+      const data = await response.json();
+      console.log('API レスポンス:', data);
+      console.log('取得したアプリケーション数:', data.applications.length);
+      
+      setAllApplications(data.applications);
     } catch (error) {
       console.error('データの取得に失敗しました:', error);
     } finally {
