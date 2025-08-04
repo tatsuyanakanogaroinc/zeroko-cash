@@ -125,7 +125,29 @@ export default function ApprovalsPage() {
           }
         }
         
-        const approversData = await getApprovers();
+        // APIエンドポイントからアプルーバーデータを取得
+        let approversData: any[] = [];
+        try {
+          const approversResponse = await fetch('/api/approvers');
+          if (approversResponse.ok) {
+            const approversApiData = await approversResponse.json();
+            if (approversApiData.success) {
+              approversData = approversApiData.data;
+              console.log('APIからアプルーバーデータを取得:', approversData.length, '件');
+            }
+          } else {
+            console.error('アプルーバーAPIレスポンスエラー:', approversResponse.status);
+          }
+        } catch (approversApiError) {
+          console.error('アプルーバーAPIエラー:', approversApiError);
+          // フォールバックとして直接取得を試行
+          try {
+            approversData = await getApprovers();
+            console.log('フォールバックでアプルーバーデータを取得:', approversData.length, '件');
+          } catch (fallbackError) {
+            console.error('フォールバックでのアプルーバーデータ取得も失敗:', fallbackError);
+          }
+        }
         
         console.log('取得したユーザーデータ:', usersData);
         console.log('取得したアプルーバーデータ:', approversData);
@@ -194,11 +216,17 @@ export default function ApprovalsPage() {
           }
       } catch (error) {
         console.error('データの取得に失敗しました:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
     initializeData();
   }, [user]);
+
+  if (isLoading) {
+    return <MainLayout><div>読み込み中...</div></MainLayout>;
+  }
 
   // フィルタリング処理
   useEffect(() => {
