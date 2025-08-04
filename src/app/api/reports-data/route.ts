@@ -16,7 +16,7 @@ export async function GET(request: Request) {
   try {
     // マスタデータを並行して取得
     const [expensesResult, invoicesResult, departmentsResult, projectsResult, eventsResult, categoriesResult] = await Promise.all([
-      // すべての経費データを取得
+      // 承認された経費データのみを取得
       supabaseAdmin
         .from('expenses')
         .select(`
@@ -25,9 +25,10 @@ export async function GET(request: Request) {
           categories(name),
           events(name)
         `)
+        .eq('status', 'approved')
         .order('created_at', { ascending: false }),
       
-      // すべての請求書データを取得
+      // 承認された請求書データのみを取得
       supabaseAdmin
         .from('invoice_payments')
         .select(`
@@ -38,6 +39,7 @@ export async function GET(request: Request) {
           categories(name),
           events(name)
         `)
+        .eq('status', 'approved')
         .order('created_at', { ascending: false }),
       
       // 部門データを取得
