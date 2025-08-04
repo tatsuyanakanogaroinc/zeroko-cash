@@ -77,14 +77,15 @@ export default function ApprovalsPage() {
   const { events, loadEventsFromAPI: loadEvents, isLoaded: eventsLoaded } = useEventStore();
 
   useEffect(() => {
-    // ユーザーが認証されていない場合は何もしない
-    if (!user) {
-      console.log('ユーザーが認証されていません');
-      return;
-    }
-
     const initializeData = async () => {
       try {
+        // ユーザーが認証されていない場合は何もしない
+        if (!user) {
+          console.log('ユーザーが認証されていません');
+          setIsLoading(false);
+          return;
+        }
+        
         console.log('データ初期化開始 - ユーザーID:', user.id);
         
         // マスターデータを読み込み
