@@ -21,7 +21,10 @@ export async function POST(
     const body = await request.json();
     const { action, comments, type, userId } = body;
 
+    console.log('承認API開始:', { id, action, comments, type, userId });
+
     if (!action || !type || !userId) {
+      console.error('必須パラメータ不足:', { action, type, userId });
       return NextResponse.json(
         { error: 'action, type, userId パラメータが必要です' },
         { status: 400 }
@@ -45,6 +48,8 @@ export async function POST(
 
     const tableName = type === 'expense' ? 'expenses' : 'invoice_payments';
     const status = action === 'approve' ? 'approved' : 'rejected';
+    
+    console.log('テーブル名:', tableName, 'ステータス:', status);
 
     // 申請の存在確認
     const { data: application, error: fetchError } = await supabaseAdmin
@@ -53,9 +58,12 @@ export async function POST(
       .eq('id', id)
       .single();
 
+    console.log('申請検索結果:', { application, fetchError });
+
     if (fetchError || !application) {
+      console.error('申請が見つからない:', { id, tableName, fetchError });
       return NextResponse.json(
-        { error: '申請が見つかりません' },
+        { error: '申請が見つかりません', details: fetchError?.message },
         { status: 404 }
       );
     }
@@ -78,16 +86,20 @@ export async function POST(
     if (comments?.trim()) {
       updateData.comments = comments.trim();
     }
+    
+    console.log('更新データ:', updateData);
 
     const { error: updateError } = await supabaseAdmin
       .from(tableName)
       .update(updateData)
       .eq('id', id);
 
+    console.log('更新結果:', { updateError });
+
     if (updateError) {
       console.error('承認・却下処理エラー:', updateError);
       return NextResponse.json(
-        { error: '承認・却下処理に失敗しました' },
+        { error: '承認・却下処理に失敗しました', details: updateError.message },
         { status: 500 }
       );
     }
