@@ -60,6 +60,22 @@ export async function POST(request: NextRequest) {
       description,
       payment_method
     });
+    
+    // ユーザーが存在するかチェック
+    const { data: existingUser, error: userCheckError } = await supabaseAdmin
+      .from('users')
+      .select('id, name, email')
+      .eq('id', user_id)
+      .single();
+    
+    console.log('User check result:', { existingUser, userCheckError });
+    
+    if (userCheckError || !existingUser) {
+      console.error('User not found in database:', user_id);
+      return NextResponse.json({ 
+        error: `User not found: ${user_id}. Please log out and log in again.` 
+      }, { status: 400 });
+    }
 
     const { data, error } = await supabaseAdmin
       .from('expenses')

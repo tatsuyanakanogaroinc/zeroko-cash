@@ -124,7 +124,13 @@ export default function NewExpensePage() {
         throw new Error('ユーザー情報が取得できません。ログインし直してください。');
       }
       
-      console.log('経費申請を送信中:', { userId: user.id, userName: user.name });
+      console.log('経費申請を送信中:', { 
+        userId: user.id, 
+        userName: user.name, 
+        userEmail: user.email,
+        userRole: user.role,
+        fullUser: user 
+      });
       
       // Supabaseに経費データを保存
       // 注意: expensesテーブルにはdepartment_idやproject_idカラムがないため除外
