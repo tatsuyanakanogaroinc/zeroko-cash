@@ -351,17 +351,16 @@ export default function DashboardPage() {
               <div className="overflow-x-auto">
                 {/* テーブルヘッダー */}
                 <div className="grid grid-cols-12 gap-2 py-3 px-4 bg-gray-50 border-b border-gray-200 text-sm font-medium text-gray-700 min-w-[1400px]">
-                  <div className="col-span-2">説明</div>
-                  <div className="col-span-1 text-center">勘定科目</div>
-                  <div className="col-span-1 text-right">金額</div>
                   <div className="col-span-1 text-center">申請日</div>
+                  <div className="col-span-2">説明</div>
+                  <div className="col-span-1 text-right">金額</div>
+                  <div className="col-span-1 text-center">勘定科目</div>
                   <div className="col-span-1 text-center">部門</div>
                   <div className="col-span-1 text-center">イベント</div>
                   <div className="col-span-1 text-center">プロジェクト</div>
                   <div className="col-span-1 text-center">支払方法</div>
-                  <div className="col-span-1 text-center">種類</div>
                   <div className="col-span-1 text-center">ステータス</div>
-                  <div className="col-span-1 text-center">アクション</div>
+                  <div className="col-span-2 text-center">アクション</div>
                 </div>
                 
                 {/* データ行 */}
@@ -370,17 +369,15 @@ export default function DashboardPage() {
                     const fullApplication = allApplications.find(app => app.id === application.id) || application;
                     return (
                       <div key={application.id} className="grid grid-cols-12 gap-2 py-4 px-4 hover:bg-gray-50 transition-colors text-sm min-w-[1400px]">
+                        {/* 申請日 */}
+                        <div className="col-span-1 text-center text-gray-600">
+                          {application.date}
+                        </div>
+                        
                         {/* 説明 */}
                         <div className="col-span-2 font-medium text-gray-900">
                           <div className="truncate" title={application.description}>
                             {application.description}
-                          </div>
-                        </div>
-                        
-                        {/* 勘定科目（カテゴリ） */}
-                        <div className="col-span-1 text-center text-gray-600">
-                          <div className="truncate" title={getCategoryName(fullApplication)}>
-                            {getCategoryName(fullApplication)}
                           </div>
                         </div>
                         
@@ -389,9 +386,11 @@ export default function DashboardPage() {
                           ¥{application.amount.toLocaleString()}
                         </div>
                         
-                        {/* 申請日 */}
+                        {/* 勘定科目（カテゴリ） */}
                         <div className="col-span-1 text-center text-gray-600">
-                          {application.date}
+                          <div className="truncate" title={getCategoryName(fullApplication)}>
+                            {getCategoryName(fullApplication)}
+                          </div>
                         </div>
                         
                         {/* 部門（カラー付き） */}
@@ -434,24 +433,22 @@ export default function DashboardPage() {
                           </div>
                         </div>
                         
-                        {/* 種類 */}
-                        <div className="col-span-1 text-center">
-                          {getTypeBadge(application.type)}
-                        </div>
-                        
                         {/* ステータス */}
                         <div className="col-span-1 flex justify-center">
                           {getStatusBadge(application.status)}
                         </div>
                         
                         {/* アクション */}
-                        <div className="col-span-1 flex justify-center">
+                        <div className="col-span-2 flex justify-center">
                           {application.status === 'pending' && (
                             <div className="flex gap-1">
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => handleEditApplication(application.id, application.type)}
+                                onClick={() => {
+                                  console.log('Edit clicked:', application.id, application.type);
+                                  handleEditApplication(application.id, application.type);
+                                }}
                                 className="h-7 px-2 text-blue-600 hover:text-white hover:bg-blue-600 border-blue-200"
                                 title="編集"
                               >

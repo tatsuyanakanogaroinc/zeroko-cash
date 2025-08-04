@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import * as React from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { MainLayout } from '@/components/layout/main-layout';
@@ -26,10 +26,23 @@ export default function NewExpensePage() {
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [sortedCategories, setSortedCategories] = useState<any[]>([]);
   const [availableEvents, setAvailableEvents] = useState<any[]>([]);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
   
   // AuthContextからユーザー情報を取得
   const { user } = useAuth();
+
+  // 編集モードかどうかチェック
+  useEffect(() => {
+    const editId = searchParams.get('edit');
+    if (editId) {
+      setIsEditMode(true);
+      setEditingExpenseId(editId);
+      console.log('編集モード:', editId);
+    }
+  }, [searchParams]);
 
   const {
     register,
