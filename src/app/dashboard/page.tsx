@@ -208,14 +208,27 @@ export default function DashboardPage() {
     comments: application.comments,
   }));
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string, comments?: string) => {
     switch (status) {
       case 'pending':
         return <Badge variant="secondary"><Clock className="w-3 h-3 mr-1" />承認待ち</Badge>;
       case 'approved':
         return <Badge variant="default"><CheckCircle className="w-3 h-3 mr-1" />承認済み</Badge>;
       case 'rejected':
-        return <Badge variant="destructive"><XCircle className="w-3 h-3 mr-1" />却下</Badge>;
+        return (
+          <Badge 
+            variant="destructive" 
+            className={`${comments ? 'cursor-pointer hover:bg-red-700' : ''}`}
+            onClick={() => {
+              if (comments) {
+                alert(`却下理由:\n${comments}`);
+              }
+            }}
+            title={comments ? 'クリックして却下理由を表示' : '却下理由なし'}
+          >
+            <XCircle className="w-3 h-3 mr-1" />却下
+          </Badge>
+        );
       default:
         return <Badge variant="outline">不明</Badge>;
     }
@@ -435,7 +448,7 @@ export default function DashboardPage() {
                         
                         {/* ステータス */}
                         <div className="col-span-1 flex justify-center">
-                          {getStatusBadge(application.status)}
+                          {getStatusBadge(application.status, application.comments)}
                         </div>
                         
                         {/* アクション */}
