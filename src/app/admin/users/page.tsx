@@ -69,41 +69,6 @@ export default function UsersPage() {
     );
   }
 
-  // モックデータ
-  const mockUsers: User[] = [
-    {
-      id: '1',
-      name: '田中太郎',
-      email: 'tanaka@example.com',
-      role: 'admin',
-      department: '経営企画部',
-      status: 'active'
-    },
-    {
-      id: '2',
-      name: '佐藤花子',
-      email: 'sato@example.com',
-      role: 'manager',
-      department: '営業部',
-      status: 'active'
-    },
-    {
-      id: '3',
-      name: '鈴木一郎',
-      email: 'suzuki@example.com',
-      role: 'user',
-      department: '開発部',
-      status: 'active'
-    },
-    {
-      id: '4',
-      name: '高橋美咲',
-      email: 'takahashi@example.com',
-      role: 'manager',
-      department: '人事部',
-      status: 'inactive'
-    }
-  ];
 
   // 部署の初期化
   const initializeDepartments = async () => {
@@ -177,8 +142,8 @@ export default function UsersPage() {
     } catch (error) {
       console.error('ユーザー取得エラー:', error);
       toast.error('ユーザーデータの取得に失敗しました');
-      // エラー時はモックデータを表示
-      setUsers(mockUsers);
+      // エラーハンドリング
+      setUsers([]);
     }
   };
 

@@ -53,18 +53,28 @@ function NewExpenseForm() {
         const expense = await response.json();
         console.log('編集用データ読み込み:', expense);
         
-        // 日付を適切にフォーマット
-        const expenseDate = new Date(expense.expense_date);
+        // 日付を適切にフォーマット（安全な処理）
+        let expenseDate;
+        try {
+          expenseDate = new Date(expense.expense_date);
+          // 無効な日付は今日にフォールバック
+          if (isNaN(expenseDate.getTime())) {
+            expenseDate = new Date();
+          }
+        } catch (dateError) {
+          console.warn('日付のパースに失敗、今日を使用:', dateError);
+          expenseDate = new Date();
+        }
         
         // フォームに既存データを設定
         setValue('expense_date', expenseDate);
-        setValue('amount', expense.amount);
-        setValue('category_id', expense.category_id);
+        setValue('amount', Number(expense.amount) || 0);
+        setValue('category_id', expense.category_id || '');
         setValue('department_id', expense.department_id || '');
         setValue('project_id', expense.project_id || '');
         setValue('event_id', expense.event_id || 'none');
         setValue('payment_method', expense.payment_method || 'personal_cash');
-        setValue('description', expense.description);
+        setValue('description', expense.description || '');
       } else {
         console.error('経費データの読み込みに失敗しました');
         alert('編集対象の経費データが見つかりません。');
