@@ -16,16 +16,27 @@ export async function GET(request: NextRequest) {
   try {
     console.log('申請データAPI: データ取得開始');
 
-    // 経費申請データを取得
+    // 経費申請データを取得（関連データも含める）
     const { data: expenseData, error: expenseError } = await supabaseAdmin
       .from('expenses')
-      .select('*')
+      .select(`
+        *,
+        events:events!left(*),
+        categories:categories!left(*),
+        users:users!left(department_id, departments:departments!left(*))
+      `)
       .order('created_at', { ascending: false });
 
-    // 請求書払い申請データを取得  
+    // 請求書払い申請データを取得（関連データも含める）
     const { data: invoiceData, error: invoiceError } = await supabaseAdmin
       .from('invoice_payments')
-      .select('*')
+      .select(`
+        *,
+        events:events!left(*),
+        categories:categories!left(*),
+        departments:departments!left(*),
+        projects:projects!left(*)
+      `)
       .order('created_at', { ascending: false });
 
     console.log('API経費データ:', { count: expenseData?.length || 0, error: expenseError });

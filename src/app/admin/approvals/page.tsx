@@ -116,19 +116,34 @@ export default function ApprovalsPage() {
 
   // ヘルパー関数 - ダッシュボードと同じパターンでデータアクセス
   const getDepartmentName = (application: any) => {
+    console.log('部門名取得:', {
+      type: application.type,
+      department_id: application.department_id,
+      users: application.users,
+      departments: application.departments,
+      application: application
+    });
+    
     // 経費申請の場合
     if (application.type === 'expense' && application.users?.departments) {
-      return application.users.departments.name || '不明';
+      const name = application.users.departments.name || '不明';
+      console.log('経費申請部門名:', name);
+      return name;
     }
     // 請求書払いの場合
     if (application.type === 'invoice' && application.departments) {
-      return application.departments.name || '不明';
+      const name = application.departments.name || '不明';
+      console.log('請求書部門名:', name);
+      return name;
     }
     // フォールバック: ストアから検索
     if (application.department_id) {
       const dept = departments.find(d => d.id === application.department_id);
-      return dept?.name || '不明';
+      const name = dept?.name || '不明';
+      console.log('フォールバック部門名:', name, 'dept:', dept);
+      return name;
     }
+    console.log('部門名が見つからない');
     return '未定';
   };
   
