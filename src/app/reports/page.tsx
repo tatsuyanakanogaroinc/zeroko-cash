@@ -709,19 +709,16 @@ export default function ReportsPage() {
       </div>
 
       {/* Sliding Detail Panel */}
-      <>
-        {/* Backdrop */}
-        {detailPanelOpen && (
+      {detailPanelOpen && (
+        <>
+          {/* Backdrop */}
           <div 
             className="fixed inset-0 bg-black bg-opacity-50 z-40" 
             onClick={closeDetailPanel}
           />
-        )}
-        
-        {/* Sliding Panel */}
-        <div className={`fixed inset-y-0 right-0 w-3/4 max-w-4xl bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out overflow-y-auto ${
-          detailPanelOpen ? 'translate-x-0' : 'translate-x-full'
-        }`}>
+          
+          {/* Sliding Panel */}
+          <div className="fixed inset-y-0 right-0 w-3/4 max-w-4xl bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out overflow-y-auto translate-x-0">
           {selectedItem && (
             <>
             {/* Panel Header */}
@@ -1043,8 +1040,9 @@ export default function ReportsPage() {
             </div>
             </>
           )}
-        </div>
-      </>
+          </div>
+        </>
+      )}
     </MainLayout>
   );
 }
