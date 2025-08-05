@@ -710,10 +710,11 @@ export default function ReportsPage() {
 
       {/* Sliding Detail Panel */}
       <>
-        {/* Backdrop */}
+        {/* Backdrop - only covers the left side, not the panel */}
         {detailPanelOpen && (
           <div 
             className="fixed inset-0 bg-black bg-opacity-50 z-40" 
+            style={{ right: '25%' }} 
             onClick={closeDetailPanel}
           />
         )}

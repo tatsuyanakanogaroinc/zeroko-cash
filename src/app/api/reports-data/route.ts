@@ -15,7 +15,7 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
 export async function GET(request: Request) {
   try {
     // マスタデータを並行して取得
-    const [expensesResult, invoicesResult, departmentsResult, projectsResult, eventsResult, categoriesResult] = await Promise.all([
+    const [expensesResult, invoicesResult, subcontractsResult, departmentsResult, projectsResult, eventsResult, categoriesResult] = await Promise.all([
       // 承認された経費データのみを取得
       supabaseAdmin
         .from('expenses')
@@ -40,6 +40,20 @@ export async function GET(request: Request) {
           events(name)
         `)
         .eq('status', 'approved')
+        .order('created_at', { ascending: false }),
+      
+      // 外注データを取得（完了済みまたは支払い済みのもの）
+      supabaseAdmin
+        .from('subcontracts')
+        .select(`
+          *,
+          departments(name),
+          projects(name),
+          events(name),
+          categories(name),
+          users!subcontracts_responsible_user_id_fkey(name, department_id)
+        `)
+        .in('status', ['completed', 'pending_payment'])
         .order('created_at', { ascending: false }),
       
       // 部門データを取得
@@ -69,6 +83,7 @@ export async function GET(request: Request) {
 
     const { data: expenses, error: expensesError } = expensesResult;
     const { data: invoicePayments, error: invoicesError } = invoicesResult;
+    const { data: subcontracts, error: subcontractsError } = subcontractsResult;
     const { data: departments, error: departmentsError } = departmentsResult;
     const { data: projects, error: projectsError } = projectsResult;
     const { data: events, error: eventsError } = eventsResult;
@@ -79,6 +94,9 @@ export async function GET(request: Request) {
     }
     if (invoicesError) {
       console.error('Invoice payments fetch error:', invoicesError);
+    }
+    if (subcontractsError) {
+      console.error('Subcontracts fetch error:', subcontractsError);
     }
     if (departmentsError) {
       console.error('Departments fetch error:', departmentsError);
@@ -147,9 +165,30 @@ export async function GET(request: Request) {
       }
     });
 
+    // 外注データを集計
+    (subcontracts || []).forEach(subcontract => {
+      if (subcontract.department_id) {
+        departmentExpenses[subcontract.department_id] = 
+          (departmentExpenses[subcontract.department_id] || 0) + subcontract.contract_amount;
+      }
+      if (subcontract.project_id) {
+        projectExpenses[subcontract.project_id] = 
+          (projectExpenses[subcontract.project_id] || 0) + subcontract.contract_amount;
+      }
+      if (subcontract.event_id) {
+        eventExpenses[subcontract.event_id] = 
+          (eventExpenses[subcontract.event_id] || 0) + subcontract.contract_amount;
+      }
+      if (subcontract.category_id) {
+        categoryExpenses[subcontract.category_id] = 
+          (categoryExpenses[subcontract.category_id] || 0) + subcontract.contract_amount;
+      }
+    });
+
     return NextResponse.json({
       expenses: expenses || [],
       invoicePayments: invoicePayments || [],
+      subcontracts: subcontracts || [],
       departments: departments || [],
       projects: projects || [],
       events: events || [],

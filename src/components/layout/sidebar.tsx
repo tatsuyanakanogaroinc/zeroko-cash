@@ -15,6 +15,7 @@ import {
   CheckCircle,
   UserCircle,
   Receipt,
+  Briefcase,
 } from 'lucide-react';
 
 interface MenuItem {
@@ -48,6 +49,12 @@ const menuItems: MenuItem[] = [
     href: '/reports',
     icon: BarChart3,
     permissionKey: 'shouldShowReports',
+  },
+  {
+    title: '外注管理',
+    href: '/subcontracts',
+    icon: Briefcase,
+    permissionKey: 'shouldShowSubcontracts',
   },
   {
     title: '申請管理',

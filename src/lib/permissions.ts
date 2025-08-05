@@ -83,6 +83,23 @@ export const permissions = {
     return true // 全ユーザーが自分のプロフィールを更新可能
   },
 
+  // === 外注管理機能 ===
+  canCreateSubcontracts: (role: UserRole): boolean => {
+    return role === 'admin' || role === 'manager' // 管理者・マネージャーが外注作成可能
+  },
+
+  canViewAllSubcontracts: (role: UserRole): boolean => {
+    return true // 全ユーザーが外注一覧を閲覧可能
+  },
+
+  canEditSubcontracts: (role: UserRole): boolean => {
+    return role === 'admin' || role === 'manager' // 管理者・マネージャーが外注編集可能
+  },
+
+  canDeleteSubcontracts: (role: UserRole): boolean => {
+    return role === 'admin' // 管理者のみ外注削除可能
+  },
+
   // === ユーザー特定の権限 ===
   canEditOwnPendingExpenses: (role: UserRole): boolean => {
     return true // 全ユーザーが自分のpending状態の経費を編集可能
@@ -95,6 +112,7 @@ export const navigationPermissions = {
   shouldShowExpenses: (role: UserRole): boolean => true,
   shouldShowInvoicePayments: (role: UserRole): boolean => true,
   shouldShowReports: (role: UserRole): boolean => true,
+  shouldShowSubcontracts: (role: UserRole): boolean => true, // 全ユーザーが外注一覧を閲覧可能
   
   // 管理者・マネージャーのみ表示
   shouldShowApprovals: (role: UserRole): boolean => 
