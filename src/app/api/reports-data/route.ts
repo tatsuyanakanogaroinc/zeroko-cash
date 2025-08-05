@@ -166,38 +166,19 @@ export async function GET(request: Request) {
       }
     });
 
-    // 外注データを集計（ステータスと支払いタイプに応じて金額を計算）
+    // 外注データを集計（レポート用：契約された全額を計上）
     (subcontracts || []).forEach(subcontract => {
       let amount = 0;
 
       if (subcontract.payment_type === 'recurring') {
-        // 定期支払いの場合の金額計算
-        if (subcontract.status === 'completed' || subcontract.status === 'pending_payment') {
-          // 完了済みまたは支払い待ちの場合は総額
-          amount = subcontract.total_amount || subcontract.contract_amount;
-        } else if (subcontract.status === 'active') {
-          // 進行中の場合は現在日付までの支払い済み金額を計算
-          try {
-            const proratedResult = calculateProratedAmountForDeletion(
-              subcontract.start_date,
-              subcontract.end_date,
-              subcontract.contract_amount,
-              subcontract.recurring_frequency,
-              subcontract.recurring_day
-            );
-            amount = proratedResult.paidAmount;
-          } catch (error) {
-            console.error('Error calculating prorated amount for subcontract:', subcontract.id, error);
-            // エラーの場合は総額を使用
-            amount = subcontract.total_amount || subcontract.contract_amount;
-          }
-        }
+        // 定期支払いの場合は総額を計上（契約ベース）
+        amount = subcontract.total_amount || subcontract.contract_amount;
       } else {
         // 一回払いの場合
-        if (subcontract.status === 'completed' || subcontract.status === 'pending_payment') {
+        if (subcontract.status === 'completed' || subcontract.status === 'pending_payment' || subcontract.status === 'active') {
+          // すべてのステータスで契約額を計上（契約ベース）
           amount = subcontract.contract_amount;
         }
-        // 進行中の一回払いは支払い前なので金額は0
       }
       
       if (subcontract.department_id) {

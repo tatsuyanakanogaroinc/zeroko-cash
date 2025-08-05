@@ -75,6 +75,7 @@ interface Category {
 interface ReportData {
   expenses: any[];
   invoicePayments: any[];
+  subcontracts: any[];
   departments: Department[];
   projects: Project[];
   events: Event[];
@@ -195,26 +196,54 @@ export default function ReportsPage() {
   const getExpensesForCategory = (categoryId: string): ExpenseDetail[] => {
     if (!reportData) return [];
     
-    const allExpenses = [...(reportData.expenses || []), ...(reportData.invoicePayments || [])];
+    const allExpenses = [
+      ...(reportData.expenses || []), 
+      ...(reportData.invoicePayments || []),
+      ...(reportData.subcontracts || [])
+    ];
     
     const filteredExpenses = allExpenses.filter(expense => expense.category_id === categoryId);
     
-    return filteredExpenses.map(expense => ({
-      id: expense.id,
-      date: new Date(expense.created_at).toISOString().split('T')[0],
-      amount: expense.amount,
-      category: expense.categories?.name || '未分類',
-      user_name: expense.users?.name || '不明',
-      description: expense.description || expense.purpose || '説明なし',
-      status: expense.status || 'approved'
-    })).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    return filteredExpenses.map(expense => {
+      // 外注データの識別と金額計算
+      let amount = expense.amount || 0;
+      let description = expense.description || expense.purpose || '説明なし';
+      let userName = expense.users?.name || '不明';
+      
+      if (expense.contractor_name) {
+        // 外注データの場合
+        if (expense.payment_type === 'recurring') {
+          // 按分計算された金額を使用（API側で計算済み）
+          amount = expense.total_amount || expense.contract_amount || 0;
+          description = `【外注】${expense.contract_title || ''}（定期支払い）`;
+        } else {
+          amount = expense.contract_amount || 0;
+          description = `【外注】${expense.contract_title || ''}（一回払い）`;
+        }
+        userName = expense.contractor_name;
+      }
+      
+      return {
+        id: expense.id,
+        date: new Date(expense.created_at).toISOString().split('T')[0],
+        amount: amount,
+        category: expense.categories?.name || '未分類',
+        user_name: userName,
+        description: description,
+        status: expense.status || 'approved'
+      };
+    }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   };
 
   // Get monthly expense data for trends
   const getMonthlyExpenses = (itemId: string, itemType: 'department' | 'project' | 'event' | 'category'): number[] => {
     if (!reportData) return Array(6).fill(0);
     
-    const allExpenses = [...(reportData.expenses || []), ...(reportData.invoicePayments || [])];
+    const allExpenses = [
+      ...(reportData.expenses || []), 
+      ...(reportData.invoicePayments || []),
+      ...(reportData.subcontracts || [])
+    ];
     let filteredExpenses = [];
     
     if (itemType === 'department') {
@@ -239,7 +268,8 @@ export default function ReportsPage() {
                        currentDate.getMonth() - expenseDate.getMonth();
       
       if (monthDiff >= 0 && monthDiff < 6) {
-        monthlyTotals[5 - monthDiff] += expense.amount;
+        const amount = expense.amount || expense.contract_amount || expense.total_amount || 0;
+        monthlyTotals[5 - monthDiff] += amount;
       }
     });
     
@@ -250,7 +280,11 @@ export default function ReportsPage() {
   const getExpensesForItem = (itemId: string, itemType: 'department' | 'project' | 'event'): ExpenseDetail[] => {
     if (!reportData) return [];
     
-    const allExpenses = [...(reportData.expenses || []), ...(reportData.invoicePayments || [])];
+    const allExpenses = [
+      ...(reportData.expenses || []), 
+      ...(reportData.invoicePayments || []),
+      ...(reportData.subcontracts || [])
+    ];
     
     let filteredExpenses = [];
     
@@ -264,15 +298,35 @@ export default function ReportsPage() {
       filteredExpenses = allExpenses.filter(expense => expense.event_id === itemId);
     }
     
-    return filteredExpenses.map(expense => ({
-      id: expense.id,
-      date: new Date(expense.created_at).toISOString().split('T')[0],
-      amount: expense.amount,
-      category: expense.categories?.name || '未分類',
-      user_name: expense.users?.name || '不明',
-      description: expense.description || expense.purpose || '説明なし',
-      status: expense.status || 'approved'
-    })).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    return filteredExpenses.map(expense => {
+      // 外注データの識別と金額計算
+      let amount = expense.amount || 0;
+      let description = expense.description || expense.purpose || '説明なし';
+      let userName = expense.users?.name || '不明';
+      
+      if (expense.contractor_name) {
+        // 外注データの場合
+        if (expense.payment_type === 'recurring') {
+          // 按分計算された金額を使用（API側で計算済み）
+          amount = expense.total_amount || expense.contract_amount || 0;
+          description = `【外注】${expense.contract_title || ''}（定期支払い）`;
+        } else {
+          amount = expense.contract_amount || 0;
+          description = `【外注】${expense.contract_title || ''}（一回払い）`;
+        }
+        userName = expense.contractor_name;
+      }
+      
+      return {
+        id: expense.id,
+        date: new Date(expense.created_at).toISOString().split('T')[0],
+        amount: amount,
+        category: expense.categories?.name || '未分類',
+        user_name: userName,
+        description: description,
+        status: expense.status || 'approved'
+      };
+    }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   };
 
   // Calculate totals for overview
