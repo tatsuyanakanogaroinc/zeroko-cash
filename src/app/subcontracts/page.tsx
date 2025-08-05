@@ -203,6 +203,24 @@ export default function SubcontractsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // フロントエンドバリデーション
+    if (formData.payment_type === 'recurring') {
+      if (!formData.recurring_frequency || !formData.recurring_day) {
+        alert('定期支払いの設定（支払い頻度・支払い日）を入力してください。');
+        return;
+      }
+    }
+    
+    // 分類のバリデーション
+    const hasDepartment = formData.department_id && formData.department_id !== 'none';
+    const hasProject = formData.project_id && formData.project_id !== 'none';
+    const hasEvent = formData.event_id && formData.event_id !== 'none';
+    
+    if (!hasDepartment && !hasProject && !hasEvent) {
+      alert('部門、プロジェクト、イベントのいずれか1つは選択してください。');
+      return;
+    }
+    
     try {
       const url = editingSubcontract ? '/api/subcontracts' : '/api/subcontracts';
       const method = editingSubcontract ? 'PUT' : 'POST';
@@ -229,9 +247,14 @@ export default function SubcontractsPage() {
       if (response.ok) {
         await fetchSubcontracts();
         resetForm();
+      } else {
+        const errorData = await response.json();
+        console.error('Submission error:', errorData);
+        alert(`エラー: ${errorData.error || 'データの保存に失敗しました'}`);
       }
     } catch (error) {
       console.error('Error submitting form:', error);
+      alert('通信エラーが発生しました。もう一度お試しください。');
     }
   };
 
