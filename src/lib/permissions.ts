@@ -1,6 +1,6 @@
 // 役割ベースの権限制御システム
 
-export type UserRole = 'admin' | 'manager' | 'user'
+export type UserRole = 'admin' | 'manager' | 'user' | 'contractor'
 
 export interface User {
   id: string
@@ -68,11 +68,20 @@ export const permissions = {
   },
 
   canAccessReports: (role: UserRole): boolean => {
-    return true // 全ユーザーがレポートにアクセス可能
+    return role !== 'contractor' // 業務委託以外がレポートにアクセス可能
   },
 
   canViewAllReportsData: (role: UserRole): boolean => {
-    return true // 全ユーザーがレポートでは全データを閲覧可能
+    return role !== 'contractor' // 業務委託以外がレポートでは全データを閲覧可能
+  },
+
+  // === 請求書払い申請機能 ===
+  canCreateInvoicePayments: (role: UserRole): boolean => {
+    return true // 全ユーザーが請求書払い申請可能
+  },
+
+  canViewOwnInvoicePayments: (role: UserRole): boolean => {
+    return true // 全ユーザーが自分の請求書払い申請を閲覧可能
   },
 
   canAccessDashboard: (role: UserRole): boolean => {
@@ -89,7 +98,7 @@ export const permissions = {
   },
 
   canViewAllSubcontracts: (role: UserRole): boolean => {
-    return true // 全ユーザーが外注一覧を閲覧可能
+    return role !== 'contractor' // 業務委託以外が外注一覧を閲覧可能
   },
 
   canEditSubcontracts: (role: UserRole): boolean => {
@@ -111,8 +120,8 @@ export const navigationPermissions = {
   shouldShowDashboard: (role: UserRole): boolean => true,
   shouldShowExpenses: (role: UserRole): boolean => true,
   shouldShowInvoicePayments: (role: UserRole): boolean => true,
-  shouldShowReports: (role: UserRole): boolean => true,
-  shouldShowSubcontracts: (role: UserRole): boolean => true, // 全ユーザーが外注一覧を閲覧可能
+  shouldShowReports: (role: UserRole): boolean => role !== 'contractor', // 業務委託以外がレポートを閲覧可能
+  shouldShowSubcontracts: (role: UserRole): boolean => role !== 'contractor', // 業務委託以外が外注一覧を閲覧可能
   
   // 管理者・マネージャーのみ表示
   shouldShowApprovals: (role: UserRole): boolean => 
@@ -148,7 +157,8 @@ export function shouldShowNavItem(
 export const roleDisplayNames: Record<UserRole, string> = {
   admin: '管理者',
   manager: 'マネージャー',
-  user: '一般ユーザー'
+  user: '一般ユーザー',
+  contractor: '業務委託'
 }
 
 export function getRoleDisplayName(role: UserRole): string {

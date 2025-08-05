@@ -24,8 +24,11 @@ import {
   DollarSign,
   Clock,
   Tag,
-  Repeat
+  Repeat,
+  AlertTriangle
 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { permissions } from '@/lib/permissions';
 import { 
   calculatePaymentCount, 
   calculateTotalAmount, 
@@ -105,12 +108,28 @@ interface User {
 }
 
 export default function SubcontractsPage() {
+  const { user } = useAuth();
   const [subcontracts, setSubcontracts] = useState<Subcontract[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+
+  // 権限チェック
+  if (user && !permissions.canViewAllSubcontracts(user.role as any)) {
+    return (
+      <MainLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <AlertTriangle className="h-12 w-12 text-red-600 mx-auto mb-4" />
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">アクセス権限がありません</h2>
+            <p className="text-gray-600">このページにアクセスする権限がありません。</p>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');

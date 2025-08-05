@@ -324,7 +324,7 @@ const handleDeleteUser = async (userId: string) => {
                   </div>
                   <div className="flex items-center space-x-2">
                     <Badge className={getRoleBadgeColor(user.role)}>
-                      {user.role === 'admin' ? '管理者' : user.role === 'manager' ? 'マネージャー' : 'ユーザー'}
+                      {user.role === 'admin' ? '管理者' : user.role === 'manager' ? 'マネージャー' : user.role === 'contractor' ? '業務委託' : 'ユーザー'}
                     </Badge>
                     <Badge className={getStatusBadgeColor(user.status)}>
                       {user.status === 'active' ? 'アクティブ' : '非アクティブ'}
@@ -538,7 +538,7 @@ function AddUserForm({ onSubmit }: { onSubmit: (user: Omit<User, 'id'>) => void 
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    role: 'user' as 'admin' | 'manager' | 'user',
+    role: 'user' as 'admin' | 'manager' | 'user' | 'contractor',
     department: '',
     departmentId: '',
     status: 'active' as 'active' | 'inactive'
@@ -587,7 +587,7 @@ function AddUserForm({ onSubmit }: { onSubmit: (user: Omit<User, 'id'>) => void 
       </div>
       <div>
 <Label htmlFor="role">権限</Label>
-        <Select value={formData.role} onValueChange={(value: 'admin' | 'manager' | 'user') => setFormData({ ...formData, role: value })}>
+        <Select value={formData.role} onValueChange={(value: 'admin' | 'manager' | 'user' | 'contractor') => setFormData({ ...formData, role: value })}>
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
@@ -595,6 +595,7 @@ function AddUserForm({ onSubmit }: { onSubmit: (user: Omit<User, 'id'>) => void 
             <SelectItem value="user">ユーザー</SelectItem>
             <SelectItem value="manager">マネージャー</SelectItem>
             <SelectItem value="admin">管理者</SelectItem>
+            <SelectItem value="contractor">業務委託</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -668,7 +669,7 @@ function EditUserForm({ user, onSubmit }: { user: User; onSubmit: (user: User) =
       </div>
       <div>
         <Label htmlFor="edit-role">権限</Label>
-        <Select value={formData.role} onValueChange={(value: 'admin' | 'manager' | 'user') => setFormData({ ...formData, role: value })}>
+        <Select value={formData.role} onValueChange={(value: 'admin' | 'manager' | 'user' | 'contractor') => setFormData({ ...formData, role: value })}>
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
@@ -676,6 +677,7 @@ function EditUserForm({ user, onSubmit }: { user: User; onSubmit: (user: User) =
             <SelectItem value="user">ユーザー</SelectItem>
             <SelectItem value="manager">マネージャー</SelectItem>
             <SelectItem value="admin">管理者</SelectItem>
+            <SelectItem value="contractor">業務委託</SelectItem>
           </SelectContent>
         </Select>
       </div>

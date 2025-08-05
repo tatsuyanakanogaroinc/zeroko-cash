@@ -13,6 +13,7 @@ interface AuthContextType {
   loading: boolean;
   isAdmin: boolean;
   isManager: boolean;
+  isContractor: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
@@ -285,12 +286,14 @@ const login = async (email: string, password: string) => {
 
   const isAdmin = user?.role === 'admin';
   const isManager = user?.role === 'manager' || user?.role === 'admin';
+  const isContractor = user?.role === 'contractor';
 
   const value = {
     user,
     loading,
     isAdmin,
     isManager,
+    isContractor,
     login,
     logout,
     refreshUser,

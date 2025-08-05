@@ -27,6 +27,8 @@ import {
   Tag,
   X
 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { permissions } from '@/lib/permissions';
 
 interface Summary {
   id: string;
@@ -97,12 +99,28 @@ interface ExpenseDetail {
 }
 
 export default function ReportsPage() {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<string>('overview');
   const [reportData, setReportData] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedItem, setSelectedItem] = useState<Summary | null>(null);
   const [detailPanelOpen, setDetailPanelOpen] = useState(false);
+
+  // 権限チェック
+  if (user && !permissions.canAccessReports(user.role as any)) {
+    return (
+      <MainLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <AlertTriangle className="h-12 w-12 text-red-600 mx-auto mb-4" />
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">アクセス権限がありません</h2>
+            <p className="text-gray-600">このページにアクセスする権限がありません。</p>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
 
   // Fetch all report data from API
   useEffect(() => {
