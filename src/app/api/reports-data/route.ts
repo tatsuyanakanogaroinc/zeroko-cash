@@ -165,23 +165,25 @@ export async function GET(request: Request) {
       }
     });
 
-    // 外注データを集計
+    // 外注データを集計（定期支払いは総額で計算）
     (subcontracts || []).forEach(subcontract => {
+      const amount = subcontract.total_amount || subcontract.contract_amount;
+      
       if (subcontract.department_id) {
         departmentExpenses[subcontract.department_id] = 
-          (departmentExpenses[subcontract.department_id] || 0) + subcontract.contract_amount;
+          (departmentExpenses[subcontract.department_id] || 0) + amount;
       }
       if (subcontract.project_id) {
         projectExpenses[subcontract.project_id] = 
-          (projectExpenses[subcontract.project_id] || 0) + subcontract.contract_amount;
+          (projectExpenses[subcontract.project_id] || 0) + amount;
       }
       if (subcontract.event_id) {
         eventExpenses[subcontract.event_id] = 
-          (eventExpenses[subcontract.event_id] || 0) + subcontract.contract_amount;
+          (eventExpenses[subcontract.event_id] || 0) + amount;
       }
       if (subcontract.category_id) {
         categoryExpenses[subcontract.category_id] = 
-          (categoryExpenses[subcontract.category_id] || 0) + subcontract.contract_amount;
+          (categoryExpenses[subcontract.category_id] || 0) + amount;
       }
     });
 

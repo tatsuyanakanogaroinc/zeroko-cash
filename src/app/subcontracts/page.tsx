@@ -399,9 +399,30 @@ export default function SubcontractsPage() {
                   />
                 </div>
 
+                {/* 支払いタイプ選択 */}
+                <div>
+                  <Label>支払いタイプ *</Label>
+                  <RadioGroup
+                    value={formData.payment_type}
+                    onValueChange={(value) => setFormData({ ...formData, payment_type: value as 'one_time' | 'recurring' })}
+                    className="flex space-x-6 mt-2"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="one_time" id="one_time" />
+                      <Label htmlFor="one_time">一回払い</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="recurring" id="recurring" />
+                      <Label htmlFor="recurring">定期支払い</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+
                 <div className="grid grid-cols-3 gap-4">
                   <div>
-                    <Label htmlFor="contract_amount">契約金額 *</Label>
+                    <Label htmlFor="contract_amount">
+                      {formData.payment_type === 'recurring' ? '1回あたりの金額 *' : '契約金額 *'}
+                    </Label>
                     <Input
                       id="contract_amount"
                       type="number"
@@ -432,15 +453,89 @@ export default function SubcontractsPage() {
                   </div>
                 </div>
 
-                <div>
-                  <Label htmlFor="payment_date">支払い予定日</Label>
-                  <Input
-                    id="payment_date"
-                    type="date"
-                    value={formData.payment_date}
-                    onChange={(e) => setFormData({ ...formData, payment_date: e.target.value })}
-                  />
-                </div>
+                {/* 定期支払い設定 */}
+                {formData.payment_type === 'recurring' && (
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg space-y-4">
+                    <div className="flex items-center space-x-2">
+                      <Repeat className="h-4 w-4 text-blue-600" />
+                      <Label className="text-blue-800 font-semibold">定期支払い設定</Label>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="recurring_frequency">支払い頻度 *</Label>
+                        <Select
+                          value={formData.recurring_frequency}
+                          onValueChange={(value) => setFormData({ ...formData, recurring_frequency: value })}
+                          required
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="頻度を選択" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="monthly">毎月</SelectItem>
+                            <SelectItem value="quarterly">四半期毎（3ヶ月毎）</SelectItem>
+                            <SelectItem value="semi_annually">半年毎（6ヶ月毎）</SelectItem>
+                            <SelectItem value="annually">年次（12ヶ月毎）</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="recurring_day">支払い日 *</Label>
+                        <Select
+                          value={formData.recurring_day}
+                          onValueChange={(value) => setFormData({ ...formData, recurring_day: value })}
+                          required
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="支払い日を選択" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
+                              <SelectItem key={day} value={day.toString()}>
+                                {day === 31 ? '月末' : `${day}日`}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    {/* 計算結果表示 */}
+                    {formData.contract_amount && formData.start_date && formData.end_date && (
+                      <div className="bg-white p-3 rounded border border-blue-200">
+                        <div className="text-sm text-blue-700">
+                          <div className="flex justify-between items-center mb-2">
+                            <span>支払い回数:</span>
+                            <span className="font-semibold">{formData.payment_count}回</span>
+                          </div>
+                          <div className="flex justify-between items-center mb-2">
+                            <span>1回あたりの金額:</span>
+                            <span className="font-semibold">¥{parseInt(formData.contract_amount || '0').toLocaleString()}</span>
+                          </div>
+                          <div className="flex justify-between items-center pt-2 border-t border-blue-200">
+                            <span className="font-semibold">総支払額:</span>
+                            <span className="font-bold text-lg text-blue-800">¥{parseInt(formData.total_amount || '0').toLocaleString()}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* 一回払いの場合のみ支払い予定日を表示 */}
+                {formData.payment_type === 'one_time' && (
+                  <div>
+                    <Label htmlFor="payment_date">支払い予定日</Label>
+                    <Input
+                      id="payment_date"
+                      type="date"
+                      value={formData.payment_date}
+                      onChange={(e) => setFormData({ ...formData, payment_date: e.target.value })}
+                    />
+                  </div>
+                )}
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -650,7 +745,14 @@ export default function SubcontractsPage() {
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div className="flex items-center space-x-2">
                     <DollarSign className="h-4 w-4 text-green-600" />
-                    <span>¥{subcontract.contract_amount.toLocaleString()}</span>
+                    {subcontract.payment_type === 'recurring' ? (
+                      <div className="flex flex-col">
+                        <span>¥{subcontract.contract_amount.toLocaleString()} × {subcontract.payment_count}回</span>
+                        <span className="text-xs text-gray-500">総額: ¥{subcontract.total_amount.toLocaleString()}</span>
+                      </div>
+                    ) : (
+                      <span>¥{subcontract.contract_amount.toLocaleString()}</span>
+                    )}
                   </div>
                   <div className="flex items-center space-x-2">
                     <User className="h-4 w-4 text-blue-600" />
@@ -660,12 +762,20 @@ export default function SubcontractsPage() {
                     <Clock className="h-4 w-4 text-gray-500" />
                     <span>{subcontract.start_date} 〜 {subcontract.end_date}</span>
                   </div>
-                  {subcontract.payment_date && (
+                  {subcontract.payment_type === 'recurring' ? (
+                    <div className="flex items-center space-x-2">
+                      <Repeat className="h-4 w-4 text-purple-600" />
+                      <span>
+                        {getFrequencyDisplayName(subcontract.recurring_frequency!)}
+                        {subcontract.recurring_day === 31 ? '月末' : `${subcontract.recurring_day}日`}
+                      </span>
+                    </div>
+                  ) : subcontract.payment_date ? (
                     <div className="flex items-center space-x-2">
                       <Calendar className="h-4 w-4 text-orange-600" />
                       <span>支払い: {subcontract.payment_date}</span>
                     </div>
-                  )}
+                  ) : null}
                 </div>
 
                 <div className="flex flex-wrap gap-2">
