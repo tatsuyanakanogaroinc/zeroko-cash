@@ -105,10 +105,10 @@ export default function SubcontractsPage() {
     start_date: '',
     end_date: '',
     payment_date: '',
-    department_id: '',
-    project_id: '',
-    event_id: '',
-    category_id: '',
+    department_id: 'none',
+    project_id: 'none',
+    event_id: 'none',
+    category_id: 'none',
     responsible_user_id: '',
     status: 'active'
   });
@@ -158,9 +158,19 @@ export default function SubcontractsPage() {
     try {
       const url = editingSubcontract ? '/api/subcontracts' : '/api/subcontracts';
       const method = editingSubcontract ? 'PUT' : 'POST';
+      
+      // "none"値をnullに変換
+      const processedFormData = {
+        ...formData,
+        department_id: formData.department_id === 'none' ? '' : formData.department_id,
+        project_id: formData.project_id === 'none' ? '' : formData.project_id,
+        event_id: formData.event_id === 'none' ? '' : formData.event_id,
+        category_id: formData.category_id === 'none' ? '' : formData.category_id,
+      };
+      
       const body = editingSubcontract 
-        ? { ...formData, id: editingSubcontract.id }
-        : formData;
+        ? { ...processedFormData, id: editingSubcontract.id }
+        : processedFormData;
 
       const response = await fetch(url, {
         method,
@@ -202,10 +212,10 @@ export default function SubcontractsPage() {
       start_date: '',
       end_date: '',
       payment_date: '',
-      department_id: '',
-      project_id: '',
-      event_id: '',
-      category_id: '',
+      department_id: 'none',
+      project_id: 'none',
+      event_id: 'none',
+      category_id: 'none',
       responsible_user_id: '',
       status: 'active'
     });
@@ -222,10 +232,10 @@ export default function SubcontractsPage() {
       start_date: subcontract.start_date,
       end_date: subcontract.end_date,
       payment_date: subcontract.payment_date || '',
-      department_id: subcontract.departments?.id || '',
-      project_id: subcontract.projects?.id || '',
-      event_id: subcontract.events?.id || '',
-      category_id: subcontract.categories?.id || '',
+      department_id: subcontract.departments?.id || 'none',
+      project_id: subcontract.projects?.id || 'none',
+      event_id: subcontract.events?.id || 'none',
+      category_id: subcontract.categories?.id || 'none',
       responsible_user_id: subcontract.users.id,
       status: subcontract.status
     });
@@ -385,7 +395,7 @@ export default function SubcontractsPage() {
                         <SelectValue placeholder="部門を選択" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">選択しない</SelectItem>
+                        <SelectItem value="none">選択しない</SelectItem>
                         {departments.map(dept => (
                           <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
                         ))}
@@ -402,7 +412,7 @@ export default function SubcontractsPage() {
                         <SelectValue placeholder="プロジェクトを選択" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">選択しない</SelectItem>
+                        <SelectItem value="none">選択しない</SelectItem>
                         {projects.map(project => (
                           <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
                         ))}
@@ -422,7 +432,7 @@ export default function SubcontractsPage() {
                         <SelectValue placeholder="イベントを選択" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">選択しない</SelectItem>
+                        <SelectItem value="none">選択しない</SelectItem>
                         {events.map(event => (
                           <SelectItem key={event.id} value={event.id}>{event.name}</SelectItem>
                         ))}
@@ -439,7 +449,7 @@ export default function SubcontractsPage() {
                         <SelectValue placeholder="勘定科目を選択" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">選択しない</SelectItem>
+                        <SelectItem value="none">選択しない</SelectItem>
                         {categories.map(category => (
                           <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
                         ))}
