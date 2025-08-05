@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { calculateProratedAmountForDeletion } from '@/lib/recurring-payment-utils';
 
 // サーバーサイドでサービスロールキーを使用
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -42,7 +43,7 @@ export async function GET(request: Request) {
         .eq('status', 'approved')
         .order('created_at', { ascending: false }),
       
-      // 外注データを取得（完了済みまたは支払い済みのもの）
+      // 外注データを取得（進行中・完了済み・支払い済みのもの）
       supabaseAdmin
         .from('subcontracts')
         .select(`
@@ -53,7 +54,7 @@ export async function GET(request: Request) {
           categories(name),
           users!subcontracts_responsible_user_id_fkey(name, department_id)
         `)
-        .in('status', ['completed', 'pending_payment'])
+        .in('status', ['active', 'completed', 'pending_payment'])
         .order('created_at', { ascending: false }),
       
       // 部門データを取得
@@ -165,9 +166,39 @@ export async function GET(request: Request) {
       }
     });
 
-    // 外注データを集計（定期支払いは総額で計算）
+    // 外注データを集計（ステータスと支払いタイプに応じて金額を計算）
     (subcontracts || []).forEach(subcontract => {
-      const amount = subcontract.total_amount || subcontract.contract_amount;
+      let amount = 0;
+
+      if (subcontract.payment_type === 'recurring') {
+        // 定期支払いの場合の金額計算
+        if (subcontract.status === 'completed' || subcontract.status === 'pending_payment') {
+          // 完了済みまたは支払い待ちの場合は総額
+          amount = subcontract.total_amount || subcontract.contract_amount;
+        } else if (subcontract.status === 'active') {
+          // 進行中の場合は現在日付までの支払い済み金額を計算
+          try {
+            const proratedResult = calculateProratedAmountForDeletion(
+              subcontract.start_date,
+              subcontract.end_date,
+              subcontract.contract_amount,
+              subcontract.recurring_frequency,
+              subcontract.recurring_day
+            );
+            amount = proratedResult.paidAmount;
+          } catch (error) {
+            console.error('Error calculating prorated amount for subcontract:', subcontract.id, error);
+            // エラーの場合は総額を使用
+            amount = subcontract.total_amount || subcontract.contract_amount;
+          }
+        }
+      } else {
+        // 一回払いの場合
+        if (subcontract.status === 'completed' || subcontract.status === 'pending_payment') {
+          amount = subcontract.contract_amount;
+        }
+        // 進行中の一回払いは支払い前なので金額は0
+      }
       
       if (subcontract.department_id) {
         departmentExpenses[subcontract.department_id] = 

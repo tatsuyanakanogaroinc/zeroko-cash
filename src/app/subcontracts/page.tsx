@@ -256,7 +256,17 @@ export default function SubcontractsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('この外注を削除しますか？')) return;
+    const subcontract = subcontracts.find(sc => sc.id === id);
+    if (!subcontract) return;
+
+    let confirmMessage = 'この外注を削除しますか？';
+    
+    // 定期支払いの進行中契約の場合は詳細な確認メッセージを表示
+    if (subcontract.payment_type === 'recurring' && subcontract.status === 'active') {
+      confirmMessage = `この定期支払い契約を削除しますか？\n\n契約期間: ${subcontract.start_date} 〜 ${subcontract.end_date}\n総契約額: ¥${(subcontract.total_amount || subcontract.contract_amount).toLocaleString()}\n\n※現在日付までの支払い済み分は確定し、未来の支払い分のみが予算から減額されます。`;
+    }
+    
+    if (!confirm(confirmMessage)) return;
 
     try {
       const response = await fetch(`/api/subcontracts?id=${id}`, {
@@ -264,10 +274,26 @@ export default function SubcontractsPage() {
       });
 
       if (response.ok) {
+        const result = await response.json();
+        
+        // 按分計算の結果があれば表示
+        if (result.deletionInfo) {
+          const info = result.deletionInfo;
+          alert(`削除が完了しました。\n\n` +
+                `総契約額: ¥${info.originalAmount.toLocaleString()}\n` +
+                `支払い済み額: ¥${info.paidAmount.toLocaleString()}\n` +
+                `予算から減額: ¥${info.removedAmount.toLocaleString()}\n` +
+                `削除日: ${info.deletionDate}`);
+        }
+        
         await fetchSubcontracts();
+      } else {
+        const errorData = await response.json();
+        alert(`削除に失敗しました: ${errorData.error}`);
       }
     } catch (error) {
       console.error('Error deleting subcontract:', error);
+      alert('削除中にエラーが発生しました。');
     }
   };
 

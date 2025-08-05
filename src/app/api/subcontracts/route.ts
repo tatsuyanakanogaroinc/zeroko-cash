@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { calculateProratedAmountForDeletion } from '@/lib/recurring-payment-utils';
 
 export async function GET() {
   try {
@@ -244,6 +245,39 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Subcontract ID is required' }, { status: 400 });
     }
 
+    // 削除前に外注データを取得して、定期支払いの場合は按分計算結果を記録
+    const { data: subcontract, error: fetchError } = await supabaseAdmin
+      .from('subcontracts')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (fetchError) {
+      return NextResponse.json({ error: fetchError.message }, { status: 500 });
+    }
+
+    let deletionInfo = null;
+    if (subcontract.payment_type === 'recurring' && subcontract.status === 'active') {
+      // 定期支払いの進行中契約を削除する場合、按分計算を実行
+      try {
+        const proratedResult = calculateProratedAmountForDeletion(
+          subcontract.start_date,
+          subcontract.end_date,
+          subcontract.contract_amount,
+          subcontract.recurring_frequency,
+          subcontract.recurring_day
+        );
+        deletionInfo = {
+          originalAmount: subcontract.total_amount || subcontract.contract_amount,
+          paidAmount: proratedResult.paidAmount,
+          removedAmount: proratedResult.remainingAmount,
+          deletionDate: new Date().toISOString().split('T')[0]
+        };
+      } catch (error) {
+        console.error('Error calculating prorated deletion for subcontract:', id, error);
+      }
+    }
+
     const { error } = await supabaseAdmin
       .from('subcontracts')
       .delete()
@@ -253,7 +287,10 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ 
+      success: true,
+      deletionInfo: deletionInfo
+    });
   } catch (error) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

@@ -188,3 +188,35 @@ export function getCurrentPaymentStatus(
     remainingAmount: totalAmount - paidAmount
   };
 }
+
+// 削除時の按分計算: 契約削除日までに支払った金額を計算
+export function calculateProratedAmountForDeletion(
+  startDate: string,
+  endDate: string,
+  amount: number,
+  frequency: RecurringFrequency,
+  paymentDay: number,
+  deletionDate: string = new Date().toISOString().split('T')[0]
+): {
+  paidAmount: number;
+  remainingAmount: number;
+  totalAmount: number;
+} {
+  // 支払いスケジュールを生成
+  const schedule = generatePaymentSchedule({
+    frequency,
+    paymentDay,
+    startDate,
+    endDate,
+    amount
+  });
+  
+  // 削除日時点での支払い状況を計算
+  const status = getCurrentPaymentStatus(schedule, deletionDate);
+  
+  return {
+    paidAmount: status.paidAmount,
+    remainingAmount: status.remainingAmount,
+    totalAmount: status.paidAmount + status.remainingAmount
+  };
+}
