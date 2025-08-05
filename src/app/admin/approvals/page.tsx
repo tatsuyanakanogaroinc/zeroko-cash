@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { CheckCircle, XCircle, Clock, Eye, Edit, Trash2, Filter, FileImage } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Eye, Edit, Trash2, Filter, FileImage, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMasterDataStore, useEventStore } from '@/lib/store';
 import { EditApplicationModal } from '@/components/modals/EditApplicationModal';
@@ -38,6 +38,10 @@ export default function ApprovalsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('pending');
   const [isProcessing, setIsProcessing] = useState(false);
+  
+  // ソート状態管理
+  const [sortField, setSortField] = useState<keyof Application | 'userName' | 'departmentName' | 'categoryName' | 'projectName' | 'eventName' | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   
   // 非承認ダイアログの状態
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
@@ -117,10 +121,88 @@ export default function ApprovalsPage() {
     );
   }
 
-  // フィルタリングされた申請
-  const filteredApplications = activeTab === 'all' 
+  // ソート処理関数
+  const handleSort = (field: keyof Application | 'userName' | 'departmentName' | 'categoryName' | 'projectName' | 'eventName') => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('desc');
+    }
+  };
+
+  // ソートアイコンコンポーネント
+  const SortIcon = ({ field }: { field: keyof Application | 'userName' | 'departmentName' | 'categoryName' | 'projectName' | 'eventName' }) => {
+    if (sortField !== field) {
+      return <ChevronsUpDown className="w-4 h-4 ml-1 text-gray-400" />;
+    }
+    return sortDirection === 'asc' ? 
+      <ChevronUp className="w-4 h-4 ml-1 text-blue-600" /> : 
+      <ChevronDown className="w-4 h-4 ml-1 text-blue-600" />;
+  };
+
+  // データのソート処理
+  const sortData = (data: Application[]) => {
+    if (!sortField) return data;
+
+    return [...data].sort((a, b) => {
+      let aValue: any;
+      let bValue: any;
+
+      switch (sortField) {
+        case 'userName':
+          aValue = getUserName(a).toLowerCase();
+          bValue = getUserName(b).toLowerCase();
+          break;
+        case 'departmentName':
+          aValue = getDepartmentName(a).toLowerCase();
+          bValue = getDepartmentName(b).toLowerCase();
+          break;
+        case 'categoryName':
+          aValue = getCategoryName(a).toLowerCase();
+          bValue = getCategoryName(b).toLowerCase();
+          break;
+        case 'projectName':
+          aValue = getProjectName(a).toLowerCase();
+          bValue = getProjectName(b).toLowerCase();
+          break;
+        case 'eventName':
+          aValue = getEventName(a).toLowerCase();
+          bValue = getEventName(b).toLowerCase();
+          break;
+        case 'date':
+          aValue = new Date(a.date);
+          bValue = new Date(b.date);
+          break;
+        case 'amount':
+          aValue = a.amount;
+          bValue = b.amount;
+          break;
+        case 'status':
+          aValue = a.status;
+          bValue = b.status;
+          break;
+        case 'description':
+          aValue = a.description.toLowerCase();
+          bValue = b.description.toLowerCase();
+          break;
+        default:
+          aValue = a[sortField as keyof Application];
+          bValue = b[sortField as keyof Application];
+      }
+
+      if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+  };
+
+  // フィルタリングとソート処理
+  const baseFilteredApplications = activeTab === 'all' 
     ? applications 
     : applications.filter(app => app.status === activeTab);
+  
+  const filteredApplications = sortData(baseFilteredApplications);
 
   const stats = {
     pending: applications.filter(app => app.status === 'pending').length,
@@ -465,15 +547,87 @@ export default function ApprovalsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>申請日</TableHead>
-                      <TableHead>申請者</TableHead>
-                      <TableHead>説明</TableHead>
-                      <TableHead>金額</TableHead>
-                      <TableHead>勘定科目</TableHead>
-                      <TableHead>部門</TableHead>
-                      <TableHead>イベント</TableHead>
-                      <TableHead>プロジェクト</TableHead>
-                      <TableHead>ステータス</TableHead>
+                      <TableHead 
+                        className="cursor-pointer hover:bg-gray-50 select-none"
+                        onClick={() => handleSort('date')}
+                      >
+                        <div className="flex items-center">
+                          申請日
+                          <SortIcon field="date" />
+                        </div>
+                      </TableHead>
+                      <TableHead 
+                        className="cursor-pointer hover:bg-gray-50 select-none"
+                        onClick={() => handleSort('userName')}
+                      >
+                        <div className="flex items-center">
+                          申請者
+                          <SortIcon field="userName" />
+                        </div>
+                      </TableHead>
+                      <TableHead 
+                        className="cursor-pointer hover:bg-gray-50 select-none"
+                        onClick={() => handleSort('description')}
+                      >
+                        <div className="flex items-center">
+                          説明
+                          <SortIcon field="description" />
+                        </div>
+                      </TableHead>
+                      <TableHead 
+                        className="cursor-pointer hover:bg-gray-50 select-none"
+                        onClick={() => handleSort('amount')}
+                      >
+                        <div className="flex items-center">
+                          金額
+                          <SortIcon field="amount" />
+                        </div>
+                      </TableHead>
+                      <TableHead 
+                        className="cursor-pointer hover:bg-gray-50 select-none"
+                        onClick={() => handleSort('categoryName')}
+                      >
+                        <div className="flex items-center">
+                          勘定科目
+                          <SortIcon field="categoryName" />
+                        </div>
+                      </TableHead>
+                      <TableHead 
+                        className="cursor-pointer hover:bg-gray-50 select-none"
+                        onClick={() => handleSort('departmentName')}
+                      >
+                        <div className="flex items-center">
+                          部門
+                          <SortIcon field="departmentName" />
+                        </div>
+                      </TableHead>
+                      <TableHead 
+                        className="cursor-pointer hover:bg-gray-50 select-none"
+                        onClick={() => handleSort('eventName')}
+                      >
+                        <div className="flex items-center">
+                          イベント
+                          <SortIcon field="eventName" />
+                        </div>
+                      </TableHead>
+                      <TableHead 
+                        className="cursor-pointer hover:bg-gray-50 select-none"
+                        onClick={() => handleSort('projectName')}
+                      >
+                        <div className="flex items-center">
+                          プロジェクト
+                          <SortIcon field="projectName" />
+                        </div>
+                      </TableHead>
+                      <TableHead 
+                        className="cursor-pointer hover:bg-gray-50 select-none"
+                        onClick={() => handleSort('status')}
+                      >
+                        <div className="flex items-center">
+                          ステータス
+                          <SortIcon field="status" />
+                        </div>
+                      </TableHead>
                       <TableHead>領収書</TableHead>
                       <TableHead>可否</TableHead>
                     </TableRow>
