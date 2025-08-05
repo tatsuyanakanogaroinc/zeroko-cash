@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { 
   Plus, 
   Building, 
@@ -22,8 +23,16 @@ import {
   FileText,
   DollarSign,
   Clock,
-  Tag
+  Tag,
+  Repeat
 } from 'lucide-react';
+import { 
+  calculatePaymentCount, 
+  calculateTotalAmount, 
+  getFrequencyDisplayName,
+  getRecurringPaymentDescription,
+  type RecurringFrequency 
+} from '@/lib/recurring-payment-utils';
 
 interface Subcontract {
   id: string;
@@ -35,6 +44,11 @@ interface Subcontract {
   end_date: string;
   payment_date: string | null;
   status: 'active' | 'completed' | 'cancelled' | 'pending_payment';
+  payment_type: 'one_time' | 'recurring';
+  recurring_frequency?: RecurringFrequency | null;
+  recurring_day?: number | null;
+  payment_count?: number | null;
+  total_amount: number;
   departments?: { id: string; name: string } | null;
   projects?: { id: string; name: string } | null;
   events?: { id: string; name: string } | null;
@@ -57,6 +71,11 @@ interface FormData {
   category_id: string;
   responsible_user_id: string;
   status: string;
+  payment_type: 'one_time' | 'recurring';
+  recurring_frequency: string;
+  recurring_day: string;
+  payment_count: string;
+  total_amount: string;
 }
 
 interface Department {
@@ -110,13 +129,42 @@ export default function SubcontractsPage() {
     event_id: 'none',
     category_id: 'none',
     responsible_user_id: '',
-    status: 'active'
+    status: 'active',
+    payment_type: 'one_time',
+    recurring_frequency: 'monthly',
+    recurring_day: '25',
+    payment_count: '',
+    total_amount: ''
   });
 
   useEffect(() => {
     fetchSubcontracts();
     fetchMasterData();
   }, []);
+
+  // 定期支払いの自動計算
+  useEffect(() => {
+    if (formData.payment_type === 'recurring' && formData.start_date && formData.end_date && formData.contract_amount) {
+      const paymentCount = calculatePaymentCount(
+        formData.start_date,
+        formData.end_date,
+        formData.recurring_frequency as RecurringFrequency
+      );
+      const totalAmount = calculateTotalAmount(parseInt(formData.contract_amount), paymentCount);
+      
+      setFormData(prev => ({
+        ...prev,
+        payment_count: paymentCount.toString(),
+        total_amount: totalAmount.toString()
+      }));
+    } else if (formData.payment_type === 'one_time' && formData.contract_amount) {
+      setFormData(prev => ({
+        ...prev,
+        payment_count: '1',
+        total_amount: formData.contract_amount
+      }));
+    }
+  }, [formData.payment_type, formData.start_date, formData.end_date, formData.contract_amount, formData.recurring_frequency]);
 
   const fetchSubcontracts = async () => {
     try {
@@ -217,7 +265,12 @@ export default function SubcontractsPage() {
       event_id: 'none',
       category_id: 'none',
       responsible_user_id: '',
-      status: 'active'
+      status: 'active',
+      payment_type: 'one_time',
+      recurring_frequency: 'monthly',
+      recurring_day: '25',
+      payment_count: '',
+      total_amount: ''
     });
     setEditingSubcontract(null);
     setIsCreateModalOpen(false);
@@ -237,7 +290,12 @@ export default function SubcontractsPage() {
       event_id: subcontract.events?.id || 'none',
       category_id: subcontract.categories?.id || 'none',
       responsible_user_id: subcontract.users.id,
-      status: subcontract.status
+      status: subcontract.status,
+      payment_type: subcontract.payment_type,
+      recurring_frequency: subcontract.recurring_frequency || 'monthly',
+      recurring_day: subcontract.recurring_day?.toString() || '25',
+      payment_count: subcontract.payment_count?.toString() || '',
+      total_amount: subcontract.total_amount.toString()
     });
     setEditingSubcontract(subcontract);
     setIsCreateModalOpen(true);
@@ -273,7 +331,7 @@ export default function SubcontractsPage() {
     return matchesSearch && matchesStatus;
   });
 
-  const totalAmount = filteredSubcontracts.reduce((sum, sc) => sum + sc.contract_amount, 0);
+  const totalAmount = filteredSubcontracts.reduce((sum, sc) => sum + (sc.total_amount || sc.contract_amount), 0);
   const activeCount = subcontracts.filter(sc => sc.status === 'active').length;
   const completedCount = subcontracts.filter(sc => sc.status === 'completed').length;
 

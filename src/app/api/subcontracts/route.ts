@@ -57,7 +57,12 @@ export async function POST(request: NextRequest) {
       event_id,
       category_id,
       responsible_user_id,
-      status
+      status,
+      payment_type,
+      recurring_frequency,
+      recurring_day,
+      payment_count,
+      total_amount
     } = body;
 
     // バリデーション
@@ -92,6 +97,11 @@ export async function POST(request: NextRequest) {
         category_id: category_id || null,
         responsible_user_id,
         status: status || 'active',
+        payment_type: payment_type || 'one_time',
+        recurring_frequency: recurring_frequency || null,
+        recurring_day: recurring_day ? parseInt(recurring_day) : null,
+        payment_count: payment_count ? parseInt(payment_count) : null,
+        total_amount: total_amount ? parseInt(total_amount) : parseInt(contract_amount),
       })
       .select(`
         *,
@@ -146,7 +156,12 @@ export async function PUT(request: NextRequest) {
       event_id,
       category_id,
       responsible_user_id,
-      status
+      status,
+      payment_type,
+      recurring_frequency,
+      recurring_day,
+      payment_count,
+      total_amount
     } = body;
 
     if (!id) {
@@ -177,6 +192,11 @@ export async function PUT(request: NextRequest) {
         category_id: category_id || null,
         responsible_user_id,
         status,
+        payment_type: payment_type || 'one_time',
+        recurring_frequency: recurring_frequency || null,
+        recurring_day: recurring_day ? parseInt(recurring_day) : null,
+        payment_count: payment_count ? parseInt(payment_count) : null,
+        total_amount: total_amount ? parseInt(total_amount) : (contract_amount ? parseInt(contract_amount) : undefined),
       })
       .eq('id', id)
       .select(`
