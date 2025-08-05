@@ -211,13 +211,9 @@ export default function SubcontractsPage() {
       }
     }
     
-    // 分類のバリデーション
-    const hasDepartment = formData.department_id && formData.department_id !== 'none';
-    const hasProject = formData.project_id && formData.project_id !== 'none';
-    const hasEvent = formData.event_id && formData.event_id !== 'none';
-    
-    if (!hasDepartment && !hasProject && !hasEvent) {
-      alert('部門、プロジェクト、イベントのいずれか1つは選択してください。');
+    // 部門のバリデーション（必須）
+    if (!formData.department_id || formData.department_id === 'none') {
+      alert('部門を選択してください。');
       return;
     }
     
@@ -225,13 +221,14 @@ export default function SubcontractsPage() {
       const url = editingSubcontract ? '/api/subcontracts' : '/api/subcontracts';
       const method = editingSubcontract ? 'PUT' : 'POST';
       
-      // "none"値をnullに変換
+      // "none"値をnullに変換し、空文字列の日付もnullに変換
       const processedFormData = {
         ...formData,
         department_id: formData.department_id === 'none' ? '' : formData.department_id,
         project_id: formData.project_id === 'none' ? '' : formData.project_id,
         event_id: formData.event_id === 'none' ? '' : formData.event_id,
         category_id: formData.category_id === 'none' ? '' : formData.category_id,
+        payment_date: formData.payment_date || '',
       };
       
       const body = editingSubcontract 
@@ -562,7 +559,7 @@ export default function SubcontractsPage() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="department_id">部門</Label>
+                    <Label htmlFor="department_id">部門 *</Label>
                     <Select
                       value={formData.department_id}
                       onValueChange={(value) => setFormData({ ...formData, department_id: value })}

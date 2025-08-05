@@ -73,14 +73,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 少なくとも1つの分類が必要（空文字列や"none"も除外）
-    const hasDepartment = department_id && department_id !== 'none' && department_id !== '';
-    const hasProject = project_id && project_id !== 'none' && project_id !== '';
-    const hasEvent = event_id && event_id !== 'none' && event_id !== '';
-    
-    if (!hasDepartment && !hasProject && !hasEvent) {
+    // 部門は必須
+    if (!department_id || department_id === 'none' || department_id === '') {
       return NextResponse.json(
-        { error: 'At least one of department, project, or event must be specified' },
+        { error: 'Department is required' },
         { status: 400 }
       );
     }
@@ -94,7 +90,7 @@ export async function POST(request: NextRequest) {
         contract_amount: parseInt(contract_amount),
         start_date,
         end_date,
-        payment_date,
+        payment_date: payment_date || null,
         department_id: department_id || null,
         project_id: project_id || null,
         event_id: event_id || null,
@@ -172,14 +168,10 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Subcontract ID is required' }, { status: 400 });
     }
 
-    // 少なくとも1つの分類が必要（空文字列や"none"も除外）
-    const hasDepartment = department_id && department_id !== 'none' && department_id !== '';
-    const hasProject = project_id && project_id !== 'none' && project_id !== '';
-    const hasEvent = event_id && event_id !== 'none' && event_id !== '';
-    
-    if (!hasDepartment && !hasProject && !hasEvent) {
+    // 部門は必須
+    if (!department_id || department_id === 'none' || department_id === '') {
       return NextResponse.json(
-        { error: 'At least one of department, project, or event must be specified' },
+        { error: 'Department is required' },
         { status: 400 }
       );
     }
@@ -193,7 +185,7 @@ export async function PUT(request: NextRequest) {
         contract_amount: contract_amount ? parseInt(contract_amount) : undefined,
         start_date,
         end_date,
-        payment_date,
+        payment_date: payment_date || null,
         department_id: department_id || null,
         project_id: project_id || null,
         event_id: event_id || null,
