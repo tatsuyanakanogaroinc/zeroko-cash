@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
 import { useAuth } from '@/contexts/AuthContext';
@@ -114,18 +114,21 @@ export default function UsersPage() {
   };
 
   // ユーザーデータをロード
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async (depts?: Department[]) => {
     try {
       const response = await fetch('/api/users');
       if (!response.ok) throw new Error('ユーザー取得失敗');
       const usersData = await response.json();
       console.log('Loaded users:', usersData);
       
+      // 部門リストを取得（引数で渡されたものまたは現在のstate）
+      const availableDepartments = depts || departments;
+      
       // データベースのユーザーをUIで表示する形式に変換
       const formattedUsers = usersData.map(user => {
         // 部門名を取得（department_idから部門名を検索）
         const departmentName = user.department_id 
-          ? departments.find(dept => dept.id === user.department_id)?.name || '未設定'
+          ? availableDepartments.find(dept => dept.id === user.department_id)?.name || '未設定'
           : '未設定';
         
         return {
@@ -145,22 +148,20 @@ export default function UsersPage() {
       // エラーハンドリング
       setUsers([]);
     }
-  };
+  }, [departments]);
 
   useEffect(() => {
     const loadData = async () => {
       await initializeDepartments();
-      await loadUsers();
+      // 部門データが読み込まれた後にユーザーを読み込む
+      const response = await fetch('/api/departments');
+      if (response.ok) {
+        const depts = await response.json();
+        await loadUsers(depts);
+      }
     };
     loadData();
-  }, []);
-  
-  // 部門データが更新されたらユーザーデータも再読み込み
-  useEffect(() => {
-    if (departments.length > 0) {
-      loadUsers();
-    }
-  }, [departments]);
+  }, []); // 依存配列を空にして初回のみ実行
 
   const filteredUsers = users.filter(user =>
     user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -219,8 +220,8 @@ export default function UsersPage() {
         password: newUser.initial_password || 'パスワード取得エラー'
       });
       
-      // ユーザーリストを更新
-      await loadUsers();
+      // ユーザーリストを更新（現在の部門情報を使用）
+      await loadUsers(departments);
       
       setIsAddDialogOpen(false);
       setIsShowPasswordDialogOpen(true);
