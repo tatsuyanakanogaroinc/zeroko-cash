@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
         *,
         events:events!left(*),
         categories:categories!left(*),
-        users:users!left(department_id, departments:departments!left(*))
+        users:users!left(id, name, email, department_id, departments:departments!left(*))
       `)
       .order('created_at', { ascending: false });
 
@@ -35,7 +35,8 @@ export async function GET(request: NextRequest) {
         events:events!left(*),
         categories:categories!left(*),
         departments:departments!left(*),
-        projects:projects!left(*)
+        projects:projects!left(*),
+        users:users!left(id, name, email)
       `)
       .order('created_at', { ascending: false });
 

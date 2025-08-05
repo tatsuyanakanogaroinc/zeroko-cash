@@ -57,11 +57,11 @@ export async function DELETE(
         );
       }
 
-      // 承認済み・却下済みの申請は削除不可
-      if (expense.status !== 'pending') {
+      // 承認済み・却下済みの申請は管理者のみ削除可能
+      if (expense.status !== 'pending' && !isAdmin) {
         return NextResponse.json(
-          { error: '承認済み・却下済みの申請は削除できません' },
-          { status: 400 }
+          { error: '承認済み・却下済みの申請は管理者のみ削除できます' },
+          { status: 403 }
         );
       }
 
@@ -120,11 +120,11 @@ export async function DELETE(
         );
       }
 
-      // 承認済み・却下済みの申請は削除不可
-      if (invoice.status !== 'pending') {
+      // 承認済み・却下済みの申請は管理者のみ削除可能
+      if (invoice.status !== 'pending' && !isAdmin) {
         return NextResponse.json(
-          { error: '承認済み・却下済みの申請は削除できません' },
-          { status: 400 }
+          { error: '承認済み・却下済みの申請は管理者のみ削除できます' },
+          { status: 403 }
         );
       }
 

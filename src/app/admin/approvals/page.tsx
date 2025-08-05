@@ -183,10 +183,22 @@ export default function ApprovalsPage() {
     return '-';
   };
 
-  const getUserName = (userId: string) => {
-    if (!userId) return '不明';
-    const user = users.find(u => u.id === userId);
-    return user?.name || user?.email || '不明';
+  const getUserName = (application: any) => {
+    // APIから直接取得したユーザー情報を使用
+    if (application.users?.name) {
+      return application.users.name;
+    }
+    if (application.users?.email) {
+      return application.users.email;
+    }
+    
+    // フォールバック: user_idからユーザー一覧検索
+    if (application.user_id) {
+      const user = users.find(u => u.id === application.user_id);
+      return user?.name || user?.email || '不明';
+    }
+    
+    return '不明';
   };
 
   const getStatusBadge = (status: string) => {
@@ -317,10 +329,34 @@ export default function ApprovalsPage() {
     window.location.reload(); // データを再取得
   };
 
+  // 削除権限のチェック
+  const canDeleteApplication = (application: Application) => {
+    if (!user) return false;
+    
+    const isOwner = application.user_id === user.id;
+    const isAdmin = user.role === 'admin';
+    
+    // 申請者本人は承認待ちのみ削除可能
+    if (isOwner && application.status === 'pending') return true;
+    
+    // 管理者はすべての申請を削除可能
+    if (isAdmin) return true;
+    
+    return false;
+  };
+
   // 申請削除機能
   const handleDeleteApplication = async (application: Application) => {
+    if (!canDeleteApplication(application)) {
+      alert('この申請を削除する権限がありません');
+      return;
+    }
+
     const typeLabel = application.type === 'expense' ? '経費申請' : '請求書払い申請';
-    if (!confirm(`この${typeLabel}を削除しますか？この操作は取り消せません。`)) {
+    const statusText = application.status === 'pending' ? '承認待ち' : 
+                      application.status === 'approved' ? '承認済み' : '却下済み';
+    
+    if (!confirm(`この${statusText}の${typeLabel}を削除しますか？この操作は取り消せません。`)) {
       return;
     }
 
@@ -446,7 +482,7 @@ export default function ApprovalsPage() {
                     {filteredApplications.map((application) => (
                       <TableRow key={application.id}>
                         <TableCell>{application.date}</TableCell>
-                        <TableCell className="font-medium">{getUserName(application.user_id)}</TableCell>
+                        <TableCell className="font-medium">{getUserName(application)}</TableCell>
                         <TableCell>{application.description}</TableCell>
                         <TableCell>¥{application.amount.toLocaleString()}</TableCell>
                         <TableCell>{getCategoryName(application)}</TableCell>
@@ -493,7 +529,7 @@ export default function ApprovalsPage() {
                               </>
                             ) : null}
                             
-                            {/* すべての申請に編集・削除ボタンを表示 */}
+                            {/* 編集・削除ボタンを権限に応じて表示 */}
                             <Button
                               variant="outline"
                               size="sm"
@@ -504,16 +540,18 @@ export default function ApprovalsPage() {
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              disabled={isProcessing}
-                              onClick={() => handleDeleteApplication(application)}
-                              className="text-red-600 hover:text-white hover:bg-red-600 border-red-200"
-                              title="削除"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            {canDeleteApplication(application) && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={isProcessing}
+                                onClick={() => handleDeleteApplication(application)}
+                                className="text-red-600 hover:text-white hover:bg-red-600 border-red-200"
+                                title={user?.role === 'admin' ? '削除（管理者権限）' : '削除'}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -531,7 +569,7 @@ export default function ApprovalsPage() {
             <DialogHeader>
               <DialogTitle>申請を却下しますか？</DialogTitle>
               <DialogDescription>
-                {rejectingApplication && `${getUserName(rejectingApplication.user_id)}の申請「${rejectingApplication.description}」を却下します。却下理由を入力してください。`}
+                {rejectingApplication && `${getUserName(rejectingApplication)}の申請「${rejectingApplication.description}」を却下します。却下理由を入力してください。`}
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
