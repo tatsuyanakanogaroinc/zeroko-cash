@@ -223,6 +223,24 @@ export default function ReportsPage() {
         userName = expense.contractor_name;
       }
       
+      // 外注データの場合はステータスを適切にマッピング
+      let displayStatus: 'approved' | 'pending' | 'rejected' = 'approved';
+      if (expense.contractor_name) {
+        // 外注データの場合、active/completed/pending_payment は承認済みとして扱う
+        if (['active', 'completed', 'pending_payment'].includes(expense.status)) {
+          displayStatus = 'approved';
+        } else if (expense.status === 'pending') {
+          displayStatus = 'pending';
+        } else if (expense.status === 'cancelled') {
+          displayStatus = 'rejected';
+        } else {
+          displayStatus = 'approved'; // デフォルトは承認済み
+        }
+      } else {
+        // 経費申請・請求書払いの場合は元のステータスを使用
+        displayStatus = (expense.status as 'approved' | 'pending' | 'rejected') || 'approved';
+      }
+      
       return {
         id: expense.id,
         date: new Date(expense.created_at).toISOString().split('T')[0],
@@ -230,7 +248,7 @@ export default function ReportsPage() {
         category: expense.categories?.name || '未分類',
         user_name: userName,
         description: description,
-        status: expense.status || 'approved'
+        status: displayStatus
       };
     }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   };
@@ -317,6 +335,24 @@ export default function ReportsPage() {
         userName = expense.contractor_name;
       }
       
+      // 外注データの場合はステータスを適切にマッピング
+      let displayStatus: 'approved' | 'pending' | 'rejected' = 'approved';
+      if (expense.contractor_name) {
+        // 外注データの場合、active/completed/pending_payment は承認済みとして扱う
+        if (['active', 'completed', 'pending_payment'].includes(expense.status)) {
+          displayStatus = 'approved';
+        } else if (expense.status === 'pending') {
+          displayStatus = 'pending';
+        } else if (expense.status === 'cancelled') {
+          displayStatus = 'rejected';
+        } else {
+          displayStatus = 'approved'; // デフォルトは承認済み
+        }
+      } else {
+        // 経費申請・請求書払いの場合は元のステータスを使用
+        displayStatus = (expense.status as 'approved' | 'pending' | 'rejected') || 'approved';
+      }
+      
       return {
         id: expense.id,
         date: new Date(expense.created_at).toISOString().split('T')[0],
@@ -324,7 +360,7 @@ export default function ReportsPage() {
         category: expense.categories?.name || '未分類',
         user_name: userName,
         description: description,
-        status: expense.status || 'approved'
+        status: displayStatus
       };
     }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   };
