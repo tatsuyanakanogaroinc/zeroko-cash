@@ -10,7 +10,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { CheckCircle, XCircle, Clock, Eye, Edit, Trash2, Filter, FileImage, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { CheckCircle, XCircle, Clock, Eye, Edit, Trash2, Filter, FileImage, ChevronUp, ChevronDown, ChevronsUpDown, Calendar } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMasterDataStore, useEventStore } from '@/lib/store';
 import { EditApplicationModal } from '@/components/modals/EditApplicationModal';
@@ -42,6 +43,9 @@ export default function ApprovalsPage() {
   // ソート状態管理
   const [sortField, setSortField] = useState<keyof Application | 'userName' | 'departmentName' | 'categoryName' | 'projectName' | 'eventName' | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  
+  // 月別フィルター状態管理
+  const [monthFilter, setMonthFilter] = useState<string>('all');
   
   // 非承認ダイアログの状態
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
@@ -197,10 +201,35 @@ export default function ApprovalsPage() {
     });
   };
 
+  // 月別の選択肢を生成
+  const getAvailableMonths = () => {
+    const months = new Set<string>();
+    applications.forEach(app => {
+      if (app.date) {
+        const date = new Date(app.date);
+        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        months.add(monthKey);
+      }
+    });
+    return Array.from(months).sort().reverse(); // 新しい順に並べる
+  };
+
+  const availableMonths = getAvailableMonths();
+
   // フィルタリングとソート処理
-  const baseFilteredApplications = activeTab === 'all' 
+  let baseFilteredApplications = activeTab === 'all' 
     ? applications 
     : applications.filter(app => app.status === activeTab);
+
+  // 月別フィルターを適用
+  if (monthFilter !== 'all') {
+    baseFilteredApplications = baseFilteredApplications.filter(app => {
+      if (!app.date) return false;
+      const date = new Date(app.date);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      return monthKey === monthFilter;
+    });
+  }
   
   const filteredApplications = sortData(baseFilteredApplications);
 
@@ -526,12 +555,58 @@ export default function ApprovalsPage() {
           </Card>
         </div>
 
+        {/* 月別フィルター */}
+        <div className="flex items-center gap-4 bg-white p-4 rounded-lg border">
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-gray-500" />
+            <Label htmlFor="month-filter" className="text-sm font-medium">月別フィルター:</Label>
+          </div>
+          <Select value={monthFilter} onValueChange={setMonthFilter}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="月を選択" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">全ての月</SelectItem>
+              {availableMonths.map(month => {
+                const [year, monthNum] = month.split('-');
+                const monthName = `${year}年${monthNum}月`;
+                return (
+                  <SelectItem key={month} value={month}>
+                    {monthName}
+                  </SelectItem>
+                );
+              })}
+            </SelectContent>
+          </Select>
+          <div className="text-sm text-gray-500">
+            {monthFilter !== 'all' && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setMonthFilter('all')}
+              >
+                フィルターをクリア
+              </Button>
+            )}
+          </div>
+        </div>
+
         {/* タブ付き申請一覧 */}
         <Card>
           <CardHeader>
             <CardTitle>申請一覧</CardTitle>
             <CardDescription>
               {filteredApplications.length}件の申請が表示されています
+              {monthFilter !== 'all' && (
+                <>
+                  {' '}（
+                  {(() => {
+                    const [year, monthNum] = monthFilter.split('-');
+                    return `${year}年${monthNum}月`;
+                  })()}
+                  でフィルター中）
+                </>
+              )}
             </CardDescription>
           </CardHeader>
           <CardContent>

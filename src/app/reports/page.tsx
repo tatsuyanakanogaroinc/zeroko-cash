@@ -106,6 +106,7 @@ export default function ReportsPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedItem, setSelectedItem] = useState<Summary | null>(null);
   const [detailPanelOpen, setDetailPanelOpen] = useState(false);
+  const [detailMonthFilter, setDetailMonthFilter] = useState<string>('all');
 
   // 権限チェック
   if (user && !permissions.canAccessReports(user.role as any)) {
@@ -273,7 +274,7 @@ export default function ReportsPage() {
 
   // Get monthly expense data for trends
   const getMonthlyExpenses = (itemId: string, itemType: 'department' | 'project' | 'event' | 'category'): number[] => {
-    if (!reportData) return Array(6).fill(0);
+    if (!reportData) return Array(12).fill(0);
     
     const allExpenses = [
       ...(reportData.expenses || []), 
@@ -294,8 +295,8 @@ export default function ReportsPage() {
       filteredExpenses = allExpenses.filter(expense => expense.category_id === itemId);
     }
     
-    // Group by month (last 6 months)
-    const monthlyTotals = Array(6).fill(0);
+    // Group by month (last 12 months)
+    const monthlyTotals = Array(12).fill(0);
     const currentDate = new Date();
     
     filteredExpenses.forEach(expense => {
@@ -303,9 +304,9 @@ export default function ReportsPage() {
       const monthDiff = (currentDate.getFullYear() - expenseDate.getFullYear()) * 12 + 
                        currentDate.getMonth() - expenseDate.getMonth();
       
-      if (monthDiff >= 0 && monthDiff < 6) {
+      if (monthDiff >= 0 && monthDiff < 12) {
         const amount = expense.amount || expense.contract_amount || expense.total_amount || 0;
-        monthlyTotals[5 - monthDiff] += amount;
+        monthlyTotals[11 - monthDiff] += amount;
       }
     });
     
@@ -420,6 +421,7 @@ export default function ReportsPage() {
   const closeDetailPanel = () => {
     setDetailPanelOpen(false);
     setSelectedItem(null);
+    setDetailMonthFilter('all'); // 月別フィルターもリセット
   };
 
   const CategoryCard = ({ item, icon: Icon, type }: { item: Summary; icon: any; type: string }) => (
@@ -1037,13 +1039,24 @@ export default function ReportsPage() {
               {/* Monthly Trend */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <TrendingUp className="h-5 w-5 text-purple-600" />
-                    <span>月別支出推移</span>
+                  <CardTitle className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <TrendingUp className="h-5 w-5 text-purple-600" />
+                      <span>月別支出推移（過去12ヶ月）</span>
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      最大金額: ¥{(() => {
+                        const itemType = categories.some(c => c.id === selectedItem.id) ? 'category' :
+                                        departments.some(d => d.id === selectedItem.id) ? 'department' : 
+                                        projects.some(p => p.id === selectedItem.id) ? 'project' : 'event';
+                        const monthlyAmounts = getMonthlyExpenses(selectedItem.id, itemType);
+                        return Math.max(...monthlyAmounts, 0).toLocaleString();
+                      })()}
+                    </div>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-6 gap-4">
+                  <div className="grid grid-cols-12 gap-2">
                     {(() => {
                       const currentDate = new Date();
                       const months = [];
@@ -1052,29 +1065,51 @@ export default function ReportsPage() {
                                       projects.some(p => p.id === selectedItem.id) ? 'project' : 'event';
                       const monthlyAmounts = getMonthlyExpenses(selectedItem.id, itemType);
                       const maxAmount = Math.max(...monthlyAmounts, 1);
+                      const totalAmount = monthlyAmounts.reduce((sum, amount) => sum + amount, 0);
                       
-                      // Generate month labels (last 6 months)
-                      for (let i = 5; i >= 0; i--) {
+                      // Generate month labels (last 12 months)
+                      for (let i = 11; i >= 0; i--) {
                         const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
-                        months.push(`${date.getMonth() + 1}月`);
+                        months.push({
+                          label: `${date.getMonth() + 1}月`,
+                          fullDate: `${date.getFullYear()}年${date.getMonth() + 1}月`
+                        });
                       }
                       
                       return months.map((month, index) => {
-                        const amount = monthlyAmounts[index];
+                        const amount = monthlyAmounts[index] || 0;
                         const percentage = maxAmount > 0 ? (amount / maxAmount) * 100 : 0;
+                        const monthPercentage = totalAmount > 0 ? (amount / totalAmount) * 100 : 0;
                         return (
-                          <div key={month} className="text-center">
-                            <div className="text-xs text-gray-600 mb-2">{month}</div>
-                            <div className="h-20 bg-gray-100 rounded relative flex items-end justify-center">
+                          <div key={month.label} className="text-center group relative">
+                            <div className="text-xs text-gray-600 mb-2 truncate">{month.label}</div>
+                            <div className="h-24 bg-gray-100 rounded relative flex items-end justify-center hover:bg-gray-200 transition-colors">
                               <div 
-                                className="bg-purple-500 rounded w-full transition-all duration-300" 
-                                style={{ height: `${Math.max(percentage, 5)}%` }}
+                                className="bg-purple-500 rounded w-full transition-all duration-300 group-hover:bg-purple-600" 
+                                style={{ height: `${Math.max(percentage, 3)}%` }}
                               ></div>
+                              {/* ツールチップ */}
+                              <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-black text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity z-10 whitespace-nowrap">
+                                {month.fullDate}<br/>
+                                ¥{amount.toLocaleString()}<br/>
+                                {monthPercentage.toFixed(1)}%
+                              </div>
                             </div>
-                            <div className="text-xs font-medium mt-2">¥{amount.toLocaleString()}</div>
+                            <div className="text-xs font-medium mt-1 truncate">
+                              {amount > 0 ? `¥${amount.toLocaleString()}` : '¥0'}
+                            </div>
                           </div>
                         );
                       });
+                    })()}
+                  </div>
+                  <div className="mt-4 text-center text-sm text-gray-600">
+                    過去12ヶ月合計: ¥{(() => {
+                      const itemType = categories.some(c => c.id === selectedItem.id) ? 'category' :
+                                      departments.some(d => d.id === selectedItem.id) ? 'department' : 
+                                      projects.some(p => p.id === selectedItem.id) ? 'project' : 'event';
+                      const monthlyAmounts = getMonthlyExpenses(selectedItem.id, itemType);
+                      return monthlyAmounts.reduce((sum, amount) => sum + amount, 0).toLocaleString();
                     })()}
                   </div>
                 </CardContent>
@@ -1083,9 +1118,51 @@ export default function ReportsPage() {
               {/* Detailed Expenses List */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <FileText className="h-5 w-5 text-gray-600" />
-                    <span>申請詳細一覧</span>
+                  <CardTitle className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <FileText className="h-5 w-5 text-gray-600" />
+                      <span>申請詳細一覧</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Calendar className="h-4 w-4 text-gray-500" />
+                      <Select value={detailMonthFilter} onValueChange={setDetailMonthFilter}>
+                        <SelectTrigger className="w-32">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">全ての月</SelectItem>
+                          {(() => {
+                            // 詳細データから利用可能な月を抽出
+                            const itemType = categories.some(c => c.id === selectedItem.id) ? 'category' :
+                                            departments.some(d => d.id === selectedItem.id) ? 'department' : 
+                                            projects.some(p => p.id === selectedItem.id) ? 'project' : 'event';
+                            
+                            let expenses;
+                            if (itemType === 'category') {
+                              expenses = getExpensesForCategory(selectedItem.id);
+                            } else {
+                              expenses = getExpensesForItem(selectedItem.id, itemType);
+                            }
+                            
+                            const months = new Set<string>();
+                            expenses.forEach(expense => {
+                              const date = new Date(expense.date);
+                              const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                              months.add(monthKey);
+                            });
+                            
+                            return Array.from(months).sort().reverse().map(month => {
+                              const [year, monthNum] = month.split('-');
+                              return (
+                                <SelectItem key={month} value={month}>
+                                  {year}年{monthNum}月
+                                </SelectItem>
+                              );
+                            });
+                          })()}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -1102,8 +1179,21 @@ export default function ReportsPage() {
                         expenses = getExpensesForItem(selectedItem.id, itemType);
                       }
                       
+                      // 月別フィルターを適用
+                      if (detailMonthFilter !== 'all') {
+                        expenses = expenses.filter(expense => {
+                          const date = new Date(expense.date);
+                          const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                          return monthKey === detailMonthFilter;
+                        });
+                      }
+                      
                       if (expenses.length === 0) {
-                        return <div className="text-center text-gray-500 py-8">経費データがありません</div>;
+                        return <div className="text-center text-gray-500 py-8">
+                          {detailMonthFilter !== 'all' ? 
+                            `選択された月のデータがありません` : 
+                            `経費データがありません`}
+                        </div>;
                       }
                       
                       return expenses.map(expense => (
