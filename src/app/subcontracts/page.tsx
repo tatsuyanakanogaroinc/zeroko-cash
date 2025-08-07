@@ -274,9 +274,51 @@ export default function SubcontractsPage() {
     }
   };
 
+  // 削除権限のチェック
+  const canDeleteSubcontract = (subcontract: Subcontract) => {
+    if (!user) {
+      console.log('外注削除権限チェック: ユーザー情報なし');
+      return false;
+    }
+    
+    const isResponsible = subcontract.responsible_user_id === user.id;
+    const isAdmin = user.role === 'admin';
+    
+    console.log('外注削除権限チェック:', {
+      subcontractId: subcontract.id,
+      responsibleUserId: subcontract.responsible_user_id,
+      currentUserId: user.id,
+      userRole: user.role,
+      isResponsible,
+      isAdmin,
+      subcontractStatus: subcontract.status
+    });
+    
+    // 担当者は進行中のもののみ削除可能
+    if (isResponsible && ['pending', 'active'].includes(subcontract.status)) {
+      console.log('外注削除可能: 担当者 + 進行中ステータス');
+      return true;
+    }
+    
+    // 管理者はすべての外注を削除可能
+    if (isAdmin) {
+      console.log('外注削除可能: 管理者権限');
+      return true;
+    }
+    
+    console.log('外注削除不可: 条件を満たさない');
+    return false;
+  };
+
   const handleDelete = async (id: string) => {
     const subcontract = subcontracts.find(sc => sc.id === id);
     if (!subcontract) return;
+    
+    // 削除権限チェック
+    if (!canDeleteSubcontract(subcontract)) {
+      alert('この外注を削除する権限がありません。担当者は進行中の契約のみ、管理者はすべての契約を削除できます。');
+      return;
+    }
 
     let confirmMessage = 'この外注を削除しますか？';
     
@@ -879,15 +921,18 @@ export default function SubcontractsPage() {
                     <Edit className="h-4 w-4 mr-1" />
                     編集
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleDelete(subcontract.id)}
-                    className="text-red-600 hover:text-red-700"
-                  >
-                    <Trash2 className="h-4 w-4 mr-1" />
-                    削除
-                  </Button>
+                  {canDeleteSubcontract(subcontract) && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDelete(subcontract.id)}
+                      className="text-red-600 hover:text-red-700"
+                      title={user?.role === 'admin' ? '削除（管理者権限）' : '削除（担当者権限）'}
+                    >
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      削除
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>

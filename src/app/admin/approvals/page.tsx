@@ -442,17 +442,37 @@ export default function ApprovalsPage() {
 
   // 削除権限のチェック
   const canDeleteApplication = (application: Application) => {
-    if (!user) return false;
+    if (!user) {
+      console.log('削除権限チェック: ユーザー情報なし');
+      return false;
+    }
     
     const isOwner = application.user_id === user.id;
     const isAdmin = user.role === 'admin';
     
+    console.log('削除権限チェック:', {
+      applicationId: application.id,
+      applicationUserId: application.user_id,
+      currentUserId: user.id,
+      userRole: user.role,
+      isOwner,
+      isAdmin,
+      applicationStatus: application.status
+    });
+    
     // 申請者本人は承認待ちのみ削除可能
-    if (isOwner && application.status === 'pending') return true;
+    if (isOwner && application.status === 'pending') {
+      console.log('削除可能: 申請者本人 + 承認待ち');
+      return true;
+    }
     
     // 管理者はすべての申請を削除可能
-    if (isAdmin) return true;
+    if (isAdmin) {
+      console.log('削除可能: 管理者権限');
+      return true;
+    }
     
+    console.log('削除不可: 条件を満たさない');
     return false;
   };
 
@@ -558,6 +578,11 @@ export default function ApprovalsPage() {
         <div>
           <h1 className="text-3xl font-bold">申請管理</h1>
           <p className="text-gray-600">経費申請と請求書払い申請の管理を行います</p>
+          {process.env.NODE_ENV === 'development' && user && (
+            <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-sm">
+              <strong>デバッグ情報:</strong> ユーザーID: {user.id}, 役割: {user.role}, 名前: {user.name || user.email}
+            </div>
+          )}
         </div>
 
         {/* 統計カード */}
