@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CheckCircle, XCircle, Clock, Eye, Edit, Trash2, Filter, FileImage, ChevronUp, ChevronDown, ChevronsUpDown, Calendar } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Eye, Edit, Trash2, Filter, FileImage, ChevronUp, ChevronDown, ChevronsUpDown, Calendar, Download, FileSpreadsheet, Archive } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMasterDataStore, useEventStore } from '@/lib/store';
 import { EditApplicationModal } from '@/components/modals/EditApplicationModal';
@@ -456,6 +456,50 @@ export default function ApprovalsPage() {
     return false;
   };
 
+  // CSVダウンロード機能
+  const handleCsvDownload = (type: string) => {
+    const params = new URLSearchParams();
+    params.set('type', type);
+    
+    if (monthFilter !== 'all') {
+      params.set('month', monthFilter);
+    }
+    
+    if (activeTab !== 'all') {
+      params.set('status', activeTab);
+    }
+
+    const url = `/api/export/csv?${params.toString()}`;
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = '';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // 画像ファイル一括ダウンロード機能
+  const handleImagesDownload = (type: string) => {
+    const params = new URLSearchParams();
+    params.set('type', type);
+    
+    if (monthFilter !== 'all') {
+      params.set('month', monthFilter);
+    }
+    
+    // 画像ダウンロードは承認済みのもののみデフォルト
+    const status = activeTab === 'all' ? 'approved' : activeTab;
+    params.set('status', status);
+
+    const url = `/api/export/images?${params.toString()}`;
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = '';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   // 申請削除機能
   const handleDeleteApplication = async (application: Application) => {
     if (!canDeleteApplication(application)) {
@@ -555,39 +599,149 @@ export default function ApprovalsPage() {
           </Card>
         </div>
 
-        {/* 月別フィルター */}
-        <div className="flex items-center gap-4 bg-white p-4 rounded-lg border">
-          <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-gray-500" />
-            <Label htmlFor="month-filter" className="text-sm font-medium">月別フィルター:</Label>
+        {/* フィルターとダウンロード機能 */}
+        <div className="space-y-4">
+          {/* 月別フィルター */}
+          <div className="flex items-center gap-4 bg-white p-4 rounded-lg border">
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-gray-500" />
+              <Label htmlFor="month-filter" className="text-sm font-medium">月別フィルター:</Label>
+            </div>
+            <Select value={monthFilter} onValueChange={setMonthFilter}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="月を選択" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">全ての月</SelectItem>
+                {availableMonths.map(month => {
+                  const [year, monthNum] = month.split('-');
+                  const monthName = `${year}年${monthNum}月`;
+                  return (
+                    <SelectItem key={month} value={month}>
+                      {monthName}
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+            <div className="text-sm text-gray-500">
+              {monthFilter !== 'all' && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setMonthFilter('all')}
+                >
+                  フィルターをクリア
+                </Button>
+              )}
+            </div>
           </div>
-          <Select value={monthFilter} onValueChange={setMonthFilter}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="月を選択" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">全ての月</SelectItem>
-              {availableMonths.map(month => {
-                const [year, monthNum] = month.split('-');
-                const monthName = `${year}年${monthNum}月`;
-                return (
-                  <SelectItem key={month} value={month}>
-                    {monthName}
-                  </SelectItem>
-                );
-              })}
-            </SelectContent>
-          </Select>
-          <div className="text-sm text-gray-500">
-            {monthFilter !== 'all' && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setMonthFilter('all')}
-              >
-                フィルターをクリア
-              </Button>
-            )}
+
+          {/* ダウンロード機能 */}
+          <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-blue-900 mb-1">データエクスポート</h3>
+                <p className="text-sm text-blue-700">
+                  現在のフィルター条件（{monthFilter !== 'all' ? `${monthFilter.split('-')[0]}年${monthFilter.split('-')[1]}月` : 'すべて'}, {activeTab === 'all' ? 'すべて' : activeTab === 'pending' ? '承認待ち' : activeTab === 'approved' ? '承認済み' : '却下'}）でデータをダウンロードします
+                </p>
+              </div>
+              <Download className="h-8 w-8 text-blue-600" />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              {/* CSV ダウンロード */}
+              <div className="bg-white p-4 rounded-lg border">
+                <div className="flex items-center gap-2 mb-3">
+                  <FileSpreadsheet className="h-5 w-5 text-green-600" />
+                  <h4 className="font-medium text-gray-900">CSV ダウンロード</h4>
+                </div>
+                <div className="space-y-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleCsvDownload('unified')}
+                    className="w-full justify-start"
+                  >
+                    <FileSpreadsheet className="h-4 w-4 mr-2 text-green-600" />
+                    統合データ（マネーフォワード用）
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleCsvDownload('expenses')}
+                    className="w-full justify-start"
+                  >
+                    <FileSpreadsheet className="h-4 w-4 mr-2 text-blue-600" />
+                    経費申請のみ
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleCsvDownload('invoices')}
+                    className="w-full justify-start"
+                  >
+                    <FileSpreadsheet className="h-4 w-4 mr-2 text-purple-600" />
+                    請求書払いのみ
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleCsvDownload('subcontracts')}
+                    className="w-full justify-start"
+                  >
+                    <FileSpreadsheet className="h-4 w-4 mr-2 text-orange-600" />
+                    外注契約のみ
+                  </Button>
+                </div>
+              </div>
+
+              {/* 画像ファイル ダウンロード */}
+              <div className="bg-white p-4 rounded-lg border">
+                <div className="flex items-center gap-2 mb-3">
+                  <Archive className="h-5 w-5 text-purple-600" />
+                  <h4 className="font-medium text-gray-900">画像一括ダウンロード</h4>
+                </div>
+                <div className="space-y-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleImagesDownload('all')}
+                    className="w-full justify-start"
+                  >
+                    <Archive className="h-4 w-4 mr-2 text-purple-600" />
+                    すべての画像・ファイル
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleImagesDownload('expenses')}
+                    className="w-full justify-start"
+                  >
+                    <Archive className="h-4 w-4 mr-2 text-blue-600" />
+                    経費申請の領収書
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleImagesDownload('invoices')}
+                    className="w-full justify-start"
+                  >
+                    <Archive className="h-4 w-4 mr-2 text-purple-600" />
+                    請求書払いの請求書
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleImagesDownload('subcontracts')}
+                    className="w-full justify-start"
+                  >
+                    <Archive className="h-4 w-4 mr-2 text-orange-600" />
+                    外注契約のファイル
+                  </Button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 

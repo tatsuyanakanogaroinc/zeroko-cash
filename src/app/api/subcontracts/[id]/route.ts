@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { getGoogleSheetsService } from '@/lib/google-sheets';
+import type { UnifiedExpenseData } from '@/lib/google-sheets';
 
 export async function GET({ params }: { params: { id: string } }) {
   try {
