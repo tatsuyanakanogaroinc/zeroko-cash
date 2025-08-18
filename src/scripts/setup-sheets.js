@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { getGoogleSheetsService } = require('../lib/google-sheets');
+const { getGoogleSheetsService } = require('../../lib/google-sheets');
 
 async function setupGoogleSheetsHeaders() {
   console.log('Google Sheets統合支出データシートのヘッダーを初期化しています...');

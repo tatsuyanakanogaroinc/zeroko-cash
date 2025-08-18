@@ -139,18 +139,37 @@ async function syncToGoogleSheets(applicationId: string, type: 'expense' | 'invo
   const tableName = type === 'expense' ? 'expenses' : 'invoice_payments';
   
   // 承認された申請の詳細情報を取得
-  const { data: applicationData, error: fetchError } = await supabaseAdmin
-    .from(tableName)
-    .select(`
-      *,
-      users(name, email, department_id),
-      departments(name),
-      categories(name),
-      projects(name),
-      events(name)
-    `)
-    .eq('id', applicationId)
-    .single();
+  let applicationData, fetchError;
+  
+  if (type === 'expense') {
+    const result = await supabaseAdmin
+      .from('expenses')
+      .select(`
+        *,
+        events:events!left(*),
+        categories:categories!left(*),
+        users:users!left(id, name, email, department_id, departments:departments!left(*))
+      `)
+      .eq('id', applicationId)
+      .single();
+    applicationData = result.data;
+    fetchError = result.error;
+  } else {
+    const result = await supabaseAdmin
+      .from('invoice_payments')
+      .select(`
+        *,
+        events:events!left(*),
+        categories:categories!left(*),
+        departments:departments!left(*),
+        projects:projects!left(*),
+        users:users!left(id, name, email)
+      `)
+      .eq('id', applicationId)
+      .single();
+    applicationData = result.data;
+    fetchError = result.error;
+  }
 
   if (fetchError || !applicationData) {
     throw new Error(`申請データの取得に失敗しました: ${fetchError?.message}`);
@@ -176,7 +195,9 @@ async function syncToGoogleSheets(applicationId: string, type: 'expense' | 'invo
       new Date(applicationData.expense_date).toLocaleDateString('ja-JP') :
       applicationData.invoice_date ? new Date(applicationData.invoice_date).toLocaleDateString('ja-JP') : '未定',
     申請者: applicationData.users?.name || '不明',
-    部署: applicationData.users?.departments?.name || applicationData.departments?.name || '不明',
+    部署: type === 'expense' ? 
+      (applicationData.users?.departments?.name || '不明') : 
+      (applicationData.departments?.name || '不明'),
     金額: applicationData.amount,
     勘定科目: applicationData.categories?.name || '不明',
     説明: applicationData.description,
@@ -198,18 +219,37 @@ async function syncImageToGoogleDrive(applicationId: string, type: 'expense' | '
   const tableName = type === 'expense' ? 'expenses' : 'invoice_payments';
   
   // 申請データと画像情報を取得
-  const { data: applicationData, error: fetchError } = await supabaseAdmin
-    .from(tableName)
-    .select(`
-      *,
-      users(name, email),
-      departments(name),
-      categories(name),
-      projects(name),
-      events(name)
-    `)
-    .eq('id', applicationId)
-    .single();
+  let applicationData, fetchError;
+  
+  if (type === 'expense') {
+    const result = await supabaseAdmin
+      .from('expenses')
+      .select(`
+        *,
+        events:events!left(*),
+        categories:categories!left(*),
+        users:users!left(id, name, email, department_id, departments:departments!left(*))
+      `)
+      .eq('id', applicationId)
+      .single();
+    applicationData = result.data;
+    fetchError = result.error;
+  } else {
+    const result = await supabaseAdmin
+      .from('invoice_payments')
+      .select(`
+        *,
+        events:events!left(*),
+        categories:categories!left(*),
+        departments:departments!left(*),
+        projects:projects!left(*),
+        users:users!left(id, name, email)
+      `)
+      .eq('id', applicationId)
+      .single();
+    applicationData = result.data;
+    fetchError = result.error;
+  }
 
   if (fetchError || !applicationData) {
     throw new Error(`申請データの取得に失敗しました: ${fetchError?.message}`);
@@ -248,8 +288,8 @@ async function syncImageToGoogleDrive(applicationId: string, type: 'expense' | '
       expenseType: type === 'expense' ? '経費申請' : '請求書払い',
       description: applicationData.description || '申請書類',
       imageBuffer: imageBuffer,
-      fileName: originalFileName,
-      mimeType: contentType
+      originalFileName: originalFileName,
+      contentType: contentType
     };
 
     // Google Driveにアップロード

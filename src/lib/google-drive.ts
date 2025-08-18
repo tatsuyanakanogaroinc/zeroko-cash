@@ -2,6 +2,7 @@
 import { google } from 'googleapis';
 import fs from 'fs';
 import path from 'path';
+import { Readable } from 'stream';
 
 // Google Drive APIの設定
 const GOOGLE_DRIVE_CONFIG = {
@@ -32,8 +33,8 @@ interface UploadImageData {
   expenseType: '経費申請' | '請求書払い' | '外注費';
   description: string;
   imageBuffer: Buffer;
-  fileName: string;
-  mimeType: string;
+  originalFileName: string;
+  contentType: string;
 }
 
 interface DriveFolder {
@@ -54,8 +55,7 @@ class GoogleDriveService {
       this.auth = new google.auth.GoogleAuth({
         credentials: GOOGLE_DRIVE_CONFIG,
         scopes: [
-          'https://www.googleapis.com/auth/drive.file',
-          'https://www.googleapis.com/auth/drive.folder'
+          'https://www.googleapis.com/auth/drive'
         ]
       });
 
@@ -76,7 +76,9 @@ class GoogleDriveService {
       // 既存の年フォルダを検索
       const response = await this.drive.files.list({
         q: `name='${year}' and parents in '${DRIVE_CONFIG.ROOT_FOLDER_ID}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
-        fields: 'files(id, name)'
+        fields: 'files(id, name)',
+        supportsAllDrives: true,
+        includeItemsFromAllDrives: true
       });
 
       if (response.data.files && response.data.files.length > 0) {
@@ -88,9 +90,11 @@ class GoogleDriveService {
         requestBody: {
           name: year,
           mimeType: 'application/vnd.google-apps.folder',
-          parents: [DRIVE_CONFIG.ROOT_FOLDER_ID]
+          parents: [DRIVE_CONFIG.ROOT_FOLDER_ID],
+          driveId: DRIVE_CONFIG.ROOT_FOLDER_ID
         },
-        fields: 'id'
+        fields: 'id',
+        supportsAllDrives: true
       });
 
       console.log(`年フォルダ "${year}" を作成しました`);
@@ -107,7 +111,9 @@ class GoogleDriveService {
       // 既存の月フォルダを検索
       const response = await this.drive.files.list({
         q: `name='${month}' and parents in '${yearFolderId}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
-        fields: 'files(id, name)'
+        fields: 'files(id, name)',
+        supportsAllDrives: true,
+        includeItemsFromAllDrives: true
       });
 
       if (response.data.files && response.data.files.length > 0) {
@@ -121,7 +127,8 @@ class GoogleDriveService {
           mimeType: 'application/vnd.google-apps.folder',
           parents: [yearFolderId]
         },
-        fields: 'id'
+        fields: 'id',
+        supportsAllDrives: true
       });
 
       console.log(`月フォルダ "${month}" を作成しました`);
@@ -138,7 +145,9 @@ class GoogleDriveService {
       // 既存の支出タイプフォルダを検索
       const response = await this.drive.files.list({
         q: `name='${expenseType}' and parents in '${monthFolderId}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
-        fields: 'files(id, name)'
+        fields: 'files(id, name)',
+        supportsAllDrives: true,
+        includeItemsFromAllDrives: true
       });
 
       if (response.data.files && response.data.files.length > 0) {
@@ -152,7 +161,8 @@ class GoogleDriveService {
           mimeType: 'application/vnd.google-apps.folder',
           parents: [monthFolderId]
         },
-        fields: 'id'
+        fields: 'id',
+        supportsAllDrives: true
       });
 
       console.log(`支出タイプフォルダ "${expenseType}" を作成しました`);
@@ -182,8 +192,20 @@ class GoogleDriveService {
       // ファイル名を生成（[申請ID]_[申請者]_[日付]_[説明]）
       const dateStr = date.toLocaleDateString('ja-JP').replace(/\//g, '-');
       const sanitizedDescription = uploadData.description.replace(/[^\w\s-]/g, '').substring(0, 50);
-      const fileExtension = path.extname(uploadData.fileName);
+      const fileExtension = path.extname(uploadData.originalFileName);
       const newFileName = `${uploadData.applicationId}_${uploadData.applicantName}_${dateStr}_${sanitizedDescription}${fileExtension}`;
+
+      console.log('Google Driveアップロード準備:', {
+        fileName: newFileName,
+        contentType: uploadData.contentType,
+        bufferSize: uploadData.imageBuffer.length,
+        expenseType: uploadData.expenseType
+      });
+
+      // BufferをReadableStreamに変換
+      const stream = new Readable();
+      stream.push(uploadData.imageBuffer);
+      stream.push(null);
 
       // 画像をアップロード
       const response = await this.drive.files.create({
@@ -192,10 +214,11 @@ class GoogleDriveService {
           parents: [expenseTypeFolderId]
         },
         media: {
-          mimeType: uploadData.mimeType,
-          body: uploadData.imageBuffer
+          mimeType: uploadData.contentType,
+          body: stream
         },
-        fields: 'id, webViewLink'
+        fields: 'id, webViewLink',
+        supportsAllDrives: true
       });
 
       console.log(`画像をアップロードしました: ${newFileName} -> フォルダ: ${year}/${month}/${uploadData.expenseType}`);
@@ -222,7 +245,9 @@ class GoogleDriveService {
       const response = await this.drive.files.list({
         q: `parents in '${DRIVE_CONFIG.ROOT_FOLDER_ID}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
         fields: 'files(id, name)',
-        orderBy: 'name'
+        orderBy: 'name',
+        supportsAllDrives: true,
+        includeItemsFromAllDrives: true
       });
 
       for (const yearFolder of response.data.files || []) {
@@ -231,7 +256,9 @@ class GoogleDriveService {
         const monthsResponse = await this.drive.files.list({
           q: `parents in '${yearFolder.id}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
           fields: 'files(id, name)',
-          orderBy: 'name'
+          orderBy: 'name',
+          supportsAllDrives: true,
+          includeItemsFromAllDrives: true
         });
 
         for (const monthFolder of monthsResponse.data.files || []) {
@@ -240,14 +267,18 @@ class GoogleDriveService {
           const typesResponse = await this.drive.files.list({
             q: `parents in '${monthFolder.id}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
             fields: 'files(id, name)',
-            orderBy: 'name'
+            orderBy: 'name',
+            supportsAllDrives: true,
+            includeItemsFromAllDrives: true
           });
 
           for (const typeFolder of typesResponse.data.files || []) {
             const filesResponse = await this.drive.files.list({
               q: `parents in '${typeFolder.id}' and trashed=false`,
               fields: 'files(id, name)',
-              orderBy: 'name'
+              orderBy: 'name',
+              supportsAllDrives: true,
+              includeItemsFromAllDrives: true
             });
             
             console.log(`    📂 ${typeFolder.name}/ (${filesResponse.data.files?.length || 0}ファイル)`);
