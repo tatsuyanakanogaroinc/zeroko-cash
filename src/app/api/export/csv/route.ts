@@ -51,13 +51,12 @@ export async function GET(request: NextRequest) {
       case 'expenses': {
         // 経費申請のCSVエクスポート
         let query = supabase
-          .from('expense_applications')
+          .from('expenses')
           .select(`
             *,
-            users(name, email, departments(name)),
-            categories(name),
-            projects(name),
-            events(name)
+            events:events!left(*),
+            categories:categories!left(*),
+            users:users!left(id, name, email, department_id, departments:departments!left(*))
           `)
           .order('created_at', { ascending: false });
 
@@ -120,11 +119,11 @@ export async function GET(request: NextRequest) {
           .from('invoice_payments')
           .select(`
             *,
-            users(name, email),
-            departments(name),
-            categories(name),
-            projects(name),
-            events(name)
+            events:events!left(*),
+            categories:categories!left(*),
+            departments:departments!left(*),
+            projects:projects!left(*),
+            users:users!left(id, name, email)
           `)
           .order('created_at', { ascending: false });
 
@@ -188,9 +187,9 @@ export async function GET(request: NextRequest) {
           .from('subcontracts')
           .select(`
             *,
-            categories(name),
-            projects(name),
-            events(name)
+            categories:categories!left(*),
+            projects:projects!left(*),
+            events:events!left(*)
           `)
           .order('created_at', { ascending: false });
 
@@ -255,13 +254,12 @@ export async function GET(request: NextRequest) {
         // 統合CSV（全支出データ）- マネーフォワード連携用
         const [expensesResult, invoicesResult, subcontractsResult] = await Promise.all([
           supabase
-            .from('expense_applications')
+            .from('expenses')
             .select(`
               *,
-              users(name, email, departments(name)),
-              categories(name),
-              projects(name),
-              events(name)
+              events:events!left(*),
+              categories:categories!left(*),
+              users:users!left(id, name, email, department_id, departments:departments!left(*))
             `)
             .eq('status', 'approved')
             .order('expense_date', { ascending: false }),
@@ -270,11 +268,11 @@ export async function GET(request: NextRequest) {
             .from('invoice_payments')
             .select(`
               *,
-              users(name, email),
-              departments(name),
-              categories(name),
-              projects(name),
-              events(name)
+              events:events!left(*),
+              categories:categories!left(*),
+              departments:departments!left(*),
+              projects:projects!left(*),
+              users:users!left(id, name, email)
             `)
             .eq('status', 'approved')
             .order('invoice_date', { ascending: false }),
@@ -283,9 +281,9 @@ export async function GET(request: NextRequest) {
             .from('subcontracts')
             .select(`
               *,
-              categories(name),
-              projects(name),
-              events(name)
+              categories:categories!left(*),
+              projects:projects!left(*),
+              events:events!left(*)
             `)
             .in('status', ['completed', 'pending_payment'])
             .order('start_date', { ascending: false })

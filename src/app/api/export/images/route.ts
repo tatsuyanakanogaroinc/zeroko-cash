@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
       case 'expenses': {
         // 経費申請の画像ファイル
         let query = supabase
-          .from('expense_applications')
+          .from('expenses')
           .select('id, description, receipt_image, expense_date, users(name)')
           .not('receipt_image', 'is', null)
           .order('expense_date', { ascending: false });
@@ -93,8 +93,8 @@ export async function GET(request: NextRequest) {
         // 請求書払い申請の画像ファイル
         let query = supabase
           .from('invoice_payments')
-          .select('id, purpose, invoice_image, invoice_date, users(name)')
-          .not('invoice_image', 'is', null)
+          .select('id, purpose, receipt_image, invoice_date, users(name)')
+          .not('receipt_image', 'is', null)
           .order('invoice_date', { ascending: false });
 
         if (status !== 'all') {
@@ -114,9 +114,9 @@ export async function GET(request: NextRequest) {
           const invoicesFolder = zip.folder('請求書払い');
           
           for (const invoice of invoices) {
-            if (invoice.invoice_image) {
+            if (invoice.receipt_image) {
               totalFiles++;
-              const fileData = await downloadFile(invoice.invoice_image);
+              const fileData = await downloadFile(invoice.receipt_image);
               if (fileData) {
                 const extension = fileData.filename.split('.').pop() || 'jpg';
                 const safeFilename = sanitizeFilename(
@@ -179,7 +179,7 @@ export async function GET(request: NextRequest) {
         const [expensesResult, invoicesResult, subcontractsResult] = await Promise.all([
           (async () => {
             let query = supabase
-              .from('expense_applications')
+              .from('expenses')
               .select('id, description, receipt_image, expense_date, users(name)')
               .not('receipt_image', 'is', null);
 
@@ -196,8 +196,8 @@ export async function GET(request: NextRequest) {
           (async () => {
             let query = supabase
               .from('invoice_payments')
-              .select('id, purpose, invoice_image, invoice_date, users(name)')
-              .not('invoice_image', 'is', null);
+              .select('id, purpose, receipt_image, invoice_date, users(name)')
+              .not('receipt_image', 'is', null);
 
             if (status !== 'all') query = query.eq('status', status);
             if (month) {
@@ -249,9 +249,9 @@ export async function GET(request: NextRequest) {
         if (invoicesResult.data && invoicesResult.data.length > 0) {
           const invoicesFolder = zip.folder('請求書払い');
           for (const invoice of invoicesResult.data) {
-            if (invoice.invoice_image) {
+            if (invoice.receipt_image) {
               totalFiles++;
-              const fileData = await downloadFile(invoice.invoice_image);
+              const fileData = await downloadFile(invoice.receipt_image);
               if (fileData) {
                 const extension = fileData.filename.split('.').pop() || 'jpg';
                 const safeFilename = sanitizeFilename(
