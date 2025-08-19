@@ -454,8 +454,8 @@ async function uploadSubcontractImage(
     expenseType: '外注費',
     description: `${subcontractData.contract_title}_${documentType}`,
     imageBuffer: imageBuffer,
-    fileName: originalFileName,
-    mimeType: contentType
+    originalFileName: originalFileName,
+    contentType: contentType
   };
 
   const result = await driveService.uploadImage(uploadData);
