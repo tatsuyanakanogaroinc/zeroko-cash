@@ -41,7 +41,8 @@ export default function ApprovalsPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   
   // ソート状態管理
-  const [sortField, setSortField] = useState<keyof Application | 'userName' | 'departmentName' | 'categoryName' | 'projectName' | 'eventName' | null>(null);
+  type SortField = keyof Application | 'userName' | 'departmentName' | 'categoryName' | 'projectName' | 'eventName';
+  const [sortField, setSortField] = useState<SortField | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   
   // 月別フィルター状態管理
@@ -126,7 +127,7 @@ export default function ApprovalsPage() {
   }
 
   // ソート処理関数
-  const handleSort = (field: keyof Application | 'userName' | 'departmentName' | 'categoryName' | 'projectName' | 'eventName') => {
+  const handleSort = (field: SortField) => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
@@ -136,13 +137,16 @@ export default function ApprovalsPage() {
   };
 
   // ソートアイコンコンポーネント
-  const SortIcon = ({ field }: { field: keyof Application | 'userName' | 'departmentName' | 'categoryName' | 'projectName' | 'eventName' }) => {
+  const SortIcon = ({ field }: { field: SortField }) => {
     if (sortField !== field) {
       return <ChevronsUpDown className="w-4 h-4 ml-1 text-gray-400" />;
     }
-    return sortDirection === 'asc' ? 
-      <ChevronUp className="w-4 h-4 ml-1 text-blue-600" /> : 
-      <ChevronDown className="w-4 h-4 ml-1 text-blue-600" />;
+    
+    if (sortDirection === 'asc') {
+      return <ChevronUp className="w-4 h-4 ml-1 text-blue-600" />;
+    }
+    
+    return <ChevronDown className="w-4 h-4 ml-1 text-blue-600" />;
   };
 
   // データのソート処理
