@@ -10,9 +10,17 @@ const supabase = createClient(
 // ファイルをダウンロードする関数
 async function downloadFile(url: string): Promise<{ buffer: Buffer; filename: string } | null> {
   try {
-    const response = await fetch(url);
+    console.log(`Attempting to download: ${url}`);
+    
+    // タイムアウトを設定
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000); // 30秒
+    
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeout);
+    
     if (!response.ok) {
-      console.error(`Failed to download ${url}: ${response.status}`);
+      console.error(`Failed to download ${url}: ${response.status} ${response.statusText}`);
       return null;
     }
     
@@ -21,9 +29,14 @@ async function downloadFile(url: string): Promise<{ buffer: Buffer; filename: st
     const pathname = urlObj.pathname;
     const filename = pathname.split('/').pop() || 'unknown';
     
+    console.log(`Successfully downloaded: ${filename} (${buffer.length} bytes)`);
     return { buffer, filename };
   } catch (error) {
-    console.error(`Error downloading ${url}:`, error);
+    if (error instanceof Error) {
+      console.error(`Error downloading ${url}: ${error.name} - ${error.message}`);
+    } else {
+      console.error(`Error downloading ${url}:`, error);
+    }
     return null;
   }
 }
@@ -69,10 +82,12 @@ export async function GET(request: NextRequest) {
         if (error) throw error;
 
         if (expenses && expenses.length > 0) {
+          console.log(`Found ${expenses.length} expense records with images`);
           const expensesFolder = zip.folder('経費申請');
           
           for (const expense of expenses) {
             if (expense.receipt_image) {
+              console.log(`Processing expense ${expense.id} with image: ${expense.receipt_image}`);
               totalFiles++;
               const fileData = await downloadFile(expense.receipt_image);
               if (fileData) {
@@ -82,9 +97,12 @@ export async function GET(request: NextRequest) {
                 );
                 expensesFolder?.file(safeFilename, fileData.buffer);
                 successfulDownloads++;
+                console.log(`Added file to zip: ${safeFilename}`);
               }
             }
           }
+        } else {
+          console.log('No expense records with images found');
         }
         break;
       }
@@ -286,8 +304,11 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    console.log(`Download summary: ${successfulDownloads}/${totalFiles} files successfully processed`);
+    
     // ファイルがない場合
     if (totalFiles === 0) {
+      console.log('No files found for the specified criteria');
       return NextResponse.json(
         { error: '指定された条件に一致する画像ファイルがありません' },
         { status: 404 }
@@ -309,7 +330,9 @@ export async function GET(request: NextRequest) {
     zip.file('_ダウンロード結果.txt', summary);
 
     // ZIPファイルを生成
-    const zipBuffer = await zip.generateAsync({ type: 'nodebuffer' });
+    console.log('Generating ZIP file...');
+    const zipBuffer = await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
+    console.log(`ZIP file generated: ${zipBuffer.length} bytes`);
 
     const filename = `images_${type}_${timestamp}.zip`;
 

@@ -76,9 +76,9 @@ export async function GET(request: NextRequest) {
 
         // CSVヘッダー
         const headers = [
-          '申請ID', '申請日', '経費日', '申請者', '部門', '説明', '金額', 
+          '申請ID', '申請日', '精算日', '申請者', '部門', '説明', '金額', 
           '勘定科目', 'プロジェクト', 'イベント', '支払方法', 'ステータス', 
-          'コメント', '作成日時', '更新日時'
+          'コメント', '更新日時'
         ];
         csvContent = BOM + headers.map(escapeCsvField).join(',') + '\n';
 
@@ -86,8 +86,8 @@ export async function GET(request: NextRequest) {
         expenses?.forEach((expense: any) => {
           const row = [
             expense.id,
-            formatDate(expense.expense_date),
-            formatDate(expense.expense_date),
+            formatDate(expense.created_at), // 申請日は作成日時
+            formatDate(expense.expense_date), // 精算日
             expense.users?.name || '',
             expense.users?.departments?.name || '',
             expense.description || '',
@@ -98,7 +98,6 @@ export async function GET(request: NextRequest) {
             expense.payment_method || '',
             expense.status === 'pending' ? '承認待ち' : expense.status === 'approved' ? '承認済み' : '却下',
             expense.comments || '',
-            formatDate(expense.created_at),
             formatDate(expense.updated_at)
           ];
           csvContent += row.map(escapeCsvField).join(',') + '\n';
@@ -145,7 +144,7 @@ export async function GET(request: NextRequest) {
         const headers = [
           '申請ID', '申請日', '請求書日', '申請者', '部門', '目的', '金額', 
           '勘定科目', 'プロジェクト', 'イベント', '支払先', '支払方法', 
-          'ステータス', 'コメント', '作成日時', '更新日時'
+          'ステータス', 'コメント', '更新日時'
         ];
         csvContent = BOM + headers.map(escapeCsvField).join(',') + '\n';
 
@@ -153,8 +152,8 @@ export async function GET(request: NextRequest) {
         invoices?.forEach((invoice: any) => {
           const row = [
             invoice.id,
-            formatDate(invoice.invoice_date),
-            formatDate(invoice.invoice_date),
+            formatDate(invoice.created_at), // 申請日は作成日時
+            formatDate(invoice.invoice_date), // 請求書日
             invoice.users?.name || '',
             invoice.departments?.name || '',
             invoice.purpose || '',
@@ -166,7 +165,6 @@ export async function GET(request: NextRequest) {
             invoice.payment_method || '',
             invoice.status === 'pending' ? '承認待ち' : invoice.status === 'approved' ? '承認済み' : '却下',
             invoice.comments || '',
-            formatDate(invoice.created_at),
             formatDate(invoice.updated_at)
           ];
           csvContent += row.map(escapeCsvField).join(',') + '\n';
@@ -252,41 +250,75 @@ export async function GET(request: NextRequest) {
       case 'all':
       default: {
         // 統合CSV（全支出データ）- マネーフォワード連携用
+        // status条件を動的に設定
+        let expenseStatusFilter = status === 'all' ? undefined : status;
+        let invoiceStatusFilter = status === 'all' ? undefined : status;
+        let subcontractStatusFilter = status === 'all' ? undefined : status;
+        
         const [expensesResult, invoicesResult, subcontractsResult] = await Promise.all([
-          supabase
-            .from('expenses')
-            .select(`
-              *,
-              events:events!left(*),
-              categories:categories!left(*),
-              users:users!left(id, name, email, department_id, departments:departments!left(*))
-            `)
-            .eq('status', 'approved')
-            .order('expense_date', { ascending: false }),
+          (async () => {
+            let query = supabase
+              .from('expenses')
+              .select(`
+                *,
+                events:events!left(*),
+                categories:categories!left(*),
+                projects:projects!left(*),
+                users:users!left(id, name, email, department_id, departments:departments!left(*)),
+                approved_by_user:users!expenses_approved_by_fkey(name)
+              `)
+              .order('expense_date', { ascending: false });
+            
+            if (expenseStatusFilter) {
+              query = query.eq('status', expenseStatusFilter);
+            }
+            
+            return query;
+          })(),
           
-          supabase
-            .from('invoice_payments')
-            .select(`
-              *,
-              events:events!left(*),
-              categories:categories!left(*),
-              departments:departments!left(*),
-              projects:projects!left(*),
-              users:users!left(id, name, email)
-            `)
-            .eq('status', 'approved')
-            .order('invoice_date', { ascending: false }),
+          (async () => {
+            let query = supabase
+              .from('invoice_payments')
+              .select(`
+                *,
+                events:events!left(*),
+                categories:categories!left(*),
+                departments:departments!left(*),
+                projects:projects!left(*),
+                users:users!left(id, name, email),
+                approved_by_user:users!invoice_payments_approved_by_fkey(name)
+              `)
+              .order('invoice_date', { ascending: false });
+            
+            if (invoiceStatusFilter) {
+              query = query.eq('status', invoiceStatusFilter);
+            }
+            
+            return query;
+          })(),
           
-          supabase
-            .from('subcontracts')
-            .select(`
-              *,
-              categories:categories!left(*),
-              projects:projects!left(*),
-              events:events!left(*)
-            `)
-            .in('status', ['completed', 'pending_payment'])
-            .order('start_date', { ascending: false })
+          (async () => {
+            let query = supabase
+              .from('subcontracts')
+              .select(`
+                *,
+                categories:categories!left(*),
+                projects:projects!left(*),
+                events:events!left(*),
+                approved_by_user:users!subcontracts_approved_by_fkey(name)
+              `)
+              .order('start_date', { ascending: false });
+            
+            if (subcontractStatusFilter) {
+              if (subcontractStatusFilter === 'approved') {
+                query = query.in('status', ['completed', 'pending_payment', 'active']);
+              } else {
+                query = query.eq('status', subcontractStatusFilter);
+              }
+            }
+            
+            return query;
+          })()
         ]);
 
         if (expensesResult.error) throw expensesResult.error;
@@ -301,8 +333,8 @@ export async function GET(request: NextRequest) {
           unifiedData.push({
             id: expense.id,
             type: '経費申請',
-            date: expense.expense_date,
-            payment_date: expense.expense_date,
+            date: expense.created_at, // 申請日は作成日時
+            payment_date: null, // 支払日は承認済みでもnull（まだ精算していない）
             applicant: expense.users?.name || '',
             department: expense.users?.departments?.name || '',
             amount: expense.amount,
@@ -312,9 +344,9 @@ export async function GET(request: NextRequest) {
             vendor: '',
             project: expense.projects?.name || '',
             event: expense.events?.name || '',
-            approval_date: expense.updated_at,
-            approver: '',
-            status: '承認済み',
+            approval_date: expense.status === 'approved' ? expense.approved_at : null,
+            approver: expense.approved_by_user?.name || '',
+            status: expense.status === 'pending' ? '承認待ち' : expense.status === 'approved' ? '承認済み' : '却下',
             comments: expense.comments || '',
             created_at: expense.created_at
           });
@@ -325,8 +357,8 @@ export async function GET(request: NextRequest) {
           unifiedData.push({
             id: invoice.id,
             type: '請求書払い',
-            date: invoice.invoice_date,
-            payment_date: invoice.invoice_date,
+            date: invoice.created_at, // 申請日は作成日時
+            payment_date: null, // 支払日は承認済みでもnull（まだ支払いしていない）
             applicant: invoice.users?.name || '',
             department: invoice.departments?.name || '',
             amount: invoice.amount,
@@ -336,9 +368,9 @@ export async function GET(request: NextRequest) {
             vendor: invoice.vendor || '',
             project: invoice.projects?.name || '',
             event: invoice.events?.name || '',
-            approval_date: invoice.updated_at,
-            approver: '',
-            status: '承認済み',
+            approval_date: invoice.status === 'approved' ? invoice.approved_at : null,
+            approver: invoice.approved_by_user?.name || '',
+            status: invoice.status === 'pending' ? '承認待ち' : invoice.status === 'approved' ? '承認済み' : '却下',
             comments: invoice.comments || '',
             created_at: invoice.created_at
           });
@@ -349,8 +381,8 @@ export async function GET(request: NextRequest) {
           unifiedData.push({
             id: contract.id,
             type: '外注費',
-            date: contract.start_date,
-            payment_date: contract.end_date || contract.start_date,
+            date: contract.created_at, // 申請日は作成日時
+            payment_date: contract.status === 'completed' ? contract.end_date : null, // 完了時のみ支払日設定
             applicant: contract.contractor_name || '',
             department: '',
             amount: contract.contract_amount,
@@ -360,22 +392,25 @@ export async function GET(request: NextRequest) {
             vendor: contract.contractor_name || '',
             project: contract.projects?.name || '',
             event: contract.events?.name || '',
-            approval_date: contract.updated_at,
-            approver: '',
-            status: '完了',
+            approval_date: contract.status !== 'pending' ? contract.approved_at : null,
+            approver: contract.approved_by_user?.name || '',
+            status: contract.status === 'pending' ? '承認待ち' : 
+                    contract.status === 'active' ? '進行中' :
+                    contract.status === 'completed' ? '完了' :
+                    contract.status === 'pending_payment' ? '支払い待ち' : '停止/キャンセル',
             comments: contract.description || '',
             created_at: contract.created_at
           });
         });
 
-        // 日付でソート
-        unifiedData.sort((a, b) => new Date(b.payment_date).getTime() - new Date(a.payment_date).getTime());
+        // 申請日でソート
+        unifiedData.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
         // 月別フィルター適用
         let filteredData = unifiedData;
         if (month) {
           filteredData = unifiedData.filter(item => {
-            const itemDate = new Date(item.payment_date);
+            const itemDate = new Date(item.date); // 申請日でフィルター
             const itemMonth = `${itemDate.getFullYear()}-${String(itemDate.getMonth() + 1).padStart(2, '0')}`;
             return itemMonth === month;
           });
@@ -395,7 +430,7 @@ export async function GET(request: NextRequest) {
             item.id,
             item.type,
             formatDate(item.date),
-            formatDate(item.payment_date),
+            item.payment_date ? formatDate(item.payment_date) : '', // 支払日は空の場合あり
             item.applicant,
             item.department,
             formatAmount(item.amount),
@@ -405,7 +440,7 @@ export async function GET(request: NextRequest) {
             item.vendor,
             item.project,
             item.event,
-            formatDate(item.approval_date),
+            item.approval_date ? formatDate(item.approval_date) : '', // 承認日は空の場合あり
             item.approver,
             item.status,
             item.comments

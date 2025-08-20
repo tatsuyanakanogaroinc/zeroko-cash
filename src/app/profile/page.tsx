@@ -24,7 +24,7 @@ interface Department {
 }
 
 export default function ProfilePage() {
-  const { user, loading, login } = useAuth();
+  const { user, loading, refreshUser } = useAuth();
   const router = useRouter();
   const [departments, setDepartments] = useState<Department[]>([]);
   const [isEditing, setIsEditing] = useState(false);
@@ -106,20 +106,32 @@ export default function ProfilePage() {
 
     setProfileLoading(true);
     try {
-      await userService.updateUser(user.id, {
-        name: profileData.name,
-        email: profileData.email,
-        department_id: profileData.department_id || null,
+      const response = await fetch('/api/users', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: user.id,
+          name: profileData.name,
+          email: profileData.email,
+          department_id: profileData.department_id || null,
+        }),
       });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'プロフィールの更新に失敗しました');
+      }
       
       // 認証コンテキストを更新
-      await login(profileData.email);
+      await refreshUser();
       
       toast.success('プロフィールを更新しました');
       setIsEditing(false);
     } catch (error) {
       console.error('プロフィール更新エラー:', error);
-      toast.error('プロフィールの更新に失敗しました');
+      toast.error(error instanceof Error ? error.message : 'プロフィールの更新に失敗しました');
     } finally {
       setProfileLoading(false);
     }

@@ -141,8 +141,10 @@ export const EditApplicationModal: React.FC<EditApplicationModalProps> = ({
 
       const requestData = {
         ...data,
-        user_id: application.user_id || application.users?.id,
+        user_id: (application as any).user_id || (application as any).users?.id,
         event_id: data.event_id === 'none' ? null : data.event_id,
+        department_id: data.department_id === 'none' ? null : data.department_id,
+        project_id: data.project_id === 'none' ? null : data.project_id,
       };
 
       console.log('Sending update request:', requestData);

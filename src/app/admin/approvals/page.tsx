@@ -102,9 +102,12 @@ export default function ApprovalsPage() {
                 category_id: item.category_id || item.categories?.id,
                 project_id: item.project_id || item.projects?.id,
                 event_id: item.event_id || item.events?.id,
+                receipt_image: item.receipt_image || item.receipt_url, // 領収書画像フィールドを正規化
               };
             });
             console.log('正規化後のデータ:', normalizedData);
+            console.log('請求書払いデータ:', normalizedData.filter(item => item.type === 'invoice'));
+            console.log('ペンディングステータスの件数:', normalizedData.filter(app => app.status === 'pending').length);
             setApplications(normalizedData);
           }
         }
@@ -718,7 +721,7 @@ export default function ApprovalsPage() {
                     className="w-full justify-start"
                   >
                     <FileSpreadsheet className="h-4 w-4 mr-2 text-green-600" />
-                    統合データ（マネーフォワード用）
+                    統合データ（経費・請求書・外注契約）
                   </Button>
                   <Button
                     size="sm"
