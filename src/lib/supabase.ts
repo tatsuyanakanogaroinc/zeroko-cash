@@ -164,6 +164,8 @@ export interface Database {
           user_id: string
           category_id: string
           event_id: string | null
+          department_id: string | null
+          project_id: string | null
           amount: number
           description: string
           expense_date: string
@@ -176,6 +178,8 @@ export interface Database {
           user_id: string
           category_id: string
           event_id?: string | null
+          department_id?: string | null
+          project_id?: string | null
           amount: number
           description: string
           expense_date: string
@@ -188,6 +192,8 @@ export interface Database {
           user_id?: string
           category_id?: string
           event_id?: string | null
+          department_id?: string | null
+          project_id?: string | null
           amount?: number
           description?: string
           expense_date?: string

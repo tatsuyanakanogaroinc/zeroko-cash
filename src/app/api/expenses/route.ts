@@ -48,7 +48,8 @@ export async function POST(request: NextRequest) {
       event_id,
       description,
       payment_method,
-      // department_id, project_id は expenses テーブルには存在しないため無視
+      department_id,
+      project_id,
     } = body;
 
     console.log('Creating expense:', {
@@ -58,7 +59,9 @@ export async function POST(request: NextRequest) {
       category_id,
       event_id,
       description,
-      payment_method
+      payment_method,
+      department_id,
+      project_id
     });
     
     // ユーザーが存在するかチェック
@@ -84,7 +87,9 @@ export async function POST(request: NextRequest) {
         expense_date,
         amount,
         category_id,
-        event_id,
+        event_id: event_id || null,
+        department_id: department_id || null,
+        project_id: project_id || null,
         description,
         payment_method,
         status: 'pending',
