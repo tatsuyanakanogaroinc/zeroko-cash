@@ -147,6 +147,7 @@ export const EditApplicationModal: React.FC<EditApplicationModalProps> = ({
 
       const requestData = {
         ...data,
+        user_id: application.user_id || application.users?.id,
         event_id: data.event_id === 'none' ? null : data.event_id,
       };
 

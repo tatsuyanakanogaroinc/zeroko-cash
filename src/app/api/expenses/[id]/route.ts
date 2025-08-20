@@ -83,6 +83,8 @@ export async function PUT(
         description: body.description,
         payment_method: body.payment_method || 'personal_cash',
         event_id: body.event_id || null,
+        department_id: body.department_id || null,
+        project_id: body.project_id || null,
         updated_at: new Date().toISOString(),
       })
       .eq('id', expenseId)

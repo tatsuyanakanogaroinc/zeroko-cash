@@ -438,10 +438,35 @@ export default function ApprovalsPage() {
   };
 
   // モーダル編集成功時のコールバック
-  const handleEditSuccess = () => {
+  const handleEditSuccess = async () => {
     setEditModalOpen(false);
     setSelectedApplication(null);
-    window.location.reload(); // データを再取得
+    
+    try {
+      // 申請データを再取得
+      const response = await fetch('/api/applications');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data) {
+          // データの正規化
+          const normalizedData = data.data.map((item: any) => {
+            return {
+              ...item,
+              date: item.date || item.expense_date || item.invoice_date,
+              department_id: item.department_id || item.departments?.id,
+              category_id: item.category_id || item.categories?.id,
+              project_id: item.project_id || item.projects?.id,
+              event_id: item.event_id || item.events?.id,
+            };
+          });
+          setApplications(normalizedData);
+        }
+      }
+    } catch (error) {
+      console.error('データの再取得に失敗:', error);
+      // フォールバックとして画面を再読み込み
+      window.location.reload();
+    }
   };
 
   // 削除権限のチェック
