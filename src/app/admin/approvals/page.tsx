@@ -899,19 +899,28 @@ export default function ApprovalsPage() {
                         <TableCell>{getProjectName(application)}</TableCell>
                         <TableCell>{getStatusBadge(application.status)}</TableCell>
                         <TableCell>
-                          {(application as any).receipt_image ? (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                window.open((application as any).receipt_image, '_blank');
-                              }}
-                            >
-                              <FileImage className="h-4 w-4" />
-                            </Button>
-                          ) : (
-                            <span className="text-gray-400">-</span>
-                          )}
+                          {(() => {
+                            const receiptImage = application.receipt_image || (application as any).receipt_url;
+                            if (receiptImage) {
+                              return (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    window.open(receiptImage, '_blank');
+                                  }}
+                                  className="text-green-600 border-green-200 hover:bg-green-50"
+                                  title="領収書を表示"
+                                >
+                                  <FileImage className="h-4 w-4 mr-1" />
+                                  ✓
+                                </Button>
+                              );
+                            }
+                            return (
+                              <span className="text-gray-400" title="領収書未アップロード">-</span>
+                            );
+                          })()}
                         </TableCell>
                         <TableCell>
                           <div className="flex space-x-1">

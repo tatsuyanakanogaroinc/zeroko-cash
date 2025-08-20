@@ -171,6 +171,7 @@ export interface Database {
           expense_date: string
           payment_method: string
           status: string
+          receipt_image: string | null
           created_at: string
         }
         Insert: {
@@ -185,6 +186,7 @@ export interface Database {
           expense_date: string
           payment_method: string
           status?: string
+          receipt_image?: string | null
           created_at?: string
         }
         Update: {
@@ -199,6 +201,7 @@ export interface Database {
           expense_date?: string
           payment_method?: string
           status?: string
+          receipt_image?: string | null
           created_at?: string
         }
       }
@@ -217,6 +220,7 @@ export interface Database {
           vendor_name: string
           status: string
           receipt_url: string | null
+          receipt_image: string | null
           created_at: string
         }
         Insert: {
@@ -233,6 +237,7 @@ export interface Database {
           vendor_name: string
           status?: string
           receipt_url?: string | null
+          receipt_image?: string | null
           created_at?: string
         }
         Update: {
@@ -249,6 +254,7 @@ export interface Database {
           vendor_name?: string
           status?: string
           receipt_url?: string | null
+          receipt_image?: string | null
           created_at?: string
         }
       }
