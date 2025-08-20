@@ -29,7 +29,7 @@ interface Event {
   budget: number;
   department_id: string;
   description?: string;
-  status: 'active' | 'completed' | 'cancelled';
+  status: 'active' | 'completed';
   created_at: string;
 }
 
@@ -442,8 +442,6 @@ export default function SettingsPage() {
         return <Badge className="bg-green-100 text-green-800">アクティブ</Badge>;
       case 'completed':
         return <Badge className="bg-blue-100 text-blue-800">完了</Badge>;
-      case 'cancelled':
-        return <Badge className="bg-red-100 text-red-800">キャンセル</Badge>;
       default:
         return <Badge variant="outline">不明</Badge>;
     }
@@ -941,7 +939,6 @@ function EventForm({ onSubmit, editingItem, departments }: { onSubmit: (data: an
           <SelectContent>
             <SelectItem value="active">アクティブ</SelectItem>
             <SelectItem value="completed">完了</SelectItem>
-            <SelectItem value="cancelled">キャンセル</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -1126,7 +1123,6 @@ function ProjectForm({ onSubmit, editingItem, departments }: { onSubmit: (data: 
           <SelectContent>
             <SelectItem value="active">アクティブ</SelectItem>
             <SelectItem value="completed">完了</SelectItem>
-            <SelectItem value="cancelled">キャンセル</SelectItem>
           </SelectContent>
         </Select>
       </div>

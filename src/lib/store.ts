@@ -49,7 +49,7 @@ interface Event {
   description?: string;
   start_date: string;
   end_date: string;
-  status: 'planned' | 'active' | 'completed' | 'cancelled';
+  status: 'planned' | 'active' | 'completed';
   created_at: string;
 }
 

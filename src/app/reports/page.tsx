@@ -251,8 +251,6 @@ export default function ReportsPage() {
           displayStatus = 'approved';
         } else if (expense.status === 'pending') {
           displayStatus = 'pending';
-        } else if (expense.status === 'cancelled') {
-          displayStatus = 'rejected';
         } else {
           displayStatus = 'approved'; // デフォルトは承認済み
         }
@@ -391,8 +389,6 @@ export default function ReportsPage() {
           displayStatus = 'approved';
         } else if (expense.status === 'pending') {
           displayStatus = 'pending';
-        } else if (expense.status === 'cancelled') {
-          displayStatus = 'rejected';
         } else {
           displayStatus = 'approved'; // デフォルトは承認済み
         }

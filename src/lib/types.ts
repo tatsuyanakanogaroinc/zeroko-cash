@@ -42,7 +42,7 @@ export interface Event {
   end_date: string;
   budget: number;
   responsible_user_id?: string;
-  status: 'active' | 'completed' | 'cancelled';
+  status: 'active' | 'completed';
   description?: string;
   created_at: string;
 }
