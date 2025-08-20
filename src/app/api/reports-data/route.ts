@@ -120,10 +120,10 @@ export async function GET(request: Request) {
 
     // 経費データを集計
     (expenses || []).forEach(expense => {
-      // ユーザーの部門に計上
-      if (expense.users?.department_id) {
-        departmentExpenses[expense.users.department_id] = 
-          (departmentExpenses[expense.users.department_id] || 0) + expense.amount;
+      // 申請時に選択した部門に計上
+      if (expense.department_id) {
+        departmentExpenses[expense.department_id] = 
+          (departmentExpenses[expense.department_id] || 0) + expense.amount;
       }
       
       // イベントに計上
@@ -131,11 +131,13 @@ export async function GET(request: Request) {
         eventExpenses[expense.event_id] = 
           (eventExpenses[expense.event_id] || 0) + expense.amount;
         
-        // イベントに紐づく部門にも計上
-        const eventData = (events || []).find(event => event.id === expense.event_id);
-        if (eventData?.department_id) {
-          departmentExpenses[eventData.department_id] = 
-            (departmentExpenses[eventData.department_id] || 0) + expense.amount;
+        // 申請時の部門がない場合のみ、イベントに紐づく部門にも計上
+        if (!expense.department_id) {
+          const eventData = (events || []).find(event => event.id === expense.event_id);
+          if (eventData?.department_id) {
+            departmentExpenses[eventData.department_id] = 
+              (departmentExpenses[eventData.department_id] || 0) + expense.amount;
+          }
         }
       }
       

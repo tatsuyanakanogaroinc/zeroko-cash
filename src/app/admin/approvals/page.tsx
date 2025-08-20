@@ -249,19 +249,20 @@ export default function ApprovalsPage() {
 
   // ヘルパー関数 - ダッシュボードと同じパターンでデータアクセス
   const getDepartmentName = (application: any) => {
-    // 経費申請の場合
-    if (application.type === 'expense' && application.users?.departments) {
-      return application.users.departments.name || '不明';
+    // 申請時に選択した部門を優先的に使用
+    if (application.department_id) {
+      const dept = departments.find(d => d.id === application.department_id);
+      if (dept) return dept.name;
     }
-    // 請求書払いの場合
+    
+    // データ構造による部門の取得（フォールバック）
+    if (application.type === 'expense' && application.departments) {
+      return application.departments.name || '不明';
+    }
     if (application.type === 'invoice' && application.departments) {
       return application.departments.name || '不明';
     }
-    // フォールバック: ストアから検索
-    if (application.department_id) {
-      const dept = departments.find(d => d.id === application.department_id);
-      return dept?.name || '不明';
-    }
+    
     return '-';
   };
   

@@ -284,7 +284,7 @@ export default function ReportsPage() {
     
     if (itemType === 'department') {
       filteredExpenses = allExpenses.filter(expense => 
-        (expense.users?.department_id === itemId) || (expense.department_id === itemId)
+        expense.department_id === itemId
       );
     } else if (itemType === 'project') {
       filteredExpenses = allExpenses.filter(expense => expense.project_id === itemId);
@@ -354,7 +354,7 @@ export default function ReportsPage() {
     
     if (itemType === 'department') {
       filteredExpenses = allExpenses.filter(expense => 
-        (expense.users?.department_id === itemId) || (expense.department_id === itemId)
+        expense.department_id === itemId
       );
     } else if (itemType === 'project') {
       filteredExpenses = allExpenses.filter(expense => expense.project_id === itemId);

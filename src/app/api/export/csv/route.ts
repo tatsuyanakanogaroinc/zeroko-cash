@@ -264,7 +264,8 @@ export async function GET(request: NextRequest) {
                 events:events!left(*),
                 categories:categories!left(*),
                 projects:projects!left(*),
-                users:users!left(id, name, email, department_id, departments:departments!left(*)),
+                users:users!left(id, name, email),
+                departments:departments!left(*),
                 approved_by_user:users!expenses_approved_by_fkey(name)
               `)
               .order('expense_date', { ascending: false });
@@ -336,7 +337,7 @@ export async function GET(request: NextRequest) {
             date: expense.created_at, // 申請日は作成日時
             payment_date: null, // 支払日は承認済みでもnull（まだ精算していない）
             applicant: expense.users?.name || '',
-            department: expense.users?.departments?.name || '',
+            department: expense.departments?.name || '',
             amount: expense.amount,
             category: expense.categories?.name || '',
             description: expense.description || '',
