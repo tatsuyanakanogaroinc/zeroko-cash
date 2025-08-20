@@ -81,7 +81,7 @@ export async function PUT(
         amount: body.amount,
         category_id: body.category_id,
         description: body.description,
-        payment_method: body.payment_method || 'personal_cash',
+        payment_method: 'personal_cash',
         event_id: body.event_id || null,
         department_id: body.department_id || null,
         project_id: body.project_id || null,

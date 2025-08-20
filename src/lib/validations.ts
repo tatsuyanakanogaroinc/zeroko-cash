@@ -8,7 +8,6 @@ export const expenseFormSchema = z.object({
   project_id: z.string().optional(),
   event_id: z.string().optional(),
   description: z.string().min(1, '詳細説明は必須です'),
-  payment_method: z.enum(['personal_cash', 'personal_credit', 'company_cash', 'company_credit']),
 });
 
 export const userSchema = z.object({

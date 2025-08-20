@@ -73,7 +73,6 @@ function NewExpenseForm() {
         setValue('department_id', expense.department_id || '');
         setValue('project_id', expense.project_id || '');
         setValue('event_id', expense.event_id || 'none');
-        setValue('payment_method', expense.payment_method || 'personal_cash');
         setValue('description', expense.description || '');
       } else {
         console.error('経費データの読み込みに失敗しました');
@@ -93,9 +92,6 @@ function NewExpenseForm() {
     watch,
   } = useForm<ExpenseFormData>({
     resolver: zodResolver(expenseFormSchema),
-    defaultValues: {
-      payment_method: 'personal_cash',
-    },
   });
 
   const watchedAmount = watch('amount');
@@ -208,7 +204,7 @@ function NewExpenseForm() {
         amount: data.amount,
         category_id: data.category_id,
         description: data.description,
-        payment_method: data.payment_method || 'personal_cash',
+        payment_method: 'personal_cash',
         status: 'pending',
         event_id: data.event_id === 'none' ? null : data.event_id,
         department_id: data.department_id || null,
@@ -386,23 +382,6 @@ function NewExpenseForm() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="payment_method">支払方法 *</Label>
-                <Select onValueChange={(value) => setValue('payment_method', value as any)} value={watch('payment_method')}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="支払方法を選択" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="personal_cash">自費現金</SelectItem>
-                    <SelectItem value="personal_credit">自費クレカ</SelectItem>
-                    <SelectItem value="company_cash">会社現金</SelectItem>
-                    <SelectItem value="company_credit">会社クレカ</SelectItem>
-                  </SelectContent>
-                </Select>
-                {errors.payment_method && (
-                  <p className="text-sm text-red-500">{errors.payment_method.message}</p>
-                )}
-              </div>
 
               <div className="space-y-2">
                 <Label htmlFor="description">詳細説明 *</Label>

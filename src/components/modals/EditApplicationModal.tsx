@@ -28,7 +28,6 @@ const editApplicationSchema = z.object({
   department_id: z.string().optional(),
   project_id: z.string().optional(),
   event_id: z.string().optional(),
-  payment_method: z.string().min(1, '支払い方法を選択してください'),
 });
 
 type EditApplicationFormData = z.infer<typeof editApplicationSchema>;
@@ -43,7 +42,6 @@ interface Application {
   department_id?: string;
   project_id?: string;
   event_name?: string;
-  payment_method?: string;
 }
 
 interface EditApplicationModalProps {
@@ -74,9 +72,6 @@ export const EditApplicationModal: React.FC<EditApplicationModalProps> = ({
     reset,
   } = useForm<EditApplicationFormData>({
     resolver: zodResolver(editApplicationSchema),
-    defaultValues: {
-      payment_method: 'personal_cash',
-    },
   });
 
   const watchedAmount = watch('amount');
@@ -125,7 +120,6 @@ export const EditApplicationModal: React.FC<EditApplicationModalProps> = ({
         department_id: application.department_id || '',
         project_id: application.project_id || '',
         event_id: application.event_name || 'none',
-        payment_method: application.payment_method || 'personal_cash',
       });
     }
   }, [application, isOpen, reset]);
@@ -333,27 +327,6 @@ export const EditApplicationModal: React.FC<EditApplicationModalProps> = ({
             </Select>
           </div>
 
-          {/* 支払い方法 */}
-          <div className="space-y-2">
-            <Label htmlFor="payment_method">支払い方法 *</Label>
-            <Select
-              value={watch('payment_method') || 'personal_cash'}
-              onValueChange={(value) => setValue('payment_method', value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="支払い方法を選択してください" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="personal_cash">個人立替（現金）</SelectItem>
-                <SelectItem value="personal_card">個人立替（カード）</SelectItem>
-                <SelectItem value="company_card">法人カード</SelectItem>
-                <SelectItem value="bank_transfer">銀行振込</SelectItem>
-              </SelectContent>
-            </Select>
-            {errors.payment_method && (
-              <p className="text-sm text-red-600">{errors.payment_method.message}</p>
-            )}
-          </div>
 
           <DialogFooter className="gap-2">
             <Button
