@@ -16,6 +16,7 @@ import {
   UserCircle,
   Receipt,
   Briefcase,
+  Calculator,
 } from 'lucide-react';
 
 interface MenuItem {
@@ -61,6 +62,12 @@ const menuItems: MenuItem[] = [
     href: '/admin/approvals',
     icon: CheckCircle,
     permissionKey: 'shouldShowApprovals',
+  },
+  {
+    title: '精算・支払い処理',
+    href: '/admin/settlements',
+    icon: Calculator,
+    permissionKey: 'shouldShowApprovals', // 申請管理と同じ権限
   },
   {
     title: 'ユーザー管理',

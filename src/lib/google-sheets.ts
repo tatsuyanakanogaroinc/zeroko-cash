@@ -163,6 +163,71 @@ class GoogleSheetsService {
       return false;
     }
   }
+
+  // 統合支出データを更新（精算・支払い処理時）
+  async updateUnifiedExpenseInSheet(expenseId: string, updateData: Partial<UnifiedExpenseData>): Promise<boolean> {
+    try {
+      if (!this.sheets) {
+        await this.initializeAuth();
+      }
+
+      // 既存データを取得
+      const response = await this.sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_CONFIG.ALL_EXPENSES_SHEET_ID,
+        range: SPREADSHEET_CONFIG.ALL_EXPENSES_RANGE
+      });
+
+      const rows = response.data.values || [];
+      const headerRow = rows[0] || [];
+      
+      // 対象行を見つける
+      const targetRowIndex = rows.findIndex((row: string[], index: number) => 
+        index > 0 && row[0] === expenseId // ヘッダー行をスキップしてIDで検索
+      );
+
+      if (targetRowIndex === -1) {
+        console.log(`スプレッドシートに ID ${expenseId} のデータが見つかりません`);
+        return false;
+      }
+
+      // 更新するデータを準備
+      const currentRow = rows[targetRowIndex];
+      const updatedRow = [...currentRow];
+
+      // 支払日の更新（列インデックス 3）
+      if (updateData.支払日) {
+        updatedRow[3] = updateData.支払日;
+      }
+
+      // ステータスの更新（列インデックス 15）
+      if (updateData.ステータス) {
+        updatedRow[15] = updateData.ステータス;
+      }
+
+      // 備考の更新（列インデックス 16）
+      if (updateData.備考) {
+        updatedRow[16] = updateData.備考;
+      }
+
+      // 行を更新
+      const updateRange = `シート1!A${targetRowIndex + 1}:Q${targetRowIndex + 1}`;
+      const updateRequest = {
+        spreadsheetId: SPREADSHEET_CONFIG.ALL_EXPENSES_SHEET_ID,
+        range: updateRange,
+        valueInputOption: 'RAW',
+        resource: {
+          values: [updatedRow]
+        }
+      };
+
+      await this.sheets.spreadsheets.values.update(updateRequest);
+      console.log(`スプレッドシートの ID ${expenseId} のデータを更新しました`);
+      return true;
+    } catch (error) {
+      console.error('スプレッドシート更新エラー:', error);
+      return false;
+    }
+  }
 }
 
 // シングルトンインスタンス

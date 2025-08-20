@@ -191,9 +191,7 @@ async function syncToGoogleSheets(applicationId: string, type: 'expense' | 'invo
     申請日: type === 'expense' ? 
       new Date(applicationData.expense_date).toLocaleDateString('ja-JP') :
       new Date(applicationData.invoice_date || applicationData.created_at).toLocaleDateString('ja-JP'),
-    支払日: type === 'expense' ? 
-      new Date(applicationData.expense_date).toLocaleDateString('ja-JP') :
-      applicationData.invoice_date ? new Date(applicationData.invoice_date).toLocaleDateString('ja-JP') : '未定',
+    支払日: '', // 承認時点では空、精算・支払い処理時に設定される
     申請者: applicationData.users?.name || '不明',
     部署: type === 'expense' ? 
       (applicationData.users?.departments?.name || '不明') : 
