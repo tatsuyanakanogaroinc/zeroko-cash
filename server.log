@@ -1,0 +1,444 @@
+
+> zeroko-cash-expense-system@0.1.0 dev
+> next dev --turbopack
+
+ ⚠ Port 3000 is in use by process 23344, using available port 3002 instead.
+   ▲ Next.js 15.4.5 (Turbopack)
+   - Local:        http://localhost:3002
+   - Network:      http://192.168.151.187:3002
+   - Environments: .env.local, .env
+
+ ✓ Starting...
+ ✓ Ready in 998ms
+ ⚠ Webpack is configured while Turbopack is not, which may cause problems.
+ ⚠ See instructions if you need to configure Turbopack:
+  https://nextjs.org/docs/app/api-reference/next-config-js/turbopack
+
+ ○ Compiling /api/test/drive ...
+ ✓ Compiled /api/test/drive in 1762ms
+🧪 Google Drive同期テスト開始
+Google Driveアップロード準備: {
+  fileName: 'test-1754577195901_テストユーザー_2025-8-7_Google Drive.png',
+  contentType: 'image/png',
+  bufferSize: 70,
+  expenseType: '経費申請'
+}
+Google Driveへの画像アップロードエラー: TypeError: part.body.pipe is not a function
+    at GoogleDriveService.uploadImage (src/lib/google-drive.ts:195:46)
+    at async GET (src/app/api/test/drive/route.ts:25:19)
+  193 |
+  194 |       // 画像をアップロード
+> 195 |       const response = await this.drive.files.create({
+      |                                              ^
+  196 |         requestBody: {
+  197 |           name: newFileName,
+  198 |           parents: [expenseTypeFolderId]
+❌ Google Driveテストエラー: Error: 画像のアップロードに失敗しました
+    at GoogleDriveService.uploadImage (src/lib/google-drive.ts:215:12)
+    at async GET (src/app/api/test/drive/route.ts:25:19)
+  213 |     } catch (error) {
+  214 |       console.error('Google Driveへの画像アップロードエラー:', error);
+> 215 |       throw new Error('画像のアップロードに失敗しました');
+      |            ^
+  216 |     }
+  217 |   }
+  218 |
+ GET /api/test/drive 500 in 4295ms
+🧪 Google Drive同期テスト開始
+Google Driveアップロード準備: {
+  fileName: 'test-1754577222608_テストユーザー_2025-8-7_Google Drive.png',
+  contentType: 'image/png',
+  bufferSize: 70,
+  expenseType: '経費申請'
+}
+Google Driveへの画像アップロードエラー: Error: Service Accounts do not have storage quota. Leverage shared drives (https://developers.google.com/workspace/drive/api/guides/about-shareddrives), or use OAuth delegation (http://support.google.com/a/answer/7281227) instead.
+    at Gaxios._request (../../../src/gaxios.ts:211:14)
+    at async GoogleDriveService.uploadImage (src/lib/google-drive.ts:201:23)
+    at async GET (src/app/api/test/drive/route.ts:25:19)
+  199 |
+  200 |       // 画像をアップロード
+> 201 |       const response = await this.drive.files.create({
+      |                       ^
+  202 |         requestBody: {
+  203 |           name: newFileName,
+  204 |           parents: [expenseTypeFolderId] {
+  config: [Object],
+  response: [Response],
+  code: 403,
+  status: 403,
+  error: undefined,
+  [cause]: [Object]
+}
+❌ Google Driveテストエラー: Error: 画像のアップロードに失敗しました
+    at GoogleDriveService.uploadImage (src/lib/google-drive.ts:221:12)
+    at async GET (src/app/api/test/drive/route.ts:25:19)
+  219 |     } catch (error) {
+  220 |       console.error('Google Driveへの画像アップロードエラー:', error);
+> 221 |       throw new Error('画像のアップロードに失敗しました');
+      |            ^
+  222 |     }
+  223 |   }
+  224 |
+ GET /api/test/drive 500 in 4591ms
+   Reload env: .env.local
+🧪 Google Drive同期テスト開始
+Google Driveアップロード準備: {
+  fileName: 'test-1754577525252_テストユーザー_2025-8-7_Google Drive.png',
+  contentType: 'image/png',
+  bufferSize: 70,
+  expenseType: '経費申請'
+}
+Google Driveへの画像アップロードエラー: Error: Service Accounts do not have storage quota. Leverage shared drives (https://developers.google.com/workspace/drive/api/guides/about-shareddrives), or use OAuth delegation (http://support.google.com/a/answer/7281227) instead.
+    at Gaxios._request (../../../src/gaxios.ts:211:14)
+    at async GoogleDriveService.uploadImage (src/lib/google-drive.ts:210:23)
+    at async GET (src/app/api/test/drive/route.ts:25:19)
+  208 |
+  209 |       // 画像をアップロード
+> 210 |       const response = await this.drive.files.create({
+      |                       ^
+  211 |         requestBody: {
+  212 |           name: newFileName,
+  213 |           parents: [expenseTypeFolderId] {
+  config: [Object],
+  response: [Response],
+  code: 403,
+  status: 403,
+  error: undefined,
+  [cause]: [Object]
+}
+❌ Google Driveテストエラー: Error: 画像のアップロードに失敗しました
+    at GoogleDriveService.uploadImage (src/lib/google-drive.ts:231:12)
+    at async GET (src/app/api/test/drive/route.ts:25:19)
+  229 |     } catch (error) {
+  230 |       console.error('Google Driveへの画像アップロードエラー:', error);
+> 231 |       throw new Error('画像のアップロードに失敗しました');
+      |            ^
+  232 |     }
+  233 |   }
+  234 |
+ GET /api/test/drive 500 in 4237ms
+   Reload env: .env.local
+🧪 Google Drive同期テスト開始
+年フォルダ "2025" の取得/作成エラー: Error: File not found: 1Qi7pQShhYhGzvQQ30f_NgGq8mshwyQfy.
+    at Gaxios._request (../../../src/gaxios.ts:211:14)
+    at async GoogleDriveService.getOrCreateYearFolder (src/lib/google-drive.ts:89:29)
+    at async GoogleDriveService.uploadImage (src/lib/google-drive.ts:187:27)
+    at async GET (src/app/api/test/drive/route.ts:25:19)
+  87 |
+  88 |       // 年フォルダを作成
+> 89 |       const createResponse = await this.drive.files.create({
+     |                             ^
+  90 |         requestBody: {
+  91 |           name: year,
+  92 |           mimeType: 'application/vnd.google-apps.folder', {
+  config: [Object],
+  response: [Response],
+  code: 404,
+  status: 404,
+  error: undefined,
+  [cause]: [Object]
+}
+Google Driveへの画像アップロードエラー: Error: File not found: 1Qi7pQShhYhGzvQQ30f_NgGq8mshwyQfy.
+    at Gaxios._request (../../../src/gaxios.ts:211:14)
+    at async GoogleDriveService.getOrCreateYearFolder (src/lib/google-drive.ts:89:29)
+    at async GoogleDriveService.uploadImage (src/lib/google-drive.ts:187:27)
+    at async GET (src/app/api/test/drive/route.ts:25:19)
+  87 |
+  88 |       // 年フォルダを作成
+> 89 |       const createResponse = await this.drive.files.create({
+     |                             ^
+  90 |         requestBody: {
+  91 |           name: year,
+  92 |           mimeType: 'application/vnd.google-apps.folder', {
+  config: [Object],
+  response: [Response],
+  code: 404,
+  status: 404,
+  error: undefined,
+  [cause]: [Object]
+}
+❌ Google Driveテストエラー: Error: 画像のアップロードに失敗しました
+    at GoogleDriveService.uploadImage (src/lib/google-drive.ts:231:12)
+    at async GET (src/app/api/test/drive/route.ts:25:19)
+  229 |     } catch (error) {
+  230 |       console.error('Google Driveへの画像アップロードエラー:', error);
+> 231 |       throw new Error('画像のアップロードに失敗しました');
+      |            ^
+  232 |     }
+  233 |   }
+  234 |
+ GET /api/test/drive 500 in 2064ms
+   Reload env: .env.local
+🧪 Google Drive同期テスト開始
+年フォルダ "2025" の取得/作成エラー: Error: File not found: 1Qi7pQShhYhGzvQQ30f_NgGq8mshwyQfy.
+    at Gaxios._request (../../../src/gaxios.ts:211:14)
+    at async GoogleDriveService.getOrCreateYearFolder (src/lib/google-drive.ts:89:29)
+    at async GoogleDriveService.uploadImage (src/lib/google-drive.ts:187:27)
+    at async GET (src/app/api/test/drive/route.ts:25:19)
+  87 |
+  88 |       // 年フォルダを作成
+> 89 |       const createResponse = await this.drive.files.create({
+     |                             ^
+  90 |         requestBody: {
+  91 |           name: year,
+  92 |           mimeType: 'application/vnd.google-apps.folder', {
+  config: [Object],
+  response: [Response],
+  code: 404,
+  status: 404,
+  error: undefined,
+  [cause]: [Object]
+}
+Google Driveへの画像アップロードエラー: Error: File not found: 1Qi7pQShhYhGzvQQ30f_NgGq8mshwyQfy.
+    at Gaxios._request (../../../src/gaxios.ts:211:14)
+    at async GoogleDriveService.getOrCreateYearFolder (src/lib/google-drive.ts:89:29)
+    at async GoogleDriveService.uploadImage (src/lib/google-drive.ts:187:27)
+    at async GET (src/app/api/test/drive/route.ts:25:19)
+  87 |
+  88 |       // 年フォルダを作成
+> 89 |       const createResponse = await this.drive.files.create({
+     |                             ^
+  90 |         requestBody: {
+  91 |           name: year,
+  92 |           mimeType: 'application/vnd.google-apps.folder', {
+  config: [Object],
+  response: [Response],
+  code: 404,
+  status: 404,
+  error: undefined,
+  [cause]: [Object]
+}
+❌ Google Driveテストエラー: Error: 画像のアップロードに失敗しました
+    at GoogleDriveService.uploadImage (src/lib/google-drive.ts:231:12)
+    at async GET (src/app/api/test/drive/route.ts:25:19)
+  229 |     } catch (error) {
+  230 |       console.error('Google Driveへの画像アップロードエラー:', error);
+> 231 |       throw new Error('画像のアップロードに失敗しました');
+      |            ^
+  232 |     }
+  233 |   }
+  234 |
+ GET /api/test/drive 500 in 1715ms
+   Reload env: .env.local
+🧪 Google Drive同期テスト開始
+Google Driveアップロード準備: {
+  fileName: 'test-1755392527156_テストユーザー_2025-8-17_Google Drive.png',
+  contentType: 'image/png',
+  bufferSize: 70,
+  expenseType: '経費申請'
+}
+Google Driveへの画像アップロードエラー: Error: Service Accounts do not have storage quota. Leverage shared drives (https://developers.google.com/workspace/drive/api/guides/about-shareddrives), or use OAuth delegation (http://support.google.com/a/answer/7281227) instead.
+    at Gaxios._request (../../../src/gaxios.ts:211:14)
+    at async GoogleDriveService.uploadImage (src/lib/google-drive.ts:210:23)
+    at async GET (src/app/api/test/drive/route.ts:25:19)
+  208 |
+  209 |       // 画像をアップロード
+> 210 |       const response = await this.drive.files.create({
+      |                       ^
+  211 |         requestBody: {
+  212 |           name: newFileName,
+  213 |           parents: [expenseTypeFolderId] {
+  config: [Object],
+  response: [Response],
+  code: 403,
+  status: 403,
+  error: undefined,
+  [cause]: [Object]
+}
+❌ Google Driveテストエラー: Error: 画像のアップロードに失敗しました
+    at GoogleDriveService.uploadImage (src/lib/google-drive.ts:231:12)
+    at async GET (src/app/api/test/drive/route.ts:25:19)
+  229 |     } catch (error) {
+  230 |       console.error('Google Driveへの画像アップロードエラー:', error);
+> 231 |       throw new Error('画像のアップロードに失敗しました');
+      |            ^
+  232 |     }
+  233 |   }
+  234 |
+ GET /api/test/drive 500 in 4807ms
+   Reload env: .env.local
+🧪 Google Drive同期テスト開始
+年フォルダ "2025" の取得/作成エラー: Error: File not found: 0AJ883RBiVMkQUk9PVA.
+    at Gaxios._request (../../../src/gaxios.ts:211:14)
+    at async GoogleDriveService.getOrCreateYearFolder (src/lib/google-drive.ts:89:29)
+    at async GoogleDriveService.uploadImage (src/lib/google-drive.ts:187:27)
+    at async GET (src/app/api/test/drive/route.ts:25:19)
+  87 |
+  88 |       // 年フォルダを作成
+> 89 |       const createResponse = await this.drive.files.create({
+     |                             ^
+  90 |         requestBody: {
+  91 |           name: year,
+  92 |           mimeType: 'application/vnd.google-apps.folder', {
+  config: [Object],
+  response: [Response],
+  code: 404,
+  status: 404,
+  error: undefined,
+  [cause]: [Object]
+}
+Google Driveへの画像アップロードエラー: Error: File not found: 0AJ883RBiVMkQUk9PVA.
+    at Gaxios._request (../../../src/gaxios.ts:211:14)
+    at async GoogleDriveService.getOrCreateYearFolder (src/lib/google-drive.ts:89:29)
+    at async GoogleDriveService.uploadImage (src/lib/google-drive.ts:187:27)
+    at async GET (src/app/api/test/drive/route.ts:25:19)
+  87 |
+  88 |       // 年フォルダを作成
+> 89 |       const createResponse = await this.drive.files.create({
+     |                             ^
+  90 |         requestBody: {
+  91 |           name: year,
+  92 |           mimeType: 'application/vnd.google-apps.folder', {
+  config: [Object],
+  response: [Response],
+  code: 404,
+  status: 404,
+  error: undefined,
+  [cause]: [Object]
+}
+❌ Google Driveテストエラー: Error: 画像のアップロードに失敗しました
+    at GoogleDriveService.uploadImage (src/lib/google-drive.ts:231:12)
+    at async GET (src/app/api/test/drive/route.ts:25:19)
+  229 |     } catch (error) {
+  230 |       console.error('Google Driveへの画像アップロードエラー:', error);
+> 231 |       throw new Error('画像のアップロードに失敗しました');
+      |            ^
+  232 |     }
+  233 |   }
+  234 |
+ GET /api/test/drive 500 in 1629ms
+ ✓ Compiled /api/test/drive-list in 309ms
+🧪 Google Drive共有ドライブ内容確認テスト開始
+📁 Google Drive フォルダ構造:
+ GET /api/test/drive-list 200 in 1283ms
+ ✓ Compiled /api/test/drive-simple in 227ms
+🧪 Google Drive簡単テスト開始
+❌ Google Drive簡単テストエラー: Error: File not found: 0AJ883RBiVMkQUk9PVA.
+    at Gaxios._request (../../../src/gaxios.ts:211:14)
+    at async GET (src/app/api/test/drive-simple/route.ts:36:21)
+  34 |     stream.push(null);
+  35 |     
+> 36 |     const response = await drive.files.create({
+     |                     ^
+  37 |       requestBody: {
+  38 |         name: `test-file-${Date.now()}.txt`,
+  39 |         parents: [process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID!] {
+  config: [Object],
+  response: [Response],
+  code: 404,
+  status: 404,
+  error: undefined,
+  [cause]: [Object]
+}
+ GET /api/test/drive-simple 500 in 1437ms
+🧪 Google Drive簡単テスト開始
+❌ Google Drive簡単テストエラー: Error: File not found: 0AJ883RBiVMkQUk9PVA.
+    at Gaxios._request (../../../src/gaxios.ts:211:14)
+    at async GET (src/app/api/test/drive-simple/route.ts:36:21)
+  34 |     stream.push(null);
+  35 |     
+> 36 |     const response = await drive.files.create({
+     |                     ^
+  37 |       requestBody: {
+  38 |         name: `test-file-${Date.now()}.txt`,
+  39 |         parents: [process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID!] {
+  config: [Object],
+  response: [Response],
+  code: 404,
+  status: 404,
+  error: undefined,
+  [cause]: [Object]
+}
+ GET /api/test/drive-simple 500 in 1905ms
+ ✓ Compiled /api/test/drive-drives in 229ms
+🧪 利用可能な共有ドライブ一覧取得テスト開始
+利用可能な共有ドライブ: []
+ GET /api/test/drive-drives 200 in 1054ms
+🧪 利用可能な共有ドライブ一覧取得テスト開始
+利用可能な共有ドライブ: [ { kind: 'drive#drive', id: '0AJ883RBiVMkQUk9PVA', name: 'バックオフィス' } ]
+ GET /api/test/drive-drives 200 in 610ms
+🧪 Google Drive簡単テスト開始
+✅ ファイル作成成功: {
+  id: '12nM8_vrwkxu-zXocJEVSztZWeFf2H2wP',
+  webViewLink: 'https://drive.google.com/file/d/12nM8_vrwkxu-zXocJEVSztZWeFf2H2wP/view?usp=drivesdk'
+}
+ GET /api/test/drive-simple 200 in 2993ms
+🧪 Google Drive同期テスト開始
+年フォルダ "2025" を作成しました
+月フォルダ "08月" を作成しました
+支出タイプフォルダ "経費申請" を作成しました
+Google Driveアップロード準備: {
+  fileName: 'test-1755477703561_テストユーザー_2025-8-18_Google Drive.png',
+  contentType: 'image/png',
+  bufferSize: 70,
+  expenseType: '経費申請'
+}
+画像をアップロードしました: test-1755477703561_テストユーザー_2025-8-18_Google Drive.png -> フォルダ: 2025/08月/経費申請
+ GET /api/test/drive 200 in 14365ms
+ ✓ Compiled /api/test/sync in 299ms
+🧪 Google Sheets同期テスト開始
+✅ Google Sheetsサービス初期化成功
+スプレッドシートへの統合支出データ追加エラー: Error: The caller does not have permission
+    at Gaxios._request (../../../src/gaxios.ts:211:14)
+    at async GoogleSheetsService.addUnifiedExpenseToSheet (src/lib/google-sheets.ts:107:6)
+    at async GET (src/app/api/test/sync/route.ts:46:6)
+  105 |       };
+  106 |
+> 107 |       await this.sheets.spreadsheets.values.append(request);
+      |      ^
+  108 |       console.log('統合支出データをスプレッドシートに追加しました:', expenseData.id, expenseData.支出タイプ);
+  109 |       return true;
+  110 |     } catch (error) { {
+  config: [Object],
+  response: [Response],
+  code: 403,
+  status: 403,
+  error: undefined,
+  [cause]: [Object]
+}
+✅ テストデータの書き込み成功
+ GET /api/test/sync 200 in 1652ms
+   Reload env: .env.local
+🧪 Google Sheets同期テスト開始
+✅ Google Sheetsサービス初期化成功
+統合支出データをスプレッドシートに追加しました: test-1755477816163 テスト申請
+✅ テストデータの書き込み成功
+ GET /api/test/sync 200 in 2310ms
+ ✓ Compiled /api/export/csv in 141ms
+ GET /api/export/csv?type=unified 200 in 815ms
+ GET /api/export/csv?type=expenses 200 in 284ms
+ ✓ Compiled /api/applications in 137ms
+申請データAPI: データ取得開始
+API経費データ: { count: 13, error: null }
+API請求書データ: { count: 1, error: null }
+API統合データ: 14 件
+ GET /api/applications 200 in 731ms
+ ✓ Compiled /api/applications/[id]/approve in 261ms
+Error: Route "/api/applications/[id]/approve" used `params.id`. `params` should be awaited before using its properties. Learn more: https://nextjs.org/docs/messages/sync-dynamic-apis
+    at POST (src/app/api/applications/[id]/approve/route.ts:24:12)
+  22 | ) {
+  23 |   try {
+> 24 |     const { id } = params;
+     |            ^
+  25 |     const body = await request.json();
+  26 |     const { action, comments, type, userId } = body;
+  27 |
+承認API開始: {
+  id: '87594bef-1fc1-46de-8672-555383568d3f',
+  action: 'approve',
+  comments: '承認テスト - Google Sheets自動同期確認',
+  type: 'expense',
+  userId: '501122a3-fc11-4817-9872-db0b2da7201b'
+}
+テーブル名: expenses ステータス: approved
+申請検索結果: {
+  application: { id: '87594bef-1fc1-46de-8672-555383568d3f', status: 'pending' },
+  fetchError: null
+}
+更新データ: { status: 'approved', comments: '承認テスト - Google Sheets自動同期確認' }
+更新結果: { updateError: null }
+統合支出データをスプレッドシートに追加しました: 87594bef-1fc1-46de-8672-555383568d3f 経費申請
+Google Sheetsへの同期が完了しました
+申請 87594bef-1fc1-46de-8672-555383568d3f には領収書画像がありません。Google Drive同期をスキップします。
+Google Driveへの画像同期が完了しました
+ POST /api/applications/87594bef-1fc1-46de-8672-555383568d3f/approve 200 in 4178ms

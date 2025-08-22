@@ -42,22 +42,36 @@ export default function DashboardPage() {
   
   // アプリケーションデータから直接関連情報を取得する関数
   const getDepartmentName = (application: any) => {
+    console.log('ダッシュボード getDepartmentName - 入力データ:', {
+      id: application.id,
+      type: application.type,
+      department_id: application.department_id,
+      departments: application.departments,
+      users: application.users
+    });
+    
     // 申請時に選択した部門を優先的に使用
     if (application.department_id) {
       const dept = departments.find(d => d.id === application.department_id);
-      if (dept) return dept.name;
+      if (dept) {
+        console.log('ダッシュボード 部門名決定 - department_id:', dept.name);
+        return dept.name;
+      }
     }
     
     // データ構造による部門の取得（フォールバック）
     if (application.type === 'expense' && application.departments) {
+      console.log('ダッシュボード 部門名決定 - フォールバック(expense):', application.departments.name);
       return application.departments.name || '不明';
     }
     if (application.type === 'invoice' && application.departments) {
+      console.log('ダッシュボード 部門名決定 - フォールバック(invoice):', application.departments.name);
       return application.departments.name || '不明';
     }
     
+    console.log('ダッシュボード 部門名決定 - デフォルト: 未定');
     return '未定';
-  };
+  };;
   
   const getProjectName = (application: any) => {
     if (application.projects) {

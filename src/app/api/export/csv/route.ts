@@ -56,7 +56,8 @@ export async function GET(request: NextRequest) {
             *,
             events:events!left(*),
             categories:categories!left(*),
-            users:users!left(id, name, email, department_id, departments:departments!left(*))
+            departments:departments!left(*),
+            users:users!left(id, name, email)
           `)
           .order('created_at', { ascending: false });
 
@@ -89,7 +90,7 @@ export async function GET(request: NextRequest) {
             formatDate(expense.created_at), // 申請日は作成日時
             formatDate(expense.expense_date), // 精算日
             expense.users?.name || '',
-            expense.users?.departments?.name || '',
+            expense.departments?.name || '',
             expense.description || '',
             formatAmount(expense.amount),
             expense.categories?.name || '',

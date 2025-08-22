@@ -98,7 +98,7 @@ export default function ApprovalsPage() {
               return {
                 ...item,
                 date: item.date || item.expense_date || item.invoice_date,
-                department_id: item.department_id || item.departments?.id,
+                // department_idは元の値を保持（上書きしない）
                 category_id: item.category_id || item.categories?.id,
                 project_id: item.project_id || item.projects?.id,
                 event_id: item.event_id || item.events?.id,
@@ -113,7 +113,11 @@ export default function ApprovalsPage() {
               type: item.type,
               department_id: item.department_id,
               departments: item.departments,
-              users: item.users
+              users: item.users,
+              申請者名: item.users?.name,
+              申請者の所属部門: item.users?.departments?.name,
+              申請時の部門: item.departments?.name,
+              表示される部門: getDepartmentName(item)
             })));
             setApplications(normalizedData);
           }
@@ -478,7 +482,7 @@ export default function ApprovalsPage() {
             return {
               ...item,
               date: item.date || item.expense_date || item.invoice_date,
-              department_id: item.department_id || item.departments?.id,
+              // department_idは元の値を保持（上書きしない）
               category_id: item.category_id || item.categories?.id,
               project_id: item.project_id || item.projects?.id,
               event_id: item.event_id || item.events?.id,
@@ -606,7 +610,7 @@ export default function ApprovalsPage() {
             const normalizedData = refreshData.data.map((item: any) => ({
               ...item,
               date: item.date || item.expense_date || item.invoice_date,
-              department_id: item.department_id || item.departments?.id,
+              // department_idは元の値を保持（上書きしない）
               category_id: item.category_id || item.categories?.id,
               project_id: item.project_id || item.projects?.id,
               event_id: item.event_id || item.events?.id,
