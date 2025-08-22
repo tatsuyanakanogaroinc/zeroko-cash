@@ -29,7 +29,9 @@ export async function POST(request: NextRequest) {
         *,
         events:events!left(*),
         categories:categories!left(*),
-        users:users!left(department_id, departments:departments!left(*))
+        departments:departments!left(*),
+        projects:projects!left(*),
+        users:users!left(id, name, email)
       `)
       .eq('user_id', userId)
       .order('created_at', { ascending: false });

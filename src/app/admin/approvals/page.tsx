@@ -63,10 +63,9 @@ export default function ApprovalsPage() {
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!user) {
-        setIsLoading(false);
-        return;
-      }
+      // 管理画面のデータは管理者のみアクセス可能だが、
+      // データ取得自体はユーザー情報なしで実行可能
+      console.log('申請管理データ取得開始');
 
       try {
         // マスターデータの読み込み
@@ -87,7 +86,10 @@ export default function ApprovalsPage() {
         }
 
         // 申請データの取得
+        console.log('申請データAPIにリクエスト送信中...');
         const response = await fetch('/api/applications');
+        console.log('申請データAPIレスポンス:', response.status, response.statusText);
+        
         if (response.ok) {
           const data = await response.json();
           console.log('申請データ:', data);
@@ -120,7 +122,15 @@ export default function ApprovalsPage() {
               表示される部門: getDepartmentName(item)
             })));
             setApplications(normalizedData);
+          } else {
+            console.error('申請データの形式が不正:', data);
+            setApplications([]);
           }
+        } else {
+          console.error('申請データAPIリクエスト失敗:', response.status, response.statusText);
+          const errorData = await response.text();
+          console.error('エラーレスポンス:', errorData);
+          setApplications([]);
         }
       } catch (error) {
         console.error('データの取得に失敗:', error);
@@ -130,7 +140,7 @@ export default function ApprovalsPage() {
     };
 
     fetchData();
-  }, [user, masterDataLoaded, eventsLoaded]);
+  }, [masterDataLoaded, eventsLoaded]);
 
   if (isLoading) {
     return (
