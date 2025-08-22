@@ -134,6 +134,9 @@ export default function ApprovalsPage() {
         }
       } catch (error) {
         console.error('データの取得に失敗:', error);
+        // エラーが発生した場合は空のデータを設定してページを表示
+        setApplications([]);
+        alert('データの取得に失敗しました。データベースのマイグレーションが必要かもしれません。');
       } finally {
         setIsLoading(false);
       }

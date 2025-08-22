@@ -47,9 +47,16 @@ export async function GET(request: NextRequest) {
 
     if (expenseError) {
       console.error('経費データ取得エラー:', expenseError);
+      // department_idフィールドが存在しないエラーをチェック
+      if (expenseError.message && expenseError.message.includes('department_id')) {
+        console.error('!!! マイグレーション必要 !!! expenses テーブルに department_id フィールドがありません');
+      }
     }
     if (invoiceError) {
       console.error('請求書データ取得エラー:', invoiceError);
+      if (invoiceError.message && invoiceError.message.includes('department_id')) {
+        console.error('!!! マイグレーション必要 !!! invoice_payments テーブルに department_id フィールドがありません');
+      }
     }
 
     // データを正規化
@@ -82,6 +89,20 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('申請データAPI エラー:', error);
+    
+    // マイグレーション関連エラーの特別処理
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (errorMessage.includes('department_id') || errorMessage.includes('project_id')) {
+      return NextResponse.json(
+        { 
+          error: 'データベースのマイグレーションが必要です。expenses/invoice_paymentsテーブルにdepartment_idフィールドがありません。', 
+          success: false,
+          migration_needed: true
+        },
+        { status: 500 }
+      );
+    }
+    
     return NextResponse.json(
       { error: 'データの取得に失敗しました', success: false },
       { status: 500 }
