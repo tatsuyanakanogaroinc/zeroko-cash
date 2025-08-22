@@ -110,17 +110,28 @@ export default function ApprovalsPage() {
             console.log('正規化後のデータ:', normalizedData);
             console.log('請求書払いデータ:', normalizedData.filter(item => item.type === 'invoice'));
             console.log('ペンディングステータスの件数:', normalizedData.filter(app => app.status === 'pending').length);
-            console.log('部門デバッグ - 経費申請:', normalizedData.filter(item => item.type === 'expense').map(item => ({
-              id: item.id,
-              type: item.type,
-              department_id: item.department_id,
-              departments: item.departments,
-              users: item.users,
-              申請者名: item.users?.name,
-              申請者の所属部門: item.users?.departments?.name,
-              申請時の部門: item.departments?.name,
-              表示される部門: getDepartmentName(item)
-            })));
+            console.log('部門デバッグ - 経費申請:', normalizedData.filter(item => item.type === 'expense').map(item => {
+              // 部門名を安全に取得
+              let displayedDepartment = '未定';
+              if (item.department_id) {
+                const dept = departments.find(d => d.id === item.department_id);
+                if (dept) displayedDepartment = dept.name;
+              } else if (item.type === 'expense' && item.departments) {
+                displayedDepartment = item.departments.name || '不明';
+              }
+              
+              return {
+                id: item.id,
+                type: item.type,
+                department_id: item.department_id,
+                departments: item.departments,
+                users: item.users,
+                申請者名: item.users?.name,
+                申請者の所属部門: item.users?.departments?.name,
+                申請時の部門: item.departments?.name,
+                表示される部門: displayedDepartment
+              };
+            }));
             setApplications(normalizedData);
           } else {
             console.error('申請データの形式が不正:', data);
