@@ -15,6 +15,8 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
 export async function GET(request: NextRequest) {
   try {
     console.log('申請データAPI: データ取得開始');
+    console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
+    console.log('Service Key存在確認:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
 
     // 経費申請データを取得（関連データも含める）
     const { data: expenseData, error: expenseError } = await supabaseAdmin
@@ -44,6 +46,16 @@ export async function GET(request: NextRequest) {
 
     console.log('API経費データ:', { count: expenseData?.length || 0, error: expenseError });
     console.log('API請求書データ:', { count: invoiceData?.length || 0, error: invoiceError });
+    
+    // 取得したデータのサンプルを表示（デバッグ用）
+    if (expenseData && expenseData.length > 0) {
+      console.log('経費データサンプル:', {
+        id: expenseData[0].id,
+        department_id: expenseData[0].department_id,
+        departments: expenseData[0].departments,
+        user_id: expenseData[0].user_id
+      });
+    }
 
     if (expenseError) {
       console.error('経費データ取得エラー:', expenseError);
