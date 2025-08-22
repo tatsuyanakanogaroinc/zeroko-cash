@@ -108,6 +108,13 @@ export default function ApprovalsPage() {
             console.log('正規化後のデータ:', normalizedData);
             console.log('請求書払いデータ:', normalizedData.filter(item => item.type === 'invoice'));
             console.log('ペンディングステータスの件数:', normalizedData.filter(app => app.status === 'pending').length);
+            console.log('部門デバッグ - 経費申請:', normalizedData.filter(item => item.type === 'expense').map(item => ({
+              id: item.id,
+              type: item.type,
+              department_id: item.department_id,
+              departments: item.departments,
+              users: item.users
+            })));
             setApplications(normalizedData);
           }
         }
@@ -249,20 +256,34 @@ export default function ApprovalsPage() {
 
   // ヘルパー関数 - ダッシュボードと同じパターンでデータアクセス
   const getDepartmentName = (application: any) => {
+    console.log('getDepartmentName - 入力データ:', {
+      id: application.id,
+      type: application.type,
+      department_id: application.department_id,
+      departments: application.departments,
+      users: application.users
+    });
+    
     // 申請時に選択した部門を優先的に使用
     if (application.department_id) {
       const dept = departments.find(d => d.id === application.department_id);
-      if (dept) return dept.name;
+      if (dept) {
+        console.log('部門名決定 - department_id:', dept.name);
+        return dept.name;
+      }
     }
     
     // データ構造による部門の取得（フォールバック）
     if (application.type === 'expense' && application.departments) {
+      console.log('部門名決定 - フォールバック(expense):', application.departments.name);
       return application.departments.name || '不明';
     }
     if (application.type === 'invoice' && application.departments) {
+      console.log('部門名決定 - フォールバック(invoice):', application.departments.name);
       return application.departments.name || '不明';
     }
     
+    console.log('部門名決定 - デフォルト: -');
     return '-';
   };
   
