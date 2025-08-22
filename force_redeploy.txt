@@ -1,0 +1,3 @@
+Force redeploy after database migration
+Timestamp: 2025-01-22 - Department ID migration completed
+This file forces Vercel to redeploy with latest database schema
